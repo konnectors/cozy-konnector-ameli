@@ -1,4 +1,4 @@
-[Cozy][cozy] <YOUR SUPER NEW KONNECTOR NAME>
+[Cozy][cozy] Ameli
 =======================================
 
 What's Cozy?
@@ -11,7 +11,7 @@ What's Cozy?
 What's this new konnector?
 --------------------------
 
-<YOUR DESCRIPTION HERE>
+The konnector gets information from Ameli (french national insurance)
 
 ### Open a Pull-Request
 
@@ -21,7 +21,7 @@ If you want to work on this konnector and submit code modifications, feel free t
 
 If you just want to test this connector without any cozy available.
 
-You first need an installed [nodejs] (LTS version is fine).
+You first need an installed [nodejs] (LTS version is fine). This project has a '.nvmrc' file, so if you use nvm, simply do 'nvm use'.
 
 We also suggest you tu use [yarn] instead of npm for node packages.
 
@@ -138,7 +138,7 @@ yarn lint
 
 ### Maintainer
 
-The lead maintainers for this konnector is <YOUR NAME>
+The lead maintainers for this konnector is Brice Coquereau
 
 
 ### Get in touch
@@ -154,7 +154,7 @@ You can reach the Cozy Community by:
 License
 -------
 
-<YOUR KONNECTOR NAME> is developed by <your name> and distributed under the [AGPL v3 license][agpl-3.0].
+Ameli is developed by Brice Coquereau and distributed under the [AGPL v3 license][agpl-3.0].
 
 [cozy]: https://cozy.io "Cozy Cloud"
 [agpl-3.0]: https://www.gnu.org/licenses/agpl-3.0.html
@@ -167,3 +167,5 @@ License
 [webpack]: https://webpack.js.org
 [yarn]: https://yarnpkg.com
 [travis]: https://travis-ci.org
+
+Big big thanks to [Gara64](https://github.com/gara64), who created this konnector in v2. I used his code a lot.

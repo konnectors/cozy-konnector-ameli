@@ -1,10 +1,10 @@
 {
   "version": "1.0.0",
-  "name": "konnector name",
+  "name": "ameli konnector v3",
   "type": "node",
   "slug": "konnectorslug",
-  "description": "description",
-  "source": "git://github.com/cozy/cozy-konnector-thename.git",
+  "description": "Ameli konnector for Cozy v3",
+  "source": "git@github.com:briced/cozy-konnector-v3-ameli.git",
   "fields": {
     "save_folder": {
       "doctype": "io.cozy.files",
@@ -30,10 +30,6 @@
     }
   },
   "permissions": {
-    "kittens": {
-      "description": "Required to save the kittens details",
-      "type": "io.cozy.kitten"
-    },
     "files": {
       "description": "Required to save the bills",
       "type": "io.cozy.files"
@@ -45,7 +41,7 @@
     }
   },
   "developer": {
-    "name": "cozy",
-    "url": "cozy.io"
+    "name": "Brice Coquereau",
+    "url": "https://brice.coquereau.fr"
   }
 }
