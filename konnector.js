@@ -1,6 +1,3 @@
-// This is a default simple connector made to show you some common libs which can be used
-// This connector fetches some cat images from the qwant api (which is more open than the google one)
-
 'use strict'
 
 const {baseKonnector, filterExisting, saveDataAndFile, linkBankOperation, models} = require('cozy-konnector-libs')
@@ -79,7 +76,7 @@ const logIn = function (requiredFields, billInfos, data, next) {
         if (err) {
           log.error(err)
           return next('bad credentials')
-        } else if ($('#id_lien_deco').length !== 1) {
+        } else if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
           log.error('Authentication error')
           return next('bad credentials')
         } else {
