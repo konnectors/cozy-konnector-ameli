@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "name": "ameli konnector v3",
   "type": "node",
-  "slug": "konnectorslug",
+  "slug": "ameli",
   "description": "Ameli konnector for Cozy v3",
   "source": "git@github.com:briced/cozy-konnector-v3-ameli.git",
   "fields": {
@@ -30,6 +30,10 @@
     }
   },
   "permissions": {
+    "bills": {
+      "description": "Required to save the bills data",
+      "type": "io.cozy.bills"
+    },
     "files": {
       "description": "Required to save the bills",
       "type": "io.cozy.files"
