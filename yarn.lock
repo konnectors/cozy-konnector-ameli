@@ -516,9 +516,9 @@ cozy-client-js@^0.3.4:
   version "0.3.11"
   resolved "https://registry.yarnpkg.com/cozy-client-js/-/cozy-client-js-0.3.11.tgz#60aa59e56d51af8bae7fcc4929fd51a90a1b8b72"
 
-cozy-konnector-libs@^3.0.0-alpha.18:
-  version "3.0.0-alpha.18"
-  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-3.0.0-alpha.18.tgz#2d1535da24ab39a2c58e457a6f18f8c01a5c56ca"
+cozy-konnector-libs@^3.0.0-alpha.19:
+  version "3.0.0-alpha.19"
+  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-3.0.0-alpha.19.tgz#6e330e2addcea3edd30fd4d7bdcd75bca8f79527"
   dependencies:
     bluebird "^3.5.0"
     bluebird-retry "^0.11.0"
