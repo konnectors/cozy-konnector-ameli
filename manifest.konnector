@@ -12,13 +12,13 @@
     },
     "account": {
       "doctype": "io.cozy.accounts",
-      "account_type": "accounttype",
+      "account_type": "ameli",
       "accountFormat": "login,password"
     }
   },
   "locales": {
     "fr": {
-      "description": "Récupère toutes vos factures",
+      "description": "Récupère toutes vos factures ameli",
       "permissions": {
         "bills": {
           "description": "Utilisé pour sauvegarder les données de facturation"
@@ -27,9 +27,24 @@
           "description": "Utilisé pour sauvegarder les factures"
         }
       }
+    },
+    "en": {
+      "description": "Retrieves all your ameli invoices",
+      "permissions": {
+        "bills": {
+          "description": "Used to save billing data"
+        },
+        "files": {
+          "description": "Used to save invoices"
+        }
+      }
     }
   },
   "permissions": {
+    "bank operations": {
+      "description": "Required to link bills to bank operations",
+      "type": "io.cozy.bank.operations"
+    },
     "bills": {
       "description": "Required to save the bills data",
       "type": "io.cozy.bills"
