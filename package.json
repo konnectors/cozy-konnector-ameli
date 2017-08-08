@@ -1,6 +1,6 @@
 {
   "name": "cozy-konnector-ameli",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "",
   "repository": {
     "type": "git",
@@ -19,7 +19,9 @@
     "build": "webpack",
     "lint": "standard --fix index.js",
     "deploy:travis": "git-directory-deploy --username <YOUR_GH_USERNAME> --email <YOUR_EMAIL> --directory build/ --repo=https://$GITHUB_TOKEN@github.com/briced/cozy-konnector-v3-ameli.git",
-    "deploy": "git-directory-deploy --directory build/ --branch build --repo=https://github.com/briced/cozy-konnector-v3-ameli.git"
+    "deploy": "git-directory-deploy --directory build/ --branch build --repo=https://github.com/briced/cozy-konnector-v3-ameli.git",
+    "preversion": "npm lint",
+    "postversion": "npm run build && npm run deploy && git push && git push --tags && rm -rf build/"
   },
   "devDependencies": {
     "copy-webpack-plugin": "^4.0.1",
