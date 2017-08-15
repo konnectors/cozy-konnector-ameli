@@ -163,6 +163,5 @@ const getPdf = function (bill) {
 }
 
 function getFileName (date) {
-  date = moment(date)
-  return `${date.format('YYYYMMDD')}_ameli.pdf`
+  return `${moment(date).format('YYYYMMDD')}_ameli.pdf`
 }
