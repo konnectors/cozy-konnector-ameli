@@ -16,6 +16,8 @@
     "start": "node index.js",
     "dev": "cozy-konnector-dev",
     "standalone": "cozy-konnector-standalone",
+    "standalone:record": "REPLAY=record cozy-konnector-standalone",
+    "standalone:replay": "REPLAY=replay cozy-konnector-standalone",
     "build": "webpack",
     "lint": "standard --fix index.js",
     "deploy:travis": "git-directory-deploy --username <YOUR_GH_USERNAME> --email <YOUR_EMAIL> --directory build/ --repo=https://$GITHUB_TOKEN@github.com/briced/cozy-konnector-v3-ameli.git",

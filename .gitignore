@@ -30,3 +30,5 @@ desktop.ini
 # Default
 # /!\ KEEP THIS SECTION THE LAST ONE
 !.gitkeep
+
+fixtures/*

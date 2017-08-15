@@ -136,7 +136,7 @@ const parsePage = function ($) {
           amount,
           type: 'health',
           subtype: label,
-          date,
+          date: date.toDate(),
           vendor: 'Ameli',
           lineId,
           detailsUrl
@@ -163,5 +163,6 @@ const getPdf = function (bill) {
 }
 
 function getFileName (date) {
+  date = moment(date)
   return `${date.format('YYYYMMDD')}_ameli.pdf`
 }
