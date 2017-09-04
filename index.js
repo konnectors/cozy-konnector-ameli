@@ -83,10 +83,12 @@ const parsePage = function ($) {
   const entries = []
 
   // Get the start and end date to generate the bill's url
-  const startDate = $('#paiements_1dateDebut').attr('value')
   const endDate = $('#paiements_1dateFin').attr('value')
 
   const baseUrl = 'https://assure.ameli.fr/PortailAS/paiements.do?actionEvt='
+
+  // We can get the history only 6 months back
+  const startDate = moment(endDate, 'DD/MM/YYYY').subtract(6, 'months').format('DD/MM/YYYY')
 
   const billUrl = `${baseUrl}afficherPaiementsComplementaires&DateDebut=${startDate}&DateFin=${endDate}\
 &Beneficiaire=tout_selectionner&afficherReleves=false&afficherIJ=false&afficherInva=false&afficherRentes=false\
