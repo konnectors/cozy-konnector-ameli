@@ -80,7 +80,6 @@ const logIn = function (fields) {
 // Parse the fetched page to extract bill data.
 const parsePage = function ($) {
   log('info', 'Fetching the list of bills')
-  const entries = []
 
   // Get the start and end date to generate the bill's url
   const endDate = $('#paiements_1dateFin').attr('value')
@@ -94,8 +93,10 @@ const parsePage = function ($) {
 &Beneficiaire=tout_selectionner&afficherReleves=false&afficherIJ=false&afficherInva=false&afficherRentes=false\
 &afficherRS=false&indexPaiement=&idNotif=`
 
+  const bills = []
   return rq(billUrl)
   .then($ => {
+    const reimbursements = []
     let i = 0
 
     // Each bloc represents a month that includes 0 to n reimbursement
@@ -105,17 +106,11 @@ const parsePage = function ($) {
       year = year.split(' ')[1]
 
       return $(`[id^=lignePaiement${i++}]`).each(function () {
-        let amount = $($(this).find('.col-montant').get(0)).text()
-        amount = amount.replace(' €', '').replace(',', '.')
-        amount = parseFloat(amount)
-
         const month = $($(this).find('.col-date .mois').get(0)).text()
         const day = $($(this).find('.col-date .jour').get(0)).text()
         let date = `${day} ${month} ${year}`
         moment.locale('fr')
         date = moment(date, 'Do MMMM YYYY')
-
-        const label = $($(this).find('.col-label').get(0)).text()
 
         // Retrieve and extract the infos needed to generate the pdf
         const attrInfos = $(this).attr('onclick')
@@ -134,34 +129,54 @@ const parsePage = function ($) {
 
         let lineId = indexGroupe + indexPaiement
 
-        let bill = {
-          amount,
-          type: 'health',
-          subtype: label,
-          date: date.toDate(),
-          vendor: 'Ameli',
+        let reimbursement = {
+          date,
           lineId,
           detailsUrl
         }
 
-        if (bill.amount != null && naturePaiement === 'REMBOURSEMENT_SOINS') { return entries.push(bill) }
+        if (naturePaiement === 'REMBOURSEMENT_SOINS') {
+          reimbursements.push(reimbursement)
+        }
       })
     })
-    return bluebird.each(entries, getPdf)
+    return bluebird.each(reimbursements, reimbursement => {
+      return rq(reimbursement.detailsUrl)
+      .then($ => {
+        // get the health cares related to the given reimbursement
+        const data = []
+        $('#tableauPrestation tbody tr').each(function () {
+          const cells = $(this).find('td').map(function (index) {
+            if (index === 0) return [$(this).find('.naturePrestation').text().trim(), $(this).html().split('<br>').pop().trim()]
+            return $(this).text().trim()
+          }).get()
+          if (cells.length === 6 && cells[0].trim() !== 'participation forfaitaire') {
+            // also get what is need for the pdf url
+            cells.push($(`[id=liendowndecompte${reimbursement.lineId}]`).attr('href'))
+            data.push(cells)
+          }
+        })
+        return data
+      })
+      .then(rows => {
+        // convert this data into bills
+        rows.forEach(row => {
+          bills.push({
+            type: 'health',
+            subtype: row[0],
+            date: reimbursement.date.toDate(),
+            originalDate: moment(row[1], 'DD/MM/YYYY').toDate(),
+            vendor: 'Ameli',
+            amount: parseFloat(row[5].replace(' €', '').replace(',', '.')),
+            originalAmount: parseFloat(row[2].replace(' €', '').replace(',', '.')),
+            fileurl: 'https://assure.ameli.fr' + row[6],
+            filename: getFileName(reimbursement.date)
+          })
+        })
+      })
+    })
   })
-}
-
-const getPdf = function (bill) {
-  // Request the generated url to get the detailed pdf
-  return rq(bill.detailsUrl)
-  .then($ => {
-    let pdfUrl = $(`[id=liendowndecompte${bill.lineId}]`).attr('href')
-    if (pdfUrl) {
-      bill.fileurl = `https://assure.ameli.fr${pdfUrl}`
-      bill.filename = getFileName(bill.date)
-    }
-    return bill
-  })
+  .then(() => bills)
 }
 
 function getFileName (date) {
