@@ -144,7 +144,7 @@ const parsePage = function ($) {
           detailsUrl
         }
 
-        if (bill.amount != null) { return entries.push(bill) }
+        if (bill.amount != null && naturePaiement === 'REMBOURSEMENT_SOINS') { return entries.push(bill) }
       })
     })
     return bluebird.each(entries, getPdf)
