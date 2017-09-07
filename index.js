@@ -15,6 +15,7 @@ module.exports = new BaseKonnector(function fetch (fields) {
   return checkLogin(fields)
   .then(() => logIn(fields))
   .then($ => parsePage($))
+  .then((reimbursements) => getBills(reimbursements))
   .then(entries => {
     // get custom bank identifier if any
     let identifiers = 'C.P.A.M.'
@@ -93,10 +94,10 @@ const parsePage = function ($) {
 &Beneficiaire=tout_selectionner&afficherReleves=false&afficherIJ=false&afficherInva=false&afficherRentes=false\
 &afficherRS=false&indexPaiement=&idNotif=`
 
-  const bills = []
+  const reimbursements = []
+
   return rq(billUrl)
   .then($ => {
-    const reimbursements = []
     let i = 0
 
     // Each bloc represents a month that includes 0 to n reimbursement
@@ -144,7 +145,7 @@ const parsePage = function ($) {
       return rq(reimbursement.detailsUrl)
       .then($ => {
         // get the health cares related to the given reimbursement
-        const data = []
+        const rows = []
         $('#tableauPrestation tbody tr').each(function () {
           const cells = $(this).find('td').map(function (index) {
             if (index === 0) return [$(this).find('.naturePrestation').text().trim(), $(this).html().split('<br>').pop().trim()]
@@ -153,30 +154,32 @@ const parsePage = function ($) {
           if (cells.length === 6 && cells[0].trim() !== 'participation forfaitaire') {
             // also get what is need for the pdf url
             cells.push($(`[id=liendowndecompte${reimbursement.lineId}]`).attr('href'))
-            data.push(cells)
+            rows.push(cells)
           }
         })
-        return data
-      })
-      .then(rows => {
-        // convert this data into bills
-        rows.forEach(row => {
-          bills.push({
-            type: 'health',
-            subtype: row[0],
-            date: reimbursement.date.toDate(),
-            originalDate: moment(row[1], 'DD/MM/YYYY').toDate(),
-            vendor: 'Ameli',
-            amount: parseFloat(row[5].replace(' €', '').replace(',', '.')),
-            originalAmount: parseFloat(row[2].replace(' €', '').replace(',', '.')),
-            fileurl: 'https://assure.ameli.fr' + row[6],
-            filename: getFileName(reimbursement.date)
-          })
-        })
+        reimbursement.rows = rows
       })
     })
   })
-  .then(() => bills)
+  .then(() => reimbursements)
+}
+
+function getBills (reimbursements) {
+  const bills = []
+  reimbursements.forEach(reimbursement => {
+    reimbursement.rows.forEach(row => bills.push({
+      type: 'health',
+      subtype: row[0],
+      date: reimbursement.date.toDate(),
+      originalDate: moment(row[1], 'DD/MM/YYYY').toDate(),
+      vendor: 'Ameli',
+      amount: parseFloat(row[5].replace(' €', '').replace(',', '.')),
+      originalAmount: parseFloat(row[2].replace(' €', '').replace(',', '.')),
+      fileurl: 'https://assure.ameli.fr' + row[6],
+      filename: getFileName(reimbursement.date)
+    }))
+  })
+  return bills
 }
 
 function getFileName (date) {
