@@ -15,6 +15,7 @@ module.exports = new BaseKonnector(function fetch (fields) {
   return checkLogin(fields)
   .then(() => logIn(fields))
   .then($ => parsePage($))
+  .then((reimbursements) => getBills(reimbursements))
   .then(entries => {
     // get custom bank identifier if any
     let identifiers = 'C.P.A.M.'
@@ -80,17 +81,20 @@ const logIn = function (fields) {
 // Parse the fetched page to extract bill data.
 const parsePage = function ($) {
   log('info', 'Fetching the list of bills')
-  const entries = []
 
   // Get the start and end date to generate the bill's url
-  const startDate = $('#paiements_1dateDebut').attr('value')
   const endDate = $('#paiements_1dateFin').attr('value')
 
   const baseUrl = 'https://assure.ameli.fr/PortailAS/paiements.do?actionEvt='
 
+  // We can get the history only 6 months back
+  const startDate = moment(endDate, 'DD/MM/YYYY').subtract(6, 'months').format('DD/MM/YYYY')
+
   const billUrl = `${baseUrl}afficherPaiementsComplementaires&DateDebut=${startDate}&DateFin=${endDate}\
 &Beneficiaire=tout_selectionner&afficherReleves=false&afficherIJ=false&afficherInva=false&afficherRentes=false\
 &afficherRS=false&indexPaiement=&idNotif=`
+
+  const reimbursements = []
 
   return rq(billUrl)
   .then($ => {
@@ -103,17 +107,11 @@ const parsePage = function ($) {
       year = year.split(' ')[1]
 
       return $(`[id^=lignePaiement${i++}]`).each(function () {
-        let amount = $($(this).find('.col-montant').get(0)).text()
-        amount = amount.replace(' €', '').replace(',', '.')
-        amount = parseFloat(amount)
-
         const month = $($(this).find('.col-date .mois').get(0)).text()
         const day = $($(this).find('.col-date .jour').get(0)).text()
         let date = `${day} ${month} ${year}`
         moment.locale('fr')
         date = moment(date, 'Do MMMM YYYY')
-
-        const label = $($(this).find('.col-label').get(0)).text()
 
         // Retrieve and extract the infos needed to generate the pdf
         const attrInfos = $(this).attr('onclick')
@@ -132,34 +130,56 @@ const parsePage = function ($) {
 
         let lineId = indexGroupe + indexPaiement
 
-        let bill = {
-          amount,
-          type: 'health',
-          subtype: label,
-          date: date.toDate(),
-          vendor: 'Ameli',
+        let reimbursement = {
+          date,
           lineId,
           detailsUrl
         }
 
-        if (bill.amount != null) { return entries.push(bill) }
+        if (naturePaiement === 'REMBOURSEMENT_SOINS') {
+          reimbursements.push(reimbursement)
+        }
       })
     })
-    return bluebird.each(entries, getPdf)
+    return bluebird.each(reimbursements, reimbursement => {
+      return rq(reimbursement.detailsUrl)
+      .then($ => {
+        // get the health cares related to the given reimbursement
+        const rows = []
+        $('#tableauPrestation tbody tr').each(function () {
+          const cells = $(this).find('td').map(function (index) {
+            if (index === 0) return [$(this).find('.naturePrestation').text().trim(), $(this).html().split('<br>').pop().trim()]
+            return $(this).text().trim()
+          }).get()
+          if (cells.length === 6 && cells[0].trim() !== 'participation forfaitaire') {
+            // also get what is need for the pdf url
+            cells.push($(`[id=liendowndecompte${reimbursement.lineId}]`).attr('href'))
+            rows.push(cells)
+          }
+        })
+        reimbursement.rows = rows
+      })
+    })
   })
+  .then(() => reimbursements)
 }
 
-const getPdf = function (bill) {
-  // Request the generated url to get the detailed pdf
-  return rq(bill.detailsUrl)
-  .then($ => {
-    let pdfUrl = $(`[id=liendowndecompte${bill.lineId}]`).attr('href')
-    if (pdfUrl) {
-      bill.fileurl = `https://assure.ameli.fr${pdfUrl}`
-      bill.filename = getFileName(bill.date)
-    }
-    return bill
+function getBills (reimbursements) {
+  const bills = []
+  reimbursements.forEach(reimbursement => {
+    reimbursement.rows.forEach(row => bills.push({
+      type: 'health',
+      subtype: row[0],
+      date: reimbursement.date.toDate(),
+      originalDate: moment(row[1], 'DD/MM/YYYY').toDate(),
+      vendor: 'Ameli',
+      amount: parseFloat(row[5].replace(' €', '').replace(',', '.')),
+      originalAmount: parseFloat(row[2].replace(' €', '').replace(',', '.')),
+      fileurl: 'https://assure.ameli.fr' + row[6],
+      filename: getFileName(reimbursement.date)
+    }))
   })
+  return bills
 }
 
 function getFileName (date) {
