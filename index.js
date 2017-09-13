@@ -34,7 +34,11 @@ module.exports = new BaseKonnector(function fetch (fields) {
 
 const checkLogin = function (fields) {
   log('info', 'Checking the length of the login')
-  if (fields.login.length > 13) return Promise.reject(new Error('LOGIN_FAILED'))
+  log('info', fields.login.length, 'login length')
+  if (fields.login.length > 13) {
+    log('error', 'LOGIN_FAILED')
+    return Promise.reject(new Error('LOGIN_FAILED'))
+  }
 
   return Promise.resolve()
 }
