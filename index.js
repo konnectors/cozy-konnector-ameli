@@ -30,13 +30,15 @@ module.exports = new BaseKonnector(function fetch (fields) {
       amountDelta: 0.1
     })
   })
+  .catch(err => {
+    log('error', err.message, 'Error intercepted')
+  })
 })
 
 const checkLogin = function (fields) {
   log('info', 'Checking the length of the login')
   log('info', fields.login.length, 'login length')
   if (fields.login.length > 13) {
-    log('error', 'LOGIN_FAILED')
     return Promise.reject(new Error('LOGIN_FAILED'))
   }
 
