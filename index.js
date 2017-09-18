@@ -37,7 +37,6 @@ module.exports = new BaseKonnector(function fetch (fields) {
 
 const checkLogin = function (fields) {
   log('info', 'Checking the length of the login')
-  log('info', fields.login.length, 'login length')
   if (fields.login.length > 13) {
     return Promise.reject(new Error('LOGIN_FAILED'))
   }
@@ -139,12 +138,11 @@ const parsePage = function ($) {
         let reimbursement = {
           date,
           lineId,
-          detailsUrl
+          detailsUrl,
+          isThirdPartyPayer: naturePaiement === 'PAIEMENT_A_UN_TIERS'
         }
 
-        if (naturePaiement === 'REMBOURSEMENT_SOINS') {
-          reimbursements.push(reimbursement)
-        }
+        reimbursements.push(reimbursement)
       })
     })
     return bluebird.each(reimbursements, reimbursement => {
@@ -176,6 +174,7 @@ function getBills (reimbursements) {
     reimbursement.rows.forEach(row => bills.push({
       type: 'health',
       subtype: row[0],
+      isThirdPartyPayer: reimbursement.isThirdPartyPayer,
       date: reimbursement.date.toDate(),
       originalDate: moment(row[1], 'DD/MM/YYYY').toDate(),
       vendor: 'Ameli',

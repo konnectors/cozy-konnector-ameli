@@ -10,7 +10,7 @@
   "author": "",
   "license": "AGPL-3.0",
   "dependencies": {
-    "cozy-konnector-libs": "^3.0.0-alpha.19"
+    "cozy-konnector-libs": "^3.0.0-alpha.28"
   },
   "scripts": {
     "start": "node index.js",
@@ -29,6 +29,6 @@
     "copy-webpack-plugin": "^4.0.1",
     "git-directory-deploy": "^1.5.1",
     "standard": "^10.0.2",
-    "webpack": "^3.4.1"
+    "webpack": "^3.6.0"
   }
 }
