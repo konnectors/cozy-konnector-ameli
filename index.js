@@ -38,6 +38,7 @@ module.exports = new BaseKonnector(function fetch (fields) {
 const checkLogin = function (fields) {
   log('info', 'Checking the length of the login')
   if (fields.login.length > 13) {
+    log('debug', `Bad login length : ${fields.login.length}`)
     return Promise.reject(new Error('LOGIN_FAILED'))
   }
 
@@ -74,7 +75,14 @@ const logIn = function (fields) {
   }))
   // Second request to authenticate
   .then($ => {
+    const $errors = $('#r_errors')
+    if ($errors.length > 0) {
+      log('debug', $errors.text(), 'These errors where found on screen')
+      throw new Error('LOGIN_FAILED')
+    }
+
     if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
+      log('debug', $('body').html(), 'No deconnection link found in the html')
       throw new Error('LOGIN_FAILED')
     }
 
