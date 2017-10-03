@@ -83,7 +83,7 @@ const logIn = function (fields) {
 
     // The user must validate the CGU form
     const $cgu = $('meta[http-equiv=refresh]')
-    if ($cgu.length > 0) {
+    if ($cgu.length > 0 && $cgu.attr('content').includes('as_conditions_generales_page')) {
       log('debug', $cgu.attr('content'))
       throw new Error('USER_ACTION_NEEDED')
     }
