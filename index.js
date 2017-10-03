@@ -81,6 +81,12 @@ const logIn = function (fields) {
       throw new Error('LOGIN_FAILED')
     }
 
+    // The user must validate the CGU form
+    const $cgu = $('#nouvelles_cgu_1erreurBoxAccepte')
+    if ($cgu.length > 0) {
+      throw new Error('USER_ACTION_NEEDED')
+    }
+
     if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
       log('debug', $('body').html(), 'No deconnection link found in the html')
       throw new Error('LOGIN_FAILED')
