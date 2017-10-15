@@ -1,7 +1,7 @@
 {
   "name": "cozy-konnector-ameli",
   "version": "1.0.6",
-  "description": "",
+  "description": "Cozy v3 Konnector for Ameli",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/briced/cozy-konnector-v3-ameli.git"
@@ -10,25 +10,26 @@
   "author": "",
   "license": "AGPL-3.0",
   "dependencies": {
-    "cozy-konnector-libs": "^3.0.0-alpha.28"
-  },
-  "scripts": {
-    "start": "node index.js",
-    "dev": "cozy-konnector-dev",
-    "standalone": "cozy-konnector-standalone",
-    "standalone:record": "REPLAY=record cozy-konnector-standalone",
-    "standalone:replay": "REPLAY=replay cozy-konnector-standalone",
-    "build": "webpack",
-    "lint": "standard --fix index.js",
-    "deploy:travis": "git-directory-deploy --username <YOUR_GH_USERNAME> --email <YOUR_EMAIL> --directory build/ --repo=https://$GITHUB_TOKEN@github.com/briced/cozy-konnector-v3-ameli.git",
-    "deploy": "git-directory-deploy --directory build/ --branch build --repo=https://github.com/briced/cozy-konnector-v3-ameli.git",
-    "preversion": "npm run lint",
-    "postversion": "npm run build && npm run deploy && git push && git push --tags && rm -rf build/"
+    "cozy-konnector-libs": "^3.0.4"
   },
   "devDependencies": {
     "copy-webpack-plugin": "^4.0.1",
     "git-directory-deploy": "^1.5.1",
     "standard": "^10.0.2",
     "webpack": "^3.6.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "clean": "rm -f *_ameli.pdf",
+    "dev": "cozy-konnector-dev src/index.js",
+    "standalone": "npm run clean && cozy-konnector-standalone src/index.js",
+    "standalone:record": "REPLAY=record cozy-konnector-standalone src/index.js",
+    "standalone:replay": "REPLAY=replay cozy-konnector-standalone src/index.js",
+    "build": "webpack",
+    "lint": "standard --fix src/index.js",
+    "deploy:travis": "git-directory-deploy --username <YOUR_GH_USERNAME> --email <YOUR_EMAIL> --directory build/ --repo=https://$GITHUB_TOKEN@github.com/briced/cozy-konnector-v3-ameli.git",
+    "deploy": "git-directory-deploy --directory build/ --branch build --repo=https://github.com/briced/cozy-konnector-v3-ameli.git",
+    "preversion": "npm run lint",
+    "postversion": "npm run build && npm run deploy && git push && git push --tags && rm -rf build/"
   }
 }
