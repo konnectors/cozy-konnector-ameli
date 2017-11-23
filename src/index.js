@@ -2,7 +2,10 @@
 
 const {log, BaseKonnector, saveBills, request} = require('cozy-konnector-libs')
 const moment = require('moment')
+moment.locale('fr')
 const bluebird = require('bluebird')
+
+const urlService = require('./urlService')
 
 let rq = request({
   // debug: true,
@@ -10,8 +13,6 @@ let rq = request({
   json: false,
   jar: true
 })
-
-const baseUrl = 'https://assure.ameli.fr/PortailAS/paiements.do?actionEvt='
 
 module.exports = new BaseKonnector(function fetch (fields) {
   return checkLogin(fields)
@@ -49,13 +50,6 @@ const checkLogin = function (fields) {
 // Procedure to login to Ameli website.
 const logIn = function (fields) {
   log('info', 'Now logging in')
-  const loginUrl = 'https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure?_somtc=true'
-
-  const submitUrl = 'https://assure.ameli.fr/PortailAS/appmanager/PortailAS/' +
-    'assure?_nfpb=true&_windowLabel=connexioncompte_2&connexioncompte_2_' +
-    'actionOverride=/portlets/connexioncompte/validationconnexioncompte&_pageLabel=as_login_page'
-
-  const reimbursementUrl = 'https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_paiements_page'
 
   const form = {
     'connexioncompte_2numSecuriteSociale': fields.login,
@@ -65,14 +59,14 @@ const logIn = function (fields) {
   }
 
   return rq({
-    url: loginUrl,
+    url: urlService.getLoginUrl(),
     resolveWithFullResponse: true
   })
   // First request to get the cookie
   .then(res => rq({
     method: 'POST',
     form,
-    url: submitUrl
+    url: urlService.getSubmitUrl()
   }))
   // Second request to authenticate
   .then($ => {
@@ -97,7 +91,7 @@ const logIn = function (fields) {
     }
 
     log('info', 'Correctly logged in')
-    return rq(reimbursementUrl)
+    return rq(urlService.getReimbursementUrl())
   })
 }
 
@@ -105,15 +99,11 @@ const logIn = function (fields) {
 const fetchMainPage = function ($) {
   log('info', 'Fetching the list of bills')
 
-  // Get the start and end date to generate the bill's url
-  const endDate = $('#paiements_1dateFin').attr('value')
+  // Get end date to generate the bill's url
+  const endDate = moment($('#paiements_1dateFin').attr('value'), 'DD/MM/YYYY')
 
   // We can get the history only 6 months back
-  const startDate = moment(endDate, 'DD/MM/YYYY').subtract(6, 'months').format('DD/MM/YYYY')
-
-  const billUrl = `${baseUrl}afficherPaiementsComplementaires&DateDebut=${startDate}&DateFin=${endDate}\
-&Beneficiaire=tout_selectionner&afficherReleves=false&afficherIJ=false&afficherInva=false&afficherRentes=false\
-&afficherRS=false&indexPaiement=&idNotif=`
+  const billUrl = urlService.getBillUrl(endDate, 6)
 
   return rq(billUrl)
 }
@@ -133,7 +123,6 @@ const parseMainPage = function ($) {
       const month = $($(this).find('.col-date .mois').get(0)).text()
       const day = $($(this).find('.col-date .jour').get(0)).text()
       let date = `${day} ${month} ${year}`
-      moment.locale('fr')
       date = moment(date, 'Do MMMM YYYY')
 
       // Retrieve and extract the infos needed to generate the pdf
@@ -145,11 +134,7 @@ const parseMainPage = function ($) {
       const indexGroupe = tokens[5]
       const indexPaiement = tokens[7]
 
-      const detailsUrl = `${baseUrl}chargerDetailPaiements\
-&idPaiement=${idPaiement}\
-&naturePaiement=${naturePaiement}\
-&indexGroupe=${indexGroupe}\
-&indexPaiement=${indexPaiement}`
+      const detailsUrl = urlService.getDetailsUrl(idPaiement, naturePaiement, indexGroupe, indexPaiement)
 
       let lineId = indexGroupe + indexPaiement
 
