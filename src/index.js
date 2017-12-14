@@ -159,6 +159,10 @@ const parseMainPage = function ($) {
 function parseDetails ($, reimbursement) {
   let currentBeneficiary = null
   reimbursement.link = $('.entete [id^=liendowndecompte]').attr('href')
+  if (reimbursement.link == null) {
+    log('error', 'Download link not found')
+    log('error', $('.entete').html())
+  }
   $('.container:not(.entete)').each(function () {
     const $beneficiary = $(this).find('[id^=nomBeneficiaire]')
     if ($beneficiary.length > 0) { // a beneficiary container
