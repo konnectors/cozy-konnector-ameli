@@ -136,12 +136,16 @@ const parseMainPage = function ($) {
 
       const detailsUrl = urlService.getDetailsUrl(idPaiement, naturePaiement, indexGroupe, indexPaiement)
 
+      // This link seems to not be present in every account
+      const link = $('.downdetail').attr('href')
+
       let lineId = indexGroupe + indexPaiement
 
       let reimbursement = {
         date,
         lineId,
         detailsUrl,
+        link,
         isThirdPartyPayer: naturePaiement === 'PAIEMENT_A_UN_TIERS',
         beneficiaries: {}
       }
@@ -158,7 +162,11 @@ const parseMainPage = function ($) {
 
 function parseDetails ($, reimbursement) {
   let currentBeneficiary = null
-  reimbursement.link = $('.entete [id^=liendowndecompte]').attr('href')
+
+  // compatibility code since not every accounts have this kind of links
+  if (reimbursement.link == null) {
+    reimbursement.link = $('.entete [id^=liendowndecompte]').attr('href')
+  }
   if (reimbursement.link == null) {
     log('error', 'Download link not found')
     log('error', $('.entete').html())
