@@ -137,7 +137,7 @@ const parseMainPage = function ($) {
       const detailsUrl = urlService.getDetailsUrl(idPaiement, naturePaiement, indexGroupe, indexPaiement)
 
       // This link seems to not be present in every account
-      const link = $('.downdetail').attr('href')
+      const link = $(this).find('.downdetail').attr('href')
 
       let lineId = indexGroupe + indexPaiement
 
