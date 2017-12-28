@@ -87,6 +87,10 @@ const logIn = function (fields) {
     if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
       log('debug', $('body').html(), 'No deconnection link found in the html')
       log('debug', 'Something unexpected went wrong after the login')
+      if ($('.centrepage h2')) {
+        log('error', $('.centrepage h2').text().trim())
+        throw new Error('VENDOR_DOWN')
+      }
       throw new Error('LOGIN_FAILED')
     }
 
