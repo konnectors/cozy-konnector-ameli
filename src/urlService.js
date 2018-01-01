@@ -30,10 +30,9 @@ class UrlService {
    * @param endDate: a moment date
    */
   getBillUrl (endDate, monthsBack) {
+    const formatedEndDate = endDate.format('DD/MM/YYYY')
     const startDate = endDate.subtract(monthsBack, 'months').format('DD/MM/YYYY')
-    return `${this.getBaseUrl()}afficherPaiementsComplementaires&DateDebut=${startDate}&DateFin=${endDate}\
-&Beneficiaire=tout_selectionner&afficherReleves=false&afficherIJ=false&afficherInva=false&afficherRentes=false\
-&afficherRS=false&indexPaiement=&idNotif=`
+    return `${this.getBaseUrl()}Rechercher&DateDebut=${startDate}&DateFin=${formatedEndDate}&Beneficiaire=tout_selectionner&afficherReleves=false&afficherIJ=false&afficherPT=false&afficherInva=false&afficherRentes=false&afficherRS=false&indexPaiement=&idNotif=`
   }
 
   getDetailsUrl (idPaiement, naturePaiement, indexGroupe, indexPaiement) {
