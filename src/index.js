@@ -22,7 +22,7 @@ module.exports = new BaseKonnector(function fetch (fields) {
   .then(reimbursements => getBills(reimbursements))
   .then(entries => {
     // get custom bank identifier if any
-    let identifiers = 'C.P.A.M.'
+    let identifiers = ['c.p.a.m.', 'caisse', 'cpam', 'ameli']
     if (fields.bank_identifier && fields.bank_identifier.length) {
       identifiers = fields.bank_identifier
     }
