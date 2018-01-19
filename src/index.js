@@ -1,13 +1,13 @@
 'use strict'
 
-const {log, BaseKonnector, saveBills, request} = require('cozy-konnector-libs')
+const {log, BaseKonnector, saveBills, requestFactory} = require('cozy-konnector-libs')
 const moment = require('moment')
 moment.locale('fr')
 const bluebird = require('bluebird')
 
 const urlService = require('./urlService')
 
-let rq = request({
+let request = requestFactory({
   // debug: true,
   cheerio: true,
   json: false,
@@ -58,12 +58,12 @@ const logIn = function (fields) {
     'submit': 'Valider'
   }
 
-  return rq({
+  return request({
     url: urlService.getLoginUrl(),
     resolveWithFullResponse: true
   })
   // First request to get the cookie
-  .then(res => rq({
+  .then(res => request({
     method: 'POST',
     form,
     url: urlService.getSubmitUrl()
@@ -95,7 +95,7 @@ const logIn = function (fields) {
     }
 
     log('info', 'Correctly logged in')
-    return rq(urlService.getReimbursementUrl())
+    return request(urlService.getReimbursementUrl())
   })
 }
 
@@ -109,7 +109,7 @@ const fetchMainPage = function ($) {
   // We can get the history only 6 months back
   const billUrl = urlService.getBillUrl(endDate, 6)
 
-  return rq(billUrl)
+  return request(billUrl)
 }
 
 // Parse the fetched page to extract bill data.
@@ -158,7 +158,7 @@ const parseMainPage = function ($) {
     })
   })
   return bluebird.each(reimbursements, reimbursement => {
-    return rq(reimbursement.detailsUrl)
+    return request(reimbursement.detailsUrl)
     .then($ => parseDetails($, reimbursement))
   })
   .then(() => reimbursements)
