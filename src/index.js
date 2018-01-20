@@ -251,6 +251,7 @@ function getBills (reimbursements) {
           date: reimbursement.date.toDate(),
           originalDate: healthCare.date.toDate(),
           vendor: 'Ameli',
+          isRefund: true,
           amount: healthCare.montantVersé,
           originalAmount: healthCare.montantPayé,
           fileurl: 'https://assure.ameli.fr' + reimbursement.link,
@@ -267,6 +268,7 @@ function getBills (reimbursements) {
         date: reimbursement.date.toDate(),
         originalDate: reimbursement.participation.date.toDate(),
         vendor: 'Ameli',
+        isRefund: true,
         amount: reimbursement.participation.montantVersé,
         fileurl: 'https://assure.ameli.fr' + reimbursement.link,
         filename: getFileName(reimbursement.date)
