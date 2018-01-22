@@ -13,6 +13,23 @@ What's this new konnector?
 
 The konnector gets information from Ameli (french national insurance)
 
+What data is imported ?
+-----------------------
+
+This konnector imports the list of reimbursements metadata that you can see in the ["Mes paiements"](https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_paiements_page) page when you filter the page 6 month back in time (as this website allows). It uses the detailed view.
+
+For each reimbursement, an associated PDF bill is downloaded (many reimbursements can have the
+same associated file and the file is only downloaded once.
+
+Each health care is separated since each health care will be reimbursed individually by the C.P.A.M
+and it makes it easier to link it with a bank operation with the same amount.
+
+An example of imported data can be seen in [./importedData.json](./importedData.json)
+
+Take a look at the [documentation](https://github.com/cozy/cozy-doctypes/blob/master/docs/io.cozy.bills.md)
+to have the signification of the fields in this file.
+
+
 ### Open a Pull-Request
 
 If you want to work on this konnector and submit code modifications, feel free to open pull-requests! See the [contributing guide][contribute] for more information about how to properly open pull-requests.
