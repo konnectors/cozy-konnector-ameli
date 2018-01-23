@@ -10,7 +10,7 @@
   "author": "",
   "license": "AGPL-3.0",
   "dependencies": {
-    "cozy-konnector-libs": "3.2.4"
+    "cozy-konnector-libs": "3.2.5"
   },
   "devDependencies": {
     "copy-webpack-plugin": "^4.0.1",
