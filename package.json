@@ -9,6 +9,7 @@
   "keywords": [],
   "author": "",
   "license": "AGPL-3.0",
+  "main": "src/index.js",
   "dependencies": {
     "cozy-konnector-libs": "3.2.5"
   },
