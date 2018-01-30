@@ -5,6 +5,7 @@ What's Cozy?
 ------------
 
 ![Cozy Logo](https://cdn.rawgit.com/cozy/cozy-guidelines/master/templates/cozy_logo_small.svg)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fkonnectors%2Fcozy-konnector-ameli.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fkonnectors%2Fcozy-konnector-ameli?ref=badge_shield)
 
 [Cozy] is a platform that brings all your web services in the same private space. With it, your webapps and your devices can share data easily, providing you with a new experience. You can install Cozy on your own hardware where no one's tracking you.
 
@@ -185,3 +186,7 @@ Ameli is developed by Brice Coquereau and distributed under the [AGPL v3 license
 [travis]: https://travis-ci.org
 
 Big big thanks to [Gara64](https://github.com/gara64), who created this konnector in v2. I used his code a lot.
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fkonnectors%2Fcozy-konnector-ameli.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fkonnectors%2Fcozy-konnector-ameli?ref=badge_large)
