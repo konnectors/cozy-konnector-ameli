@@ -14,10 +14,10 @@
     "cozy-konnector-libs": "3.2.5"
   },
   "devDependencies": {
-    "copy-webpack-plugin": "^4.0.1",
-    "git-directory-deploy": "^1.5.1",
-    "standard": "^10.0.2",
-    "webpack": "^3.6.0"
+    "copy-webpack-plugin": "4.3.1",
+    "git-directory-deploy": "1.5.1",
+    "standard": "10.0.3",
+    "webpack": "3.10.0"
   },
   "scripts": {
     "start": "node src/index.js",
