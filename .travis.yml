@@ -9,6 +9,8 @@ branches:
 env:
   global:
   - CXX=g++-4.8
+  - secure: L+91OB4A0+ELhs/5V+0z9Qi8UOqItg9TGuWjPVUuDLYtTvyVwL0JV5ZX6Ip4kQt1hQYZFwQRPv3Tv+uqdvIbJiqf4ijQLUJiQ3xLrwwKEBF/8pn7gZ9xNIm1uxF5Yrc3fbWU48UuXYTh5mgniXj329Nu2jJjzZaeE0SrL3f1C0eZhN91MqxnJ+AfjxEjDxGr3UkOQ1ndBHBzsmnp9lnzCzil62SikWoUEg+yUnwSKL4RDTQ5UZuFyPw9uVQUTmclVMVqhoHP4D3M/PT07xt5Llu9i2pqkksUxd1zcfQlHtdgcrBhVT8DmoRzuyO4+CfgTv8MkEPXzL1k8Zdq+Qpjqu9fS25nFV8KlZxNj6m5SzaSewMt0MCTQyY2hW/VbiIREWckiHMX7SnDQHWpWGTThJmbSBJuVKk/iFVJ4Z3vwPgHAiPzPLa2bzJ3kSXnuX5EGdvuDxZm69AbZxQk8j6vkU+s9nEd3YKoM4BMQm/XzBCdtP2e/JI/ajTqIEywuma/pNxw3q3+SdCcgQNeT1CZpX8Xo2MDYCFSXiEDGx+5HfYPwa0XT9C/dKgHWsv+ZBLTZyMV8ES3TlXZ1+lfSxVD9MpBZTihebS0zhE/s9T8oWHfmTrsWEsTotjYiVyvqHaRUVLi4KRiecZwNtUYxz0WIinYv6wHXzW89lM5jktVPDY=
+  - secure: NISOSi4ujVAm4mgW00ze7B6bDqCNMB678WoBeJ1IstsDH3aBpiFazepNBfJ4VsiEC7H0CzTvIIVTc+jFKdS2qvhM68OSWnto0RbiEl1Q7qv6wDg2cSBeyn7+GwbUosFIttEmo0s8CaVcUl3z8UpOeqsNNQEyMrCpN6626PXxSDqr8lqI3Vu3Rcw1EgkE4WJ25hp2eA9xJnV4I38KwlLlBcYNk3/LnkIVIH3zMXVBB1htBpyBM+ld/1jB6k/oFnpjlKIima9S4aPvU2E4tq3vi4MUmWnAebjFCAy9PPiqBCCUJW+/BjP6ykYXZd6XlN5ErpbhmjJLMcqVKr0SQOzRzTnUKChnh94NnBdrdDzZ6LB0oFx9S/gu3esPh/RaMDRUAawRHIn1IItf2sAaSKhjwQrsY/8+I3FA4xq+sKT0kZII4a4KIU9crPTm9dsatU6rCeRzz2mtxI2OgyiY5vLsWsWsZAgp+w9ALWTGJGI2ftky9geJu8ObzZBCWQ6GVogNXKY3/WFx3LPcWXtw3Dwu+tgTd2dYMrl8wJFKIfeUig4i2eV4/Q2U3x6WDvOwpw0AkZwwK9o38mDQoEY8rFiOArJJpkBay5AH60MwPyNVrQLRu4LRGTv8x+dlxIuq6w6rFP4FBZJJx8Hm4Q6XNZTBNYAnqFL2Lz731CZDnFWBH6w=
 addons:
   apt:
     sources:
@@ -23,5 +25,6 @@ cache:
   - node_modules
 script:
 - yarn build
+- yarn test
 after_success:
 - test $TRAVIS_BRANCH = "master" && yarn run deploy:travis -- --branch=build
