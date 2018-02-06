@@ -121,7 +121,7 @@ This command will commit and push your built in the branch `build` fo your proje
 
 And your konnector can now be installed using the following url :
 
-git://github.com/briced/cozy-konnector-v3-ameli.git#build
+git://github.com/konnectors/cozy-konnector-ameli.git#build
 
 ### Build using Travis CI
 

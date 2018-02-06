@@ -4,7 +4,7 @@
   "description": "Cozy v3 Konnector for Ameli",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/briced/cozy-konnector-v3-ameli.git"
+    "url": "https://github.com/konnectors/cozy-konnector-ameli.git"
   },
   "keywords": [],
   "author": "",
@@ -16,11 +16,13 @@
   "devDependencies": {
     "copy-webpack-plugin": "4.3.1",
     "git-directory-deploy": "1.5.1",
+    "konitor": "0.3.0",
     "standard": "10.0.3",
     "webpack": "3.10.0"
   },
   "scripts": {
     "start": "node src/index.js",
+    "test": "konitor testit .",
     "clean": "rm -f *_ameli.pdf",
     "dev": "cozy-konnector-dev src/index.js",
     "standalone": "npm run clean && cozy-konnector-standalone src/index.js",
@@ -28,8 +30,8 @@
     "standalone:replay": "REPLAY=replay cozy-konnector-standalone src/index.js",
     "build": "webpack",
     "lint": "standard --fix src/index.js",
-    "deploy:travis": "git-directory-deploy --username <YOUR_GH_USERNAME> --email <YOUR_EMAIL> --directory build/ --repo=https://$GITHUB_TOKEN@github.com/briced/cozy-konnector-v3-ameli.git",
-    "deploy": "git-directory-deploy --directory build/ --branch build --repo=https://github.com/briced/cozy-konnector-v3-ameli.git",
+    "deploy:travis": "git-directory-deploy --username <YOUR_GH_USERNAME> --email <YOUR_EMAIL> --directory build/ --repo=https://$GITHUB_TOKEN@github.com/konnectors/cozy-konnector-ameli.git",
+    "deploy": "git-directory-deploy --directory build/ --branch build --repo=https://github.com/konnectors/cozy-konnector-ameli.git",
     "preversion": "npm run lint",
     "postversion": "npm run build && npm run deploy && git push && git push --tags && rm -rf build/"
   }
