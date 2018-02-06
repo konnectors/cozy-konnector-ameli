@@ -11,7 +11,7 @@
   "license": "AGPL-3.0",
   "main": "src/index.js",
   "dependencies": {
-    "cozy-konnector-libs": "3.2.5"
+    "cozy-konnector-libs": "3.3.0"
   },
   "devDependencies": {
     "copy-webpack-plugin": "4.3.1",
