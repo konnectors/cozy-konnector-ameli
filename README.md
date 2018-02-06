@@ -1,6 +1,8 @@
 [Cozy][cozy] Ameli
 =======================================
 
+[![Build Status](https://travis-ci.org/konnectors/cozy-konnector-ameli.svg?branch=master)](https://travis-ci.org/konnectors/cozy-konnector-ameli)
+
 What's Cozy?
 ------------
 
