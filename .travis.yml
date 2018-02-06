@@ -25,6 +25,6 @@ cache:
   - node_modules
 script:
 - yarn build
-- yarn test
+- if [ $TRAVIS_SECURE_ENV_VARS = "true" ]; then yarn test; fi
 after_success:
 - test $TRAVIS_BRANCH = "master" && yarn run deploy:travis -- --branch=build
