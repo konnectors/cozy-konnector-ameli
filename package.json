@@ -16,11 +16,13 @@
   "devDependencies": {
     "copy-webpack-plugin": "4.3.1",
     "git-directory-deploy": "1.5.1",
+    "konitor": "0.3.0",
     "standard": "10.0.3",
     "webpack": "3.10.0"
   },
   "scripts": {
     "start": "node src/index.js",
+    "test": "konitor testit .",
     "clean": "rm -f *_ameli.pdf",
     "dev": "cozy-konnector-dev src/index.js",
     "standalone": "npm run clean && cozy-konnector-standalone src/index.js",
