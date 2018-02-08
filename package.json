@@ -16,7 +16,7 @@
   "devDependencies": {
     "copy-webpack-plugin": "4.4.0",
     "git-directory-deploy": "1.5.1",
-    "konitor": "0.3.0",
+    "konitor": "0.4.0",
     "standard": "10.0.3",
     "webpack": "3.10.0"
   },
