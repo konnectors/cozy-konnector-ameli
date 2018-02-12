@@ -30,8 +30,8 @@
     "standalone:replay": "REPLAY=replay cozy-konnector-standalone src/index.js",
     "build": "webpack",
     "lint": "standard --fix src/index.js",
-    "deploy:travis": "git-directory-deploy --username <YOUR_GH_USERNAME> --email <YOUR_EMAIL> --directory build/ --repo=https://$GITHUB_TOKEN@github.com/konnectors/cozy-konnector-ameli.git",
     "deploy": "git-directory-deploy --directory build/ --branch build --repo=https://github.com/konnectors/cozy-konnector-ameli.git",
+    "deploy:prod": "git-directory-deploy --directory build/ --branch latest --repo=https://github.com/konnectors/cozy-konnector-ameli.git",
     "preversion": "npm run lint",
     "postversion": "npm run build && npm run deploy && git push && git push --tags && rm -rf build/"
   }
