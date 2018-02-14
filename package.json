@@ -10,15 +10,11 @@
   "author": "",
   "license": "AGPL-3.0",
   "main": "src/index.js",
-  "dependencies": {
-    "cozy-konnector-libs": "3.3.0"
-  },
-  "devDependencies": {
-    "copy-webpack-plugin": "4.4.1",
-    "git-directory-deploy": "1.5.1",
-    "konitor": "0.5.0",
-    "standard": "10.0.3",
-    "webpack": "3.11.0"
+  "renovate": {
+    "extends": ["config:base"],
+    "patch": {
+      "automerge": true
+    }
   },
   "scripts": {
     "start": "node src/index.js",
@@ -34,5 +30,15 @@
     "deploy:prod": "git-directory-deploy --directory build/ --branch latest --repo=https://github.com/konnectors/cozy-konnector-ameli.git",
     "preversion": "npm run lint",
     "postversion": "npm run build && npm run deploy && git push && git push --tags && rm -rf build/"
+  },
+  "dependencies": {
+    "cozy-konnector-libs": "3.3.0"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "4.4.1",
+    "git-directory-deploy": "1.5.1",
+    "konitor": "0.5.0",
+    "standard": "10.0.3",
+    "webpack": "3.11.0"
   }
 }
