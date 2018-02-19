@@ -1,10 +1,10 @@
 {
   "name": "cozy-konnector-ameli",
   "version": "1.0.6",
-  "description": "Cozy v3 Konnector for Ameli",
+  "description": "Cozy Konnector for Ameli",
   "repository": {
     "type": "git",
-    "url": "https://github.com/konnectors/cozy-konnector-ameli.git"
+    "url": "git+https://github.com/konnectors/cozy-konnector-ameli.git"
   },
   "keywords": [],
   "author": "",
