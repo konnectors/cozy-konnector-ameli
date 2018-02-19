@@ -38,7 +38,7 @@
     "copy-webpack-plugin": "4.4.1",
     "git-directory-deploy": "1.5.1",
     "konitor": "0.5.0",
-    "standard": "10.0.3",
+    "standard": "11.0.0",
     "webpack": "3.11.0"
   }
 }
