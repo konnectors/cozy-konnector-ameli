@@ -12,6 +12,7 @@ module.exports = {
     new CopyPlugin([
       { from: 'manifest.konnector' },
       { from: 'package.json' },
+      { from: 'yarn.lock' },
       { from: 'README.md' },
       { from: 'LICENSE' }
     ])
