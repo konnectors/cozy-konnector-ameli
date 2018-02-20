@@ -75,7 +75,7 @@ const logIn = function(fields) {
       resolveWithFullResponse: true
     })
       // First request to get the cookie
-      .then(res =>
+      .then(() =>
         request({
           method: "POST",
           form,

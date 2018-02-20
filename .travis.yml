@@ -16,6 +16,7 @@ cache:
     - node_modules
 script:
   - yarn build
+  - yarn lint
   - if [ $TRAVIS_SECURE_ENV_VARS = "true" ]; then yarn test; fi
 deploy:
   - provider: pages

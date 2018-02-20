@@ -10,7 +10,8 @@
     "isRefund": true,
     "amount": 2.84,
     "originalAmount": 4.73,
-    "fileurl": "https://assure.ameli.fr/PortailAS/PDFServletDetailPaiementPT.dopdf?idPaiement=MTgwMzE1MnxQfDIwMTgwMTE1fDU5MTM5MTk2Mnw1OTEzOTE5HxUfFh8NDIuODV8",
+    "fileurl":
+      "https://assure.ameli.fr/PortailAS/PDFServletDetailPaiementPT.dopdf?idPaiement=MTgwMzE1MnxQfDIwMTgwMTE1fDU5MTM5MTk2Mnw1OTEzOTE5HxUfFh8NDIuODV8",
     "filename": "20180115_ameli.pdf",
     "invoice": "io.cozy.files:0583cabc55336fca8e1daf26b1003e5b",
     "_id": "0583cabc55325fca8e1daf26b1003e6b"
@@ -26,7 +27,8 @@
     "isRefund": true,
     "amount": 17.5,
     "originalAmount": 25,
-    "fileurl": "https://assure.ameli.fr/PortailAS/PDFServletDetailPaiementRS.dopdf?idPaiement=MTgwMDI1NzQ2MzE1MnxQfDIwMTgwMTEwfDU3ODkzNDM2N3w1xBfFV8MTcuNXw=",
+    "fileurl":
+      "https://assure.ameli.fr/PortailAS/PDFServletDetailPaiementRS.dopdf?idPaiement=MTgwMDI1NzQ2MzE1MnxQfDIwMTgwMTEwfDU3ODkzNDM2N3w1xBfFV8MTcuNXw=",
     "filename": "20180110_ameli.pdf",
     "invoice": "io.cozy.files:5e5791764639553b846df3b9a38015ec",
     "_id": "5e5791764639553b846df3b9a37994ec"
