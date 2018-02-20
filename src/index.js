@@ -4,6 +4,8 @@ const {log, BaseKonnector, saveBills, requestFactory} = require('cozy-konnector-
 const moment = require('moment')
 moment.locale('fr')
 const bluebird = require('bluebird')
+const isEqual = require('lodash/isEqual')
+const Bill = require('./bill')
 
 const urlService = require('./urlService')
 
@@ -13,6 +15,7 @@ let request = requestFactory({
   json: false,
   jar: true
 })
+
 
 module.exports = new BaseKonnector(function fetch (fields) {
   return checkLogin(fields)
@@ -38,6 +41,12 @@ module.exports = new BaseKonnector(function fetch (fields) {
 
 const checkLogin = function (fields) {
   log('info', 'Checking the length of the login')
+  if (!fields.login) {
+    throw new Error('No `login` field.')
+  }
+  if (!fields.password) {
+    throw new Error('No `password` field.')
+  }
   if (fields.login.length > 13) {
     // remove the key from the social security number
     fields.login = fields.login.substr(0, 13)
@@ -87,8 +96,9 @@ const logIn = function (fields) {
     if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
       log('debug', $('body').html(), 'No deconnection link found in the html')
       log('debug', 'Something unexpected went wrong after the login')
-      if ($('.centrepage h2')) {
-        log('error', $('.centrepage h2').text().trim())
+      const title = $('.centrepage h2')
+      if (title) {
+        log('error', title.text().trim())
         throw new Error('VENDOR_DOWN')
       }
       throw new Error('LOGIN_FAILED')
@@ -126,6 +136,7 @@ const parseMainPage = function ($) {
     return $(`[id^=lignePaiement${i++}]`).each(function () {
       const month = $($(this).find('.col-date .mois').get(0)).text()
       const day = $($(this).find('.col-date .jour').get(0)).text()
+      const groupAmount = parseAmount($($(this).find('.col-montant span').get(0)).text())
       let date = `${day} ${month} ${year}`
       date = moment(date, 'Do MMMM YYYY')
 
@@ -150,6 +161,7 @@ const parseMainPage = function ($) {
         lineId,
         detailsUrl,
         link,
+        groupAmount,
         isThirdPartyPayer: naturePaiement === 'PAIEMENT_A_UN_TIERS',
         beneficiaries: {}
       }
@@ -208,10 +220,10 @@ function parseHealthCares ($, container, beneficiary, reimbursement) {
     const healthCare = {
       prestation: $(this).find('.naturePrestation').text().trim(),
       date,
-      montantPayé: parseAmount($(this).find('[id^=montantPaye]').text().trim()),
+      amountPaid: parseAmount($(this).find('[id^=montantPaye]').text().trim()),
       baseRemboursement: parseAmount($(this).find('[id^=baseRemboursement]').text().trim()),
       taux: $(this).find('[id^=taux]').text().trim(),
-      montantVersé: parseAmount($(this).find('[id^=montantVerse]').text().trim())
+      amountReimbursed: parseAmount($(this).find('[id^=montantVerse]').text().trim())
     }
 
     reimbursement.beneficiaries[beneficiary] = reimbursement.beneficiaries[beneficiary] || []
@@ -233,7 +245,7 @@ function parseParticipation ($, container, reimbursement) {
     reimbursement.participation = {
       prestation: $(this).find('[id^=naturePFF]').text().trim(),
       date,
-      montantVersé: parseAmount($(this).find('[id^=montantVerse]').text().trim())
+      amountReimbursed: parseAmount($(this).find('[id^=montantVerse]').text().trim())
     }
   })
 }
@@ -243,7 +255,7 @@ function getBills (reimbursements) {
   reimbursements.forEach(reimbursement => {
     for (const beneficiary in reimbursement.beneficiaries) {
       reimbursement.beneficiaries[beneficiary].forEach(healthCare => {
-        bills.push({
+        bills.push(new Bill({
           type: 'health',
           subtype: healthCare.prestation,
           beneficiary,
@@ -252,16 +264,17 @@ function getBills (reimbursements) {
           originalDate: healthCare.date.toDate(),
           vendor: 'Ameli',
           isRefund: true,
-          amount: healthCare.montantVersé,
-          originalAmount: healthCare.montantPayé,
+          amount: healthCare.amountReimbursed,
+          originalAmount: healthCare.amountPaid,
           fileurl: 'https://assure.ameli.fr' + reimbursement.link,
-          filename: getFileName(reimbursement.date)
-        })
+          filename: getFileName(reimbursement.date),
+          groupAmount: reimbursement.groupAmount
+        }))
       })
     }
 
     if (reimbursement.participation) {
-      bills.push({
+      bills.push(new Bill({
         type: 'health',
         subtype: reimbursement.participation.prestation,
         isThirdPartyPayer: reimbursement.isThirdPartyPayer,
@@ -269,10 +282,11 @@ function getBills (reimbursements) {
         originalDate: reimbursement.participation.date.toDate(),
         vendor: 'Ameli',
         isRefund: true,
-        amount: reimbursement.participation.montantVersé,
+        amount: reimbursement.participation.amountReimbursed,
         fileurl: 'https://assure.ameli.fr' + reimbursement.link,
-        filename: getFileName(reimbursement.date)
-      })
+        filename: getFileName(reimbursement.date),
+        groupAmount: reimbursement.groupAmount
+      }))
     }
   })
   return bills
