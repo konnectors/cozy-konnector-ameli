@@ -38,6 +38,12 @@ module.exports = new BaseKonnector(function fetch (fields) {
 
 const checkLogin = function (fields) {
   log('info', 'Checking the length of the login')
+  if (!fields.login) {
+    throw new Error('No `login` field.')
+  }
+  if (!fields.password) {
+    throw new Error('No `password` field.')
+  }
   if (fields.login.length > 13) {
     // remove the key from the social security number
     fields.login = fields.login.substr(0, 13)
