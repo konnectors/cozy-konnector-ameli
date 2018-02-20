@@ -4,7 +4,7 @@
   "description": "Cozy Konnector for Ameli",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/konnectors/cozy-konnector-ameli.git"
+    "url": "https://github.com/konnectors/cozy-konnector-ameli.git"
   },
   "keywords": [],
   "author": "",
