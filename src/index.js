@@ -208,10 +208,10 @@ function parseHealthCares ($, container, beneficiary, reimbursement) {
     const healthCare = {
       prestation: $(this).find('.naturePrestation').text().trim(),
       date,
-      montantPayé: parseAmount($(this).find('[id^=montantPaye]').text().trim()),
+      amountPaid: parseAmount($(this).find('[id^=montantPaye]').text().trim()),
       baseRemboursement: parseAmount($(this).find('[id^=baseRemboursement]').text().trim()),
       taux: $(this).find('[id^=taux]').text().trim(),
-      montantVersé: parseAmount($(this).find('[id^=montantVerse]').text().trim())
+      amountReimbursed: parseAmount($(this).find('[id^=montantVerse]').text().trim())
     }
 
     reimbursement.beneficiaries[beneficiary] = reimbursement.beneficiaries[beneficiary] || []
@@ -233,7 +233,7 @@ function parseParticipation ($, container, reimbursement) {
     reimbursement.participation = {
       prestation: $(this).find('[id^=naturePFF]').text().trim(),
       date,
-      montantVersé: parseAmount($(this).find('[id^=montantVerse]').text().trim())
+      amountReimbursed: parseAmount($(this).find('[id^=montantVerse]').text().trim())
     }
   })
 }
@@ -252,8 +252,8 @@ function getBills (reimbursements) {
           originalDate: healthCare.date.toDate(),
           vendor: 'Ameli',
           isRefund: true,
-          amount: healthCare.montantVersé,
-          originalAmount: healthCare.montantPayé,
+          amount: healthCare.amountReimbursed,
+          originalAmount: healthCare.amountPaid,
           fileurl: 'https://assure.ameli.fr' + reimbursement.link,
           filename: getFileName(reimbursement.date)
         })
@@ -269,7 +269,7 @@ function getBills (reimbursements) {
         originalDate: reimbursement.participation.date.toDate(),
         vendor: 'Ameli',
         isRefund: true,
-        amount: reimbursement.participation.montantVersé,
+        amount: reimbursement.participation.amountReimbursed,
         fileurl: 'https://assure.ameli.fr' + reimbursement.link,
         filename: getFileName(reimbursement.date)
       })
