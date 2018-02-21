@@ -9,6 +9,7 @@
     "vendor": "Ameli",
     "isRefund": true,
     "amount": 2.84,
+    "groupAmount": 20.34,
     "originalAmount": 4.73,
     "fileurl":
       "https://assure.ameli.fr/PortailAS/PDFServletDetailPaiementPT.dopdf?idPaiement=MTgwMzE1MnxQfDIwMTgwMTE1fDU5MTM5MTk2Mnw1OTEzOTE5HxUfFh8NDIuODV8",
@@ -26,6 +27,7 @@
     "vendor": "Ameli",
     "isRefund": true,
     "amount": 17.5,
+    "groupAmount": 20.34,
     "originalAmount": 25,
     "fileurl":
       "https://assure.ameli.fr/PortailAS/PDFServletDetailPaiementRS.dopdf?idPaiement=MTgwMDI1NzQ2MzE1MnxQfDIwMTgwMTEwfDU3ODkzNDM2N3w1xBfFV8MTcuNXw=",
