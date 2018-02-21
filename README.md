@@ -11,17 +11,20 @@
 ## What's this konnector?
 
 The konnector gets information from Ameli (french national insurance).
-In France, you pay your health care but the health insurances pay you back after. Sometimes,
-you don't even have to pay and the health insurances directly pay the health provider
+In France, you pay your health care but the health insurances pay you back (in part) after.
+Sometimes, you don't even have to pay and the health insurances directly pay the health provider
 (isThirdPartyPayer field to `true`).
 
 ## What data is imported ?
 
-This konnector imports the list of reimbursements metadata that you can see in the ["Mes paiements"](https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_paiements_page) page when you filter the page 6 month back in time (as this website allows). It uses the detailed view.
-All this data is stored in `io.cozy.bills` doctype. This data is mostly used by the Banks application to link bank operations to health expenses and
-reimbursements.
+This konnector imports the list of reimbursements metadata that you can see in the
+["Mes paiements"](https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_paiements_page)
+page when you filter the page 6 month back in time (as this website allows). It uses the detailed view.
+All this data is stored in `io.cozy.bills` doctype with a `isRefund` attribute to make a difference
+with other bills. This data is mostly used by the Banks application to link bank operations to
+health expenses and reimbursements.
 
-For each reimbursement, an associated PDF invoice is downloaded (YYYYMMDD_ameli.pdf)(many reimbursements can have the
+For each reimbursement, an associated PDF invoice is downloaded (`YYYYMMDD_ameli.pdf`) (many reimbursements can have the
 same associated file and the file is only downloaded once. You can find the imported files in the
 drive application.
 
@@ -31,7 +34,8 @@ operations.
 An example of imported data can be seen in [./importedData.json](./importedData.json)
 
 Take a look at the [documentation](https://github.com/cozy/cozy-doctypes/blob/master/docs/io.cozy.bills.md)
-to have the signification of the fields in this file.
+to have the signification of the fields in this file but the important fields for bank operation
+matching are : isThirdPartyPayer, date, originalDate, amount, groupAmount, originalAmount, invoice.
 
 ### Open a Pull-Request
 
