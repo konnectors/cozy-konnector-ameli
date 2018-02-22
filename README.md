@@ -10,7 +10,8 @@
 
 ## What's this konnector?
 
-The konnector gets information from Ameli (french national insurance).
+The konnector gets information from Ameli (website of the "Sécurité sociale", the French public
+medical insurance).
 In France, you pay your health care but the health insurances pay you back (in part) after.
 Sometimes, you don't even have to pay and the health insurances directly pay the health provider
 (isThirdPartyPayer field to `true`).
