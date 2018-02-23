@@ -48,7 +48,7 @@
     "deploy:prod": "git-directory-deploy --directory build/ --branch latest --repo=https://github.com/konnectors/cozy-konnector-ameli.git"
   },
   "dependencies": {
-    "cozy-konnector-libs": "3.3.0"
+    "cozy-konnector-libs": "3.4.0"
   },
   "devDependencies": {
     "copy-webpack-plugin": "4.4.1",
