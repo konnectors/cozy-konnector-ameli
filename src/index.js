@@ -15,6 +15,7 @@ const {
 const moment = require("moment");
 moment.locale("fr");
 const bluebird = require("bluebird");
+const Bill = require("./bill");
 
 const urlService = require("./urlService");
 
@@ -165,6 +166,13 @@ const parseMainPage = function($) {
           .find(".col-date .jour")
           .get(0)
       ).text();
+      const groupAmount = parseAmount(
+        $(
+          $(this)
+            .find(".col-montant span")
+            .get(0)
+        ).text()
+      );
       let date = `${day} ${month} ${year}`;
       date = moment(date, "Do MMMM YYYY");
 
@@ -196,6 +204,7 @@ const parseMainPage = function($) {
         lineId,
         detailsUrl,
         link,
+        groupAmount,
         isThirdPartyPayer: naturePaiement === "PAIEMENT_A_UN_TIERS",
         beneficiaries: {}
       };
@@ -337,36 +346,42 @@ function getBills(reimbursements) {
   reimbursements.forEach(reimbursement => {
     for (const beneficiary in reimbursement.beneficiaries) {
       reimbursement.beneficiaries[beneficiary].forEach(healthCare => {
-        bills.push({
-          type: "health",
-          subtype: healthCare.prestation,
-          beneficiary,
-          isThirdPartyPayer: reimbursement.isThirdPartyPayer,
-          date: reimbursement.date.toDate(),
-          originalDate: healthCare.date.toDate(),
-          vendor: "Ameli",
-          isRefund: true,
-          amount: healthCare.montantVersé,
-          originalAmount: healthCare.montantPayé,
-          fileurl: "https://assure.ameli.fr" + reimbursement.link,
-          filename: getFileName(reimbursement.date)
-        });
+        bills.push(
+          new Bill({
+            type: "health",
+            subtype: healthCare.prestation,
+            beneficiary,
+            isThirdPartyPayer: reimbursement.isThirdPartyPayer,
+            date: reimbursement.date.toDate(),
+            originalDate: healthCare.date.toDate(),
+            vendor: "Ameli",
+            isRefund: true,
+            amount: healthCare.montantVersé,
+            originalAmount: healthCare.montantPayé,
+            fileurl: "https://assure.ameli.fr" + reimbursement.link,
+            filename: getFileName(reimbursement.date),
+            groupAmount: reimbursement.groupAmount
+          })
+        );
       });
     }
 
     if (reimbursement.participation) {
-      bills.push({
-        type: "health",
-        subtype: reimbursement.participation.prestation,
-        isThirdPartyPayer: reimbursement.isThirdPartyPayer,
-        date: reimbursement.date.toDate(),
-        originalDate: reimbursement.participation.date.toDate(),
-        vendor: "Ameli",
-        isRefund: true,
-        amount: reimbursement.participation.montantVersé,
-        fileurl: "https://assure.ameli.fr" + reimbursement.link,
-        filename: getFileName(reimbursement.date)
-      });
+      bills.push(
+        new Bill({
+          type: "health",
+          subtype: reimbursement.participation.prestation,
+          isThirdPartyPayer: reimbursement.isThirdPartyPayer,
+          date: reimbursement.date.toDate(),
+          originalDate: reimbursement.participation.date.toDate(),
+          vendor: "Ameli",
+          isRefund: true,
+          amount: reimbursement.participation.montantVersé,
+          fileurl: "https://assure.ameli.fr" + reimbursement.link,
+          filename: getFileName(reimbursement.date),
+          groupAmount: reimbursement.groupAmount
+        })
+      );
     }
   });
   return bills;

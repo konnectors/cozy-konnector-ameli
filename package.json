@@ -27,7 +27,12 @@
     "extends": [
       "eslint:recommended",
       "prettier"
-    ]
+    ],
+    "parserOptions":{
+      "ecmaFeatures": {
+        "experimentalObjectRestSpread": true
+      }
+    }
   },
   "eslintIgnore": [
     "build"
