@@ -1,7 +1,13 @@
 const isEqualWith = require("lodash/isEqualWith");
 const omit = require("lodash/omit");
 
-const maybeToISO = date => (date.toISOString ? date.toISOString() : date);
+const maybeToISO = date => {
+  try {
+    return date.toISOString ? date.toISOString() : date;
+  } catch (e) {
+    return date;
+  }
+};
 
 const looseDates = (val, otherVal) => {
   // Loose equality for dates since when coming from Couch, they
