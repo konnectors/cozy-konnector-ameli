@@ -13,6 +13,7 @@ const {
   requestFactory
 } = require("cozy-konnector-libs");
 const moment = require("moment");
+const sortBy = require("lodash/sortBy");
 moment.locale("fr");
 const bluebird = require("bluebird");
 const Bill = require("./bill");
@@ -159,7 +160,7 @@ const fetchMainPage = function($) {
 
 // Parse the fetched page to extract bill data.
 const parseMainPage = function($) {
-  const reimbursements = [];
+  let reimbursements = [];
   let i = 0;
 
   // Each bloc represents a month that includes 0 to n reimbursement
@@ -229,13 +230,24 @@ const parseMainPage = function($) {
       reimbursements.push(reimbursement);
     });
   });
+
+  reimbursements = sortBy(reimbursements, "date");
   return bluebird
-    .each(reimbursements, reimbursement => {
-      log("info", "Fetching details");
-      return request(reimbursement.detailsUrl).then($ =>
-        parseDetails($, reimbursement)
-      );
-    })
+    .map(
+      reimbursements,
+      reimbursement => {
+        log(
+          "info",
+          `Fetching details for ${reimbursement.date} ${
+            reimbursement.groupAmount
+          }`
+        );
+        return request(reimbursement.detailsUrl).then($ =>
+          parseDetails($, reimbursement)
+        );
+      },
+      { concurrency: 10 }
+    )
     .then(() => reimbursements);
 };
 
