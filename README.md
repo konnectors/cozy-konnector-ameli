@@ -1,36 +1,42 @@
-[Cozy][cozy] Ameli
-=======================================
+# [Cozy][cozy] Ameli
 
 [![Build Status](https://travis-ci.org/konnectors/cozy-konnector-ameli.svg?branch=master)](https://travis-ci.org/konnectors/cozy-konnector-ameli)
 
-What's Cozy?
-------------
+## What's Cozy?
 
 ![Cozy Logo](https://cdn.rawgit.com/cozy/cozy-guidelines/master/templates/cozy_logo_small.svg)
 
 [Cozy] is a platform that brings all your web services in the same private space. With it, your webapps and your devices can share data easily, providing you with a new experience. You can install Cozy on your own hardware where no one's tracking you.
 
-What's this new konnector?
---------------------------
+## What's this konnector?
 
-The konnector gets information from Ameli (french national insurance)
+The konnector gets information from Ameli (website of the "Sécurité sociale", the French public
+medical insurance).
+In France, you pay your health care but the health insurances pay you back (in part) after.
+Sometimes, you don't even have to pay and the health insurances directly pay the health provider
+(isThirdPartyPayer field to `true`).
 
-What data is imported ?
------------------------
+## What data is imported ?
 
-This konnector imports the list of reimbursements metadata that you can see in the ["Mes paiements"](https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_paiements_page) page when you filter the page 6 month back in time (as this website allows). It uses the detailed view.
+This konnector imports the list of reimbursements metadata that you can see in the
+["Mes paiements"](https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_paiements_page)
+page when you filter the page 6 month back in time (as this website allows). It uses the detailed view.
+All this data is stored in `io.cozy.bills` doctype with a `isRefund` attribute to make a difference
+with other bills. This data is mostly used by the Banks application to link bank operations to
+health expenses and reimbursements.
 
-For each reimbursement, an associated PDF bill is downloaded (many reimbursements can have the
-same associated file and the file is only downloaded once.
+For each reimbursement, an associated PDF invoice is downloaded (`YYYYMMDD_ameli.pdf`) (many reimbursements can have the
+same associated file and the file is only downloaded once. You can find the imported files in the
+drive application.
 
-Each health care is separated since each health care will be reimbursed individually by the C.P.A.M
-and it makes it easier to link it with a bank operation with the same amount.
+Each health care is separated to make it easy to find the associated paiment in the bank
+operations.
 
 An example of imported data can be seen in [./importedData.json](./importedData.json)
 
 Take a look at the [documentation](https://github.com/cozy/cozy-doctypes/blob/master/docs/io.cozy.bills.md)
-to have the signification of the fields in this file.
-
+to have the signification of the fields in this file but the important fields for bank operation
+matching are : isThirdPartyPayer, date, originalDate, amount, groupAmount, originalAmount, invoice.
 
 ### Open a Pull-Request
 
@@ -86,9 +92,10 @@ The cozy-stack runs the connector in a rkt container to be sure it does not affe
 
 The connector is run by calling npm start with the following envrionment variables :
 
- - COZY_CREDENTIALS needs to be the result of `cozy-stack instances token-cli <instance name> <scope>`
- - COZY_URL is the full http or https url to your cozy
- - COZY_FIELDS is something like :
+* COZY_CREDENTIALS needs to be the result of `cozy-stack instances token-cli <instance name> <scope>`
+* COZY_URL is the full http or https url to your cozy
+* COZY_FIELDS is something like :
+
 ```javascript
 {
   "data":{
@@ -135,16 +142,15 @@ You can follow these steps to enable building using Travis:
 * On your [travis-ci.org][travis] account, find your project name (should be the same than your Github repository) and enable Travis by using the related checkbox.
 * Once enabled, go to this project on Travis by clicking on it and go to the "Settings" menu by using the "More options" menu at the top right.
 * Enable these three options:
-    * "Build only if .travis.yml is present"
-    * "Build branch updates" (run Travis after each branch update)
-    * "Build pull request updates" (run Travis after each Pull Request update)
+  * "Build only if .travis.yml is present"
+  * "Build branch updates" (run Travis after each branch update)
+  * "Build pull request updates" (run Travis after each Pull Request update)
 * Then, you have to generate a Github token in [your Github account settings](https://github.com/settings/tokens). Here is the [Github blog post about API token](https://github.com/blog/1509-personal-api-tokens). Don't forget to authorize the access to the repo scope like following: ![repo scope](https://cloud.githubusercontent.com/assets/10224453/26671128/aa735ec2-46b4-11e7-9cd0-25310100e05e.png)
-* Then, add an environment variable (still in your Travis project settings) named `GITHUB_TOKEN` and use your previous generated Github token as value (We highly recommand you to __keep the checkbox "Display value in build log" to OFF value__ in order to keep your token value hidden in the Travis logs.)
+* Then, add an environment variable (still in your Travis project settings) named `GITHUB_TOKEN` and use your previous generated Github token as value (We highly recommand you to **keep the checkbox "Display value in build log" to OFF value** in order to keep your token value hidden in the Travis logs.)
 
 Now Travis is ready to build your project, it should build it each time your push a commit in your repository or create a pull request.
 
-> __Note:__ Travis will push your build to your `build` branch ONLY for commits made on your master branch (included PR merge commits). You can see the related Travis statement [here](https://github.com/cozy/cozy-konnector-template/blob/master/.travis.yml#L27).
-
+> **Note:** Travis will push your build to your `build` branch ONLY for commits made on your master branch (included PR merge commits). You can see the related Travis statement [here](https://github.com/cozy/cozy-konnector-template/blob/master/.travis.yml#L27).
 
 ### Standard
 
@@ -158,19 +164,16 @@ yarn lint
 
 The lead maintainers for this konnector is Brice Coquereau
 
-
 ### Get in touch
 
 You can reach the Cozy Community by:
 
-- Chatting with us on IRC [#cozycloud on Freenode][freenode]
-- Posting on our [Forum]
-- Posting issues on the [Github repos][github]
-- Say Hi! on [Twitter]
+* Chatting with us on IRC [#cozycloud on Freenode][freenode]
+* Posting on our [Forum]
+* Posting issues on the [Github repos][github]
+* Say Hi! on [Twitter]
 
-
-License
--------
+## License
 
 Ameli is developed by Brice Coquereau and distributed under the [AGPL v3 license][agpl-3.0].
 

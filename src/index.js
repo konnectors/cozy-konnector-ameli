@@ -13,8 +13,10 @@ const {
   requestFactory
 } = require("cozy-konnector-libs");
 const moment = require("moment");
+const sortBy = require("lodash/sortBy");
 moment.locale("fr");
 const bluebird = require("bluebird");
+const Bill = require("./bill");
 
 const urlService = require("./urlService");
 
@@ -141,7 +143,7 @@ const fetchMainPage = function($) {
 
 // Parse the fetched page to extract bill data.
 const parseMainPage = function($) {
-  const reimbursements = [];
+  let reimbursements = [];
   let i = 0;
 
   // Each bloc represents a month that includes 0 to n reimbursement
@@ -165,6 +167,13 @@ const parseMainPage = function($) {
           .find(".col-date .jour")
           .get(0)
       ).text();
+      const groupAmount = parseAmount(
+        $(
+          $(this)
+            .find(".col-montant span")
+            .get(0)
+        ).text()
+      );
       let date = `${day} ${month} ${year}`;
       date = moment(date, "Do MMMM YYYY");
 
@@ -196,6 +205,7 @@ const parseMainPage = function($) {
         lineId,
         detailsUrl,
         link,
+        groupAmount,
         isThirdPartyPayer: naturePaiement === "PAIEMENT_A_UN_TIERS",
         beneficiaries: {}
       };
@@ -203,12 +213,24 @@ const parseMainPage = function($) {
       reimbursements.push(reimbursement);
     });
   });
+
+  reimbursements = sortBy(reimbursements, x => +x.date);
   return bluebird
-    .each(reimbursements, reimbursement => {
-      return request(reimbursement.detailsUrl).then($ =>
-        parseDetails($, reimbursement)
-      );
-    })
+    .map(
+      reimbursements,
+      reimbursement => {
+        log(
+          "info",
+          `Fetching details for ${reimbursement.date} ${
+            reimbursement.groupAmount
+          }`
+        );
+        return request(reimbursement.detailsUrl).then($ =>
+          parseDetails($, reimbursement)
+        );
+      },
+      { concurrency: 10 }
+    )
     .then(() => reimbursements);
 };
 
@@ -337,39 +359,45 @@ function getBills(reimbursements) {
   reimbursements.forEach(reimbursement => {
     for (const beneficiary in reimbursement.beneficiaries) {
       reimbursement.beneficiaries[beneficiary].forEach(healthCare => {
-        bills.push({
-          type: "health",
-          subtype: healthCare.prestation,
-          beneficiary,
-          isThirdPartyPayer: reimbursement.isThirdPartyPayer,
-          date: reimbursement.date.toDate(),
-          originalDate: healthCare.date.toDate(),
-          vendor: "Ameli",
-          isRefund: true,
-          amount: healthCare.montantVersé,
-          originalAmount: healthCare.montantPayé,
-          fileurl: "https://assure.ameli.fr" + reimbursement.link,
-          filename: getFileName(reimbursement.date)
-        });
+        bills.push(
+          new Bill({
+            type: "health",
+            subtype: healthCare.prestation,
+            beneficiary,
+            isThirdPartyPayer: reimbursement.isThirdPartyPayer,
+            date: reimbursement.date.toDate(),
+            originalDate: healthCare.date.toDate(),
+            vendor: "Ameli",
+            isRefund: true,
+            amount: healthCare.montantVersé,
+            originalAmount: healthCare.montantPayé,
+            fileurl: "https://assure.ameli.fr" + reimbursement.link,
+            filename: getFileName(reimbursement.date),
+            groupAmount: reimbursement.groupAmount
+          })
+        );
       });
     }
 
     if (reimbursement.participation) {
-      bills.push({
-        type: "health",
-        subtype: reimbursement.participation.prestation,
-        isThirdPartyPayer: reimbursement.isThirdPartyPayer,
-        date: reimbursement.date.toDate(),
-        originalDate: reimbursement.participation.date.toDate(),
-        vendor: "Ameli",
-        isRefund: true,
-        amount: reimbursement.participation.montantVersé,
-        fileurl: "https://assure.ameli.fr" + reimbursement.link,
-        filename: getFileName(reimbursement.date)
-      });
+      bills.push(
+        new Bill({
+          type: "health",
+          subtype: reimbursement.participation.prestation,
+          isThirdPartyPayer: reimbursement.isThirdPartyPayer,
+          date: reimbursement.date.toDate(),
+          originalDate: reimbursement.participation.date.toDate(),
+          vendor: "Ameli",
+          isRefund: true,
+          amount: reimbursement.participation.montantVersé,
+          fileurl: "https://assure.ameli.fr" + reimbursement.link,
+          filename: getFileName(reimbursement.date),
+          groupAmount: reimbursement.groupAmount
+        })
+      );
     }
   });
-  return bills;
+  return bills.filter(bill => !isNaN(bill.amount));
 }
 
 function getFileName(date) {
