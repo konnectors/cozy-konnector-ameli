@@ -138,24 +138,7 @@ const fetchMainPage = function($) {
   // We can get the history only 6 months back
   const billUrl = urlService.getBillUrl(endDate, 6);
 
-  return request(billUrl).then($1 => {
-    log("info", "Fetching more bills");
-    return request(
-      "https://assure.ameli.fr/PortailAS/paiements.do?" +
-        "actionEvt=afficherPaiementsComplementaires&" +
-        "Beneficiaire=tout_selectionner&" +
-        "afficherReleves=true&" +
-        "afficherIJ=false&" +
-        "afficherPT=false&" +
-        "afficherInva=false&" +
-        "afficherRentes=false&" +
-        "afficherRS=false&" +
-        "indexPaiement=&"
-    ).then($2 => {
-      const full = $($1.html() + $2.html());
-      return full.find.bind(full);
-    });
-  });
+  return request(billUrl);
 };
 
 // Parse the fetched page to extract bill data.
@@ -231,7 +214,7 @@ const parseMainPage = function($) {
     });
   });
 
-  reimbursements = sortBy(reimbursements, "date");
+  reimbursements = sortBy(reimbursements, x => +x.date);
   return bluebird
     .map(
       reimbursements,
