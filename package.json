@@ -28,7 +28,7 @@
       "eslint:recommended",
       "prettier"
     ],
-    "parserOptions":{
+    "parserOptions": {
       "ecmaFeatures": {
         "experimentalObjectRestSpread": true
       }
