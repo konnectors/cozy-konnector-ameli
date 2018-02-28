@@ -62,7 +62,7 @@
     "git-directory-deploy": "1.5.1",
     "husky": "0.14.3",
     "konitor": "0.5.1",
-    "prettier": "1.11.0",
+    "prettier": "1.11.1",
     "pretty-quick": "1.4.1",
     "webpack": "3.11.0"
   }
