@@ -1,0 +1,66 @@
+{
+  "version": "1.0.0",
+  "name": "ameli konnector v3",
+  "type": "node",
+  "slug": "ameli",
+  "description": "Ameli konnector for Cozy v3",
+  "source": "git@github.com:konnectors/cozy-konnector-ameli.git",
+  "fields": {
+    "save_folder": {
+      "doctype": "io.cozy.files",
+      "type": "folder"
+    },
+    "account": {
+      "doctype": "io.cozy.accounts",
+      "account_type": "ameli",
+      "accountFormat": "login,password"
+    }
+  },
+  "locales": {
+    "fr": {
+      "description": "Récupère toutes vos factures ameli",
+      "permissions": {
+        "bills": {
+          "description": "Utilisé pour sauvegarder les données de facturation"
+        },
+        "files": {
+          "description": "Utilisé pour sauvegarder les factures"
+        }
+      }
+    },
+    "en": {
+      "description": "Retrieves all your ameli invoices",
+      "permissions": {
+        "bills": {
+          "description": "Used to save billing data"
+        },
+        "files": {
+          "description": "Used to save invoices"
+        }
+      }
+    }
+  },
+  "permissions": {
+    "bank operations": {
+      "description": "Required to link bills to bank operations",
+      "type": "io.cozy.bank.operations"
+    },
+    "bills": {
+      "description": "Required to save the bills data",
+      "type": "io.cozy.bills"
+    },
+    "files": {
+      "description": "Required to save the bills",
+      "type": "io.cozy.files"
+    },
+    "accounts": {
+      "description": "Required to get the account's data",
+      "type": "io.cozy.accounts",
+      "verbs": ["GET"]
+    }
+  },
+  "developer": {
+    "name": "Brice Coquereau",
+    "url": "https://brice.coquereau.fr"
+  }
+}
