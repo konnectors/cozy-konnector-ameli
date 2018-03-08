@@ -56,7 +56,7 @@
     "cozy-konnector-libs": "3.5.2"
   },
   "devDependencies": {
-    "copy-webpack-plugin": "4.4.3",
+    "copy-webpack-plugin": "4.5.0",
     "eslint": "4.18.2",
     "eslint-config-prettier": "2.9.0",
     "git-directory-deploy": "1.5.1",
