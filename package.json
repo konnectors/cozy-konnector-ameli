@@ -47,7 +47,7 @@
     "standalone:replay": "REPLAY=replay cozy-konnector-standalone src/index.js",
     "build": "webpack",
     "format": "prettier --write '**/*.{js,json}'",
-    "precommit": "eslint . && pretty-quick --staged",
+    "precommit": "eslint .",
     "lint": "eslint .",
     "deploy": "git-directory-deploy --directory build/ --branch build --repo=https://github.com/konnectors/cozy-konnector-ameli.git",
     "deploy:prod": "git-directory-deploy --directory build/ --branch latest --repo=https://github.com/konnectors/cozy-konnector-ameli.git"
