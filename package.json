@@ -19,20 +19,9 @@
     }
   },
   "eslintConfig": {
-    "env": {
-      "es6": true,
-      "jest": true,
-      "node": true
-    },
     "extends": [
-      "eslint:recommended",
-      "prettier"
-    ],
-    "parserOptions": {
-      "ecmaFeatures": {
-        "experimentalObjectRestSpread": true
-      }
-    }
+      "eslint-config-cozy-app"
+    ]
   },
   "eslintIgnore": [
     "build"
@@ -53,7 +42,8 @@
     "deploy:prod": "git-directory-deploy --directory build/ --branch latest --repo=https://github.com/konnectors/cozy-konnector-ameli.git"
   },
   "dependencies": {
-    "cozy-konnector-libs": "3.5.3"
+    "cozy-konnector-libs": "3.5.3",
+    "eslint-config-cozy-app": "^0.3.3"
   },
   "devDependencies": {
     "copy-webpack-plugin": "4.5.1",
