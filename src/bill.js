@@ -13,7 +13,7 @@ const looseDates = (val, otherVal) => {
   // Loose equality for dates since when coming from Couch, they
   // are ISO strings whereas just after scraping they are `Date`s.
   if (val instanceof Date) {
-    return maybeToISO(val) == maybeToISO(otherVal);
+    return maybeToISO(val) === maybeToISO(otherVal);
   }
 };
 

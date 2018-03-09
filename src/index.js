@@ -10,7 +10,8 @@ const {
   log,
   BaseKonnector,
   saveBills,
-  requestFactory
+  requestFactory,
+  scrape
 } = require("cozy-konnector-libs");
 const moment = require("moment");
 const sortBy = require("lodash/sortBy");
@@ -146,98 +147,106 @@ const fetchMainPage = function($) {
   return request(billUrl);
 };
 
+const parseDetailsOnClick = onClick => {
+  const tokens = onClick.split("'");
+
+  const idPaiement = tokens[1];
+  const naturePaiement = tokens[3];
+  const indexGroupe = tokens[5];
+  const indexPaiement = tokens[7];
+  const lineId = indexGroupe + indexPaiement;
+
+  return {
+    idPaiement,
+    naturePaiement,
+    indexGroupe,
+    indexPaiement,
+    lineId,
+    url: urlService.getDetailsUrl(
+      idPaiement,
+      naturePaiement,
+      indexGroupe,
+      indexPaiement
+    )
+  };
+};
+
 // Parse the fetched page to extract bill data.
 const parseMainPage = function($) {
   let reimbursements = [];
-  let i = 0;
 
   // Each bloc represents a month that includes 0 to n reimbursement
-  $(".blocParMois").each(function() {
+  const months = $(".blocParMois");
+  months.each(function(monthNumber) {
+    const $this = $(this);
+
     // It would be too easy to get the full date at the same place
-    let year = $(
-      $(this)
-        .find(".rowdate .mois")
-        .get(0)
-    ).text();
-    year = year.split(" ")[1];
+    const year = scrape($(this), {
+      sel: ".rowdate .mois",
+      parse: val => val.split(" ")[1]
+    });
 
-    return $(`[id^=lignePaiement${i++}]`).each(function() {
-      const month = $(
-        $(this)
-          .find(".col-date .mois")
-          .get(0)
-      ).text();
-      const day = $(
-        $(this)
-          .find(".col-date .jour")
-          .get(0)
-      ).text();
-      const groupAmount = parseAmount(
-        $(
-          $(this)
-            .find(".col-montant span")
-            .get(0)
-        ).text()
-      );
-      let date = `${day} ${month} ${year}`;
-      date = moment(date, "Do MMMM YYYY");
-
-      // Retrieve and extract the infos needed to generate the pdf
-      const attrInfos = $(this).attr("onclick");
-      const tokens = attrInfos.split("'");
-
-      const idPaiement = tokens[1];
-      const naturePaiement = tokens[3];
-      const indexGroupe = tokens[5];
-      const indexPaiement = tokens[7];
-
-      const detailsUrl = urlService.getDetailsUrl(
-        idPaiement,
-        naturePaiement,
-        indexGroupe,
-        indexPaiement
+    const paiements = $this.find(`[id^=lignePaiement${monthNumber}]`);
+    paiements.each(function() {
+      const $this = $(this);
+      const { link, day, month, groupAmount, detailsOnClickInfo } = scrape(
+        $this,
+        {
+          day: {
+            sel: ".col-date .jour",
+            index: 0
+          },
+          month: {
+            sel: ".col-date .mois",
+            index: 0
+          },
+          groupAmount: {
+            sel: ".col-montant span",
+            index: 0,
+            parse: parseAmount
+          },
+          // This link seems to not be present in every account
+          link: {
+            sel: ".downdetail",
+            attr: "href"
+          },
+          detailsOnClickInfo: {
+            attr: "onclick",
+            parse: parseDetailsOnClick
+          }
+        }
       );
 
-      // This link seems to not be present in every account
-      const link = $(this)
-        .find(".downdetail")
-        .attr("href");
+      const date = moment(`${day} ${month} ${year}`, "Do MMMM YYYY").toDate();
 
-      let lineId = indexGroupe + indexPaiement;
-
-      let reimbursement = {
+      reimbursements.push({
         date,
-        lineId,
-        detailsUrl,
+        lineId: detailsOnClickInfo.lineId,
+        detailsUrl: detailsOnClickInfo.url,
         link,
         groupAmount,
-        isThirdPartyPayer: naturePaiement === "PAIEMENT_A_UN_TIERS",
+        isThirdPartyPayer:
+          detailsOnClickInfo.naturePaiement === "PAIEMENT_A_UN_TIERS",
         beneficiaries: {}
-      };
-
-      reimbursements.push(reimbursement);
+      });
     });
   });
 
   reimbursements = sortBy(reimbursements, x => +x.date);
   return bluebird
-    .map(
-      reimbursements,
-      reimbursement => {
-        log(
-          "info",
-          `Fetching details for ${reimbursement.date} ${
-            reimbursement.groupAmount
-          }`
-        );
-        return request(reimbursement.detailsUrl).then($ =>
-          parseDetails($, reimbursement)
-        );
-      },
-      { concurrency: 10 }
-    )
+    .map(reimbursements, fetchReimbursementDetail, { concurrency: 10 })
     .then(() => reimbursements);
 };
+
+function fetchReimbursementDetail(reimbursement) {
+  const msg = `Fetching details for ${reimbursement.date} ${
+    reimbursement.groupAmount
+  }`;
+  log("info", msg);
+  return request(reimbursement.detailsUrl).then($ =>
+    parseDetails($, reimbursement)
+  );
+}
 
 function parseDetails($, reimbursement) {
   let currentBeneficiary = null;
@@ -258,9 +267,9 @@ function parseDetails($, reimbursement) {
       return null;
     }
 
-    // the next container is the list of health cares associated to the beneficiary
+    // the next container is the list of treatments associated to the beneficiary
     if (currentBeneficiary) {
-      parseHealthCares($, this, currentBeneficiary, reimbursement);
+      parseTreatment($, this, currentBeneficiary, reimbursement);
       currentBeneficiary = null;
     } else {
       // there is some participation remaining for the whole reimbursement
@@ -270,93 +279,83 @@ function parseDetails($, reimbursement) {
 }
 
 function parseAmount(amount) {
-  return parseFloat(amount.replace(" €", "").replace(",", "."));
+  const f = parseFloat(amount.replace(" €", "").replace(",", "."));
+  if (isNaN(f)) {
+    log("warn", `Could not parse ${amount}`);
+    return null;
+  }
+  return f;
 }
 
-  $(container)
-    .find("tr")
-    .each(function() {
-      if ($(this).find("th").length > 0) {
-        return null; // ignore header
-      }
+function parseDate(date) {
+  const momentDate = moment(date, "DD/MM/YYYY");
+  return momentDate.isValid() ? momentDate.toDate() : null;
+}
 
-      let date = $(this)
-        .find("[id^=Nature]")
-        .html()
-        .split("<br>")
-        .pop()
-        .trim();
-      date = moment(date, "DD/MM/YYYY");
-      const healthCare = {
-        prestation: $(this)
-          .find(".naturePrestation")
-          .text()
-          .trim(),
-        date,
-        montantPayé: parseAmount(
-          $(this)
-            .find("[id^=montantPaye]")
-            .text()
-            .trim()
-        ),
-        baseRemboursement: parseAmount(
-          $(this)
-            .find("[id^=baseRemboursement]")
-            .text()
-            .trim()
-        ),
-        taux: $(this)
-          .find("[id^=taux]")
-          .text()
-          .trim(),
-        montantVersé: parseAmount(
-          $(this)
-            .find("[id^=montantVerse]")
-            .text()
-            .trim()
-        )
-      };
-
-      reimbursement.beneficiaries[beneficiary] =
-        reimbursement.beneficiaries[beneficiary] || [];
-      reimbursement.beneficiaries[beneficiary].push(healthCare);
 function parseTreatment($, container, beneficiary, reimbursement) {
+  const rows = $(container).find("tr");
+  rows.each(function() {
+    const $this = $(this);
+    if ($this.find("th").length > 0) {
+      return null; // ignore header
+    }
+
+    const healthCare = scrape($this, {
+      prestation: ".naturePrestation",
+      date: {
+        sel: "[id^=Nature]",
+        fn: $node =>
+          $node
+            .html()
+            .split("<br>")
+            .pop()
+            .trim(),
+        parse: parseDate
+      },
+      montantPayé: {
+        sel: "[id^=montantPaye]",
+        parse: parseAmount
+      },
+      baseRemboursement: "[id^=baseRemboursement]",
+      taux: "[id^=taux]",
+      montantVersé: {
+        sel: "[id^=montantVerse]",
+        parse: parseAmount
+      }
     });
+
+    reimbursement.beneficiaries[beneficiary] =
+      reimbursement.beneficiaries[beneficiary] || [];
+    reimbursement.beneficiaries[beneficiary].push(healthCare);
+  });
 }
 
 function parseParticipation($, container, reimbursement) {
-  $(container)
-    .find("tr")
-    .each(function() {
-      if ($(this).find("th").length > 0) {
-        return null; // ignore header
-      }
+  const rows = $(container).find("tr");
+  rows.each(function() {
+    const $this = $(this);
+    if ($this.find("th").length > 0) {
+      return null; // ignore header
+    }
 
-      if (reimbursement.participation) {
-        log(
-          "warning",
-          "There is already a participation, this case is not supposed to happend"
-        );
+    if (reimbursement.participation) {
+      log(
+        "warning",
+        "There is already a participation, this case is not supposed to happend"
+      );
+    }
+    reimbursement.participation = scrape($this, {
+      prestation: "[id^=naturePFF]",
+      date: {
+        sel: "[id^=dateActePFF]",
+        parse: parseDate
+      },
+      montantVersé: {
+        sel: "[id^=montantVerse]",
+        parse: parseAmount
       }
-      let date = $(this)
-        .find("[id^=dateActePFF]")
-        .text()
-        .trim();
-      date = moment(date, "DD/MM/YYYY");
-      reimbursement.participation = {
-        prestation: $(this)
-          .find("[id^=naturePFF]")
-          .text()
-          .trim(),
-        date,
-        montantVersé: parseAmount(
-          $(this)
-            .find("[id^=montantVerse]")
-            .text()
-            .trim()
-        )
-      };
     });
+  });
 }
 
 function getBills(reimbursements) {
@@ -370,8 +369,8 @@ function getBills(reimbursements) {
             subtype: healthCare.prestation,
             beneficiary,
             isThirdPartyPayer: reimbursement.isThirdPartyPayer,
-            date: reimbursement.date.toDate(),
-            originalDate: healthCare.date.toDate(),
+            date: reimbursement.date,
+            originalDate: healthCare.date,
             vendor: "Ameli",
             isRefund: true,
             amount: healthCare.montantVersé,
@@ -390,8 +389,8 @@ function getBills(reimbursements) {
           type: "health",
           subtype: reimbursement.participation.prestation,
           isThirdPartyPayer: reimbursement.isThirdPartyPayer,
-          date: reimbursement.date.toDate(),
-          originalDate: reimbursement.participation.date.toDate(),
+          date: reimbursement.date,
+          originalDate: reimbursement.participation.date,
           vendor: "Ameli",
           isRefund: true,
           amount: reimbursement.participation.montantVersé,
