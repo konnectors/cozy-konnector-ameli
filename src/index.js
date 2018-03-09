@@ -60,6 +60,21 @@ const checkLogin = function(fields) {
   return Promise.resolve();
 };
 
+function fetchLogin() {
+  return request({
+    url: urlService.getLoginUrl(),
+    resolveWithFullResponse: true
+  });
+}
+
+function submitForm(form) {
+  return request({
+    method: "POST",
+    form,
+    url: urlService.getSubmitUrl()
+  });
+}
+
 // Procedure to login to Ameli website.
 const logIn = function(fields) {
   log("info", "Now logging in");
@@ -72,19 +87,9 @@ const logIn = function(fields) {
   };
 
   return (
-    request({
-      url: urlService.getLoginUrl(),
-      resolveWithFullResponse: true
-    })
-      // First request to get the cookie
-      .then(() =>
-        request({
-          method: "POST",
-          form,
-          url: urlService.getSubmitUrl()
-        })
-      )
-      // Second request to authenticate
+    // First request to get the cookie
+    fetchLogin()
+      .then(() => submitForm(form))
       .then($ => {
         const $errors = $("#r_errors");
         if ($errors.length > 0) {
@@ -268,7 +273,6 @@ function parseAmount(amount) {
   return parseFloat(amount.replace(" €", "").replace(",", "."));
 }
 
-function parseHealthCares($, container, beneficiary, reimbursement) {
   $(container)
     .find("tr")
     .each(function() {
@@ -316,6 +320,7 @@ function parseHealthCares($, container, beneficiary, reimbursement) {
       reimbursement.beneficiaries[beneficiary] =
         reimbursement.beneficiaries[beneficiary] || [];
       reimbursement.beneficiaries[beneficiary].push(healthCare);
+function parseTreatment($, container, beneficiary, reimbursement) {
     });
 }
 
