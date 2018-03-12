@@ -19,19 +19,15 @@ script:
   - yarn lint
   - if [ $TRAVIS_SECURE_ENV_VARS = "true" ]; then yarn test; fi
 deploy:
-  - provider: pages
+  - provider: script
     repo: konnectors/cozy-konnector-ameli
     skip-cleanup: true
-    github-token: $GITHUB_TOKEN
-    target-branch: build
-    local-dir: ./build
+    script: yarn deploy
     on:
       branch: master
-  - provider: pages
+  - provider: script
     repo: konnectors/cozy-konnector-ameli
     skip-cleanup: true
-    github-token: $GITHUB_TOKEN
-    target-branch: latest
-    local-dir: ./build
+    script: yarn deploy:prod
     on:
       branch: prod
