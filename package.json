@@ -49,8 +49,7 @@
     "format": "prettier --write '**/*.{js,json}'",
     "precommit": "eslint .",
     "lint": "eslint .",
-    "deploy": "git-directory-deploy --directory build/ --branch build --repo=https://github.com/konnectors/cozy-konnector-ameli.git",
-    "deploy:prod": "git-directory-deploy --directory build/ --branch latest --repo=https://github.com/konnectors/cozy-konnector-ameli.git"
+    "deploy": "git-directory-deploy --directory build/ --branch ${DEPLOY_BRANCH:-build} --repo=${DEPLOY_REPOSITORY:-https://$GITHUB_TOKEN@github.com/konnectors/cozy-konnector-ameli.git}"
   },
   "dependencies": {
     "cozy-konnector-libs": "3.5.3"
