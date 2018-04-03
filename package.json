@@ -64,7 +64,7 @@
     "konitor": "0.5.3",
     "prettier": "1.11.1",
     "pretty-quick": "1.4.1",
-    "webpack": "4.3.0",
+    "webpack": "4.4.1",
     "webpack-cli": "2.0.13"
   }
 }
