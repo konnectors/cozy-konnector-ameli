@@ -6,6 +6,8 @@ env:
     # kosssi GITHUB_TOKEN
     # to generate yours : travis encrypt GITHUB_TOKEN=$GITHUB_TOKEN -r konnectors/cozy-konnector-ameli
     - secure: "lrH+D8jaU/rZ7MMYcnVO+oU725Ag46hS65B/VCI8MORnSRRwJqVblSF0LbTYxfIscLPTOuI54QscChOrzkCsIDHdis5PO2o18Un3d6bUF+CrFRwGOFgTOnEKdS6uN6wBUpea9CRe4XS66KOVHlVchbmu3MlLWgSr08j5ikeF0d3uupgH3HpSZbi4vMcaxLbBxgdfDiAX72jeXb1VnCYA+BCaPhVBRKaO0DIzJAeYBF50gJ9/giZm10lr581bSo3sScKaYA4+Njbl9otgWSvnUMZWP+cVjTwmRU6JUzH1wBMiaeeoSzqNCbn/q1H/wL+pdks+8LpwA4e8niTaWkGElDf56TyTHvklYADhYuxkDjpC6+Pgp3P95WPflNo0wQVTZ4CPLGvAn85oZnRh21m5dn2hZvxFojEYbAvgkWrGuSydyPH6ar/7XQfXtpvJy9icvoOOhwOKIwt3h4PAlxQRd6BqJvl0oPXNt3q14ORE852N5z37M+AilrSU/Wqr0ZSneanXWBbTj8qThLeAo9TZnieIqdsc2IHhrf1dRaUu0NGlKLGX5b/Fesawc6kXJ67fqbEjr0hTppV3MoPg9bjzHklEEZE1YnUZMxsrYOffxbqBUKJ6aMLtCxgfX3QE1bFqNyk5ZkV7yIQuDGMTGAuIi5iIRsfeRaY3ljn00ZiH6YQ="
+    # REGISTRY_TOKEN
+    - secure: b+3SV/n5lIRVRNVi7Q8n7/O6P3VlWZ4nIqGgqC6I3tes38mbvXeLGJI37pXwcNQ/H7gNNdXJqjq8Dcj8m1wWaqVlzn/Yf8OiM8SOXi8LAjrqg0Pz6/gsNg2pQ/9HsH3UkRAKZ/P3BbCuUUFlPdV4/wJW5EEbvcDwfuVn5M7DjYvdchPBkJKYn1atxBVsvnYtc3fGy3l+jRxr+bReIX9Pw2PckgzsquzrXZ/GjCws5ks/mOdSTCuQ/V7uqolrAyt43cfTT5Yk/O2/dbG8s5Syrdx02nK2fRzSDzF0Qmow0Qy82MUs7gxbzlvDI/wxULIKfALiy+JX8cwfJnV52Pp7U9ymSq1ZOjbMkL8bvNcYk2LfuYzbs5pN6rrE9tjlAzBhhkQVFFlzUQ43ZYVz9xvBLz8aZ5N63oQZ8dOzth7vhMpjWYSzGMfDAgOvLOTQWoKTs+1BN3f9XiLzuukIgTBp3vNaY0jVfXOnr/SaYT6No63KJoOvKbwUIlw8dRpHdY4dqIsn/MszvQTzXcXC8DyMX6ekKSIheIJ9930UEI6rWyr/BI1anOmTyep3nP4cPtq7nkTujRZcl94oqkfe6n5x/p0SDzaFpkbVsOVYlF3QMLkPIy1xbZqAjLauGHck9cvxYipbXGZJgPevmoFZdTyYhO6iGzMrbADgIHo66KF9Tt0=
   matrix:
     # kosssi account
     - secure: MhE6co+33V7zAChGxZMowpsNBpEDc5bA9STbqqSINCuzWpYF5I2u/4NMqqOK2SWhUmrW/B7yazdlvLM4+UT2OHfn11Jw8+sX1szkn6JoD5o1nNrI1rITx+4MLBEDFgs8FXiaTeg785d7b7i85PubikyaQYiSW7wRyoChcCFD6BLzw84CZHeGdD9XyKMwVuWps2ZzP6XijP5s6UD1ex9g8rCuqGjqrlESMQ7DBWT4DaQKGfAp3iF1LIjELBDyuLllwSMTgYvrwRueti7kO4LnnXaYMTLcyppr2Ztl3dtocsTvnaoff/XvwK1CfRnnW9G/a6ZilKrBEJ9NvWmPwNe4qbCBMcAb9c4GqJHWnRyCV8rOZYnrpS3w/IMrOeodr2ZZp6oQULFHCXXFSWU6DSeeZltmREeAMCw6gi30UO9ikaoo5m18wLDbs969A8v3VlXEyDzf4bx4MLtNPXBNEChZhQTmzLrBiTYLOKFL42nnSfRqCqu7yZ3AWdz9shgowK40DF2GhD+zSoRdRZst9TBnI/zjkzl11G+/71SptgYDNjmHFbzprQEydLal4pdzpztSAnz/lP9fePsw7Nx4zo5x8+XUuKx4N7JqdPEguSgP5bmFxcwwDvks2d1SZTy683lqtsCKr71iEzhKjpLZle6rIjYCdT7emPraYOZXRnSDnzA=
@@ -23,12 +25,12 @@ deploy:
   - provider: script
     repo: konnectors/cozy-konnector-ameli
     skip-cleanup: true
-    script: yarn deploy
+    script: DEPLOY_BRANCH=build && yarn deploy && yarn cozyPublish
     on:
       branch: master
   - provider: script
     repo: konnectors/cozy-konnector-ameli
     skip-cleanup: true
-    script: DEPLOY_BRANCH=latest yarn deploy
+    script: DEPLOY_BRANCH=latest && yarn deploy && yarn cozyPublish
     on:
       branch: prod
