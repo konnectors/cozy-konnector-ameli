@@ -1,6 +1,6 @@
 {
   "name": "cozy-konnector-ameli",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Cozy Konnector for Ameli",
   "repository": {
     "type": "git",
@@ -49,13 +49,15 @@
     "format": "prettier --write '**/*.{js,json}'",
     "precommit": "eslint .",
     "lint": "eslint .",
-    "deploy": "git-directory-deploy --directory build/ --branch ${DEPLOY_BRANCH:-build} --repo=${DEPLOY_REPOSITORY:-https://$GITHUB_TOKEN@github.com/konnectors/cozy-konnector-ameli.git}"
+    "deploy": "git-directory-deploy --directory build/ --branch ${DEPLOY_BRANCH:-build} --repo=${DEPLOY_REPOSITORY:-https://$GITHUB_TOKEN@github.com/konnectors/cozy-konnector-ameli.git}",
+    "cozyPublish": "cozy-app-publish --token $REGISTRY_TOKEN --build-commit $(git rev-parse ${DEPLOY_BRANCH:-build})"
   },
   "dependencies": {
     "cozy-konnector-libs": "3.5.3"
   },
   "devDependencies": {
     "copy-webpack-plugin": "4.5.1",
+    "cozy-app-publish": "0.3.4",
     "eslint": "4.19.1",
     "eslint-config-prettier": "2.9.0",
     "git-directory-deploy": "1.5.1",
