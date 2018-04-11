@@ -1,43 +1,45 @@
 {
-  "version": "1.0.0",
-  "name": "ameli konnector v3",
-  "type": "node",
-  "slug": "ameli",
-  "description": "Ameli konnector for Cozy v3",
+  "version": "1.0.7",
+  "name": "Ameli",
+  "slug": "ameli-collect",
+  "type": "konnector",
+  "language": "node",
+  "icon": "icon.svg",
   "source": "git@github.com:konnectors/cozy-konnector-ameli.git",
+  "editor": "Cozy",
+  "vendorLink": "https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure",
+  "developer": {
+    "name": "Brice Coquereau",
+    "url": "https://brice.coquereau.fr"
+  },
+  "categories": ["insurance"],
+  "screenshots": ["screenshots/screenshot.png"],
+  "langs": ["fr"],
+  "dataType": [
+    "bill"
+  ],
   "fields": {
-    "save_folder": {
-      "doctype": "io.cozy.files",
-      "type": "folder"
+    "login": {
+      "type": "text",
+      "min": 13,
+      "max": 13
     },
-    "account": {
-      "doctype": "io.cozy.accounts",
-      "account_type": "ameli",
-      "accountFormat": "login,password"
+    "password": {
+      "type": "password"
+    },
+    "advancedFields": {
+      "folderPath": {
+        "advanced": true,
+        "isRequired": false
+      }
     }
   },
   "locales": {
     "fr": {
-      "description": "Récupère toutes vos factures ameli",
-      "permissions": {
-        "bills": {
-          "description": "Utilisé pour sauvegarder les données de facturation"
-        },
-        "files": {
-          "description": "Utilisé pour sauvegarder les factures"
-        }
-      }
+      "short_description": "Récupère toutes vos factures ameli"
     },
     "en": {
-      "description": "Retrieves all your ameli invoices",
-      "permissions": {
-        "bills": {
-          "description": "Used to save billing data"
-        },
-        "files": {
-          "description": "Used to save invoices"
-        }
-      }
+      "short_description": "Retrieves all your ameli invoices"
     }
   },
   "permissions": {
@@ -58,9 +60,5 @@
       "type": "io.cozy.accounts",
       "verbs": ["GET"]
     }
-  },
-  "developer": {
-    "name": "Brice Coquereau",
-    "url": "https://brice.coquereau.fr"
   }
 }
