@@ -1,21 +1,21 @@
 {
   "version": "1.0.7",
   "name": "Ameli",
-  "slug": "ameli-collect",
+  "slug": "ameli",
   "type": "konnector",
   "language": "node",
   "icon": "icon.svg",
   "source": "git@github.com:konnectors/cozy-konnector-ameli.git",
   "editor": "Cozy",
-  "vendorLink": "https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure",
+  "vendor_link": "https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure",
   "developer": {
     "name": "Brice Coquereau",
     "url": "https://brice.coquereau.fr"
   },
   "categories": ["insurance"],
-  "screenshots": ["screenshots/screenshot.png"],
+  "screenshots": [],
   "langs": ["fr"],
-  "dataType": [
+  "data_type": [
     "bill"
   ],
   "fields": {

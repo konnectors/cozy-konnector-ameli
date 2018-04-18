@@ -31,6 +31,6 @@ deploy:
   - provider: script
     repo: konnectors/cozy-konnector-ameli
     skip-cleanup: true
-    script: DEPLOY_BRANCH=latest && yarn deploy && yarn cozyPublish
+    script: DEPLOY_BRANCH=build && yarn deploy && yarn cozyPublish
     on:
-      branch: prod
+      tags: true
