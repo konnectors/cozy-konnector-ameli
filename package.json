@@ -1,6 +1,6 @@
 {
   "name": "cozy-konnector-ameli",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Cozy Konnector for Ameli",
   "repository": {
     "type": "git",
@@ -9,61 +9,41 @@
   "keywords": [],
   "author": "",
   "license": "AGPL-3.0",
-  "main": "src/index.js",
-  "renovate": {
-    "extends": [
-      "config:base"
-    ],
-    "patch": {
-      "automerge": true
-    }
-  },
+  "main": "./src/index.js",
   "eslintConfig": {
-    "env": {
-      "es6": true,
-      "jest": true,
-      "node": true
-    },
     "extends": [
-      "eslint:recommended",
-      "prettier"
-    ],
-    "parserOptions": {
-      "ecmaFeatures": {
-        "experimentalObjectRestSpread": true
-      }
-    }
+      "eslint-config-cozy-app"
+    ]
   },
   "eslintIgnore": [
     "build"
   ],
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node ./src/index.js",
+    "dev": "cozy-run-dev",
+    "standalone": "cozy-run-standalone",
     "test": "konitor testit .",
     "clean": "rm -f *_ameli.pdf",
-    "dev": "cozy-konnector-dev src/index.js",
-    "standalone": "npm run clean && cozy-konnector-standalone src/index.js",
-    "standalone:record": "REPLAY=record cozy-konnector-standalone src/index.js",
-    "standalone:replay": "REPLAY=replay cozy-konnector-standalone src/index.js",
+    "check": "konitor check .",
     "build": "webpack",
-    "format": "prettier --write '**/*.{js,json}'",
-    "precommit": "eslint . && pretty-quick --staged",
-    "lint": "eslint .",
-    "deploy": "git-directory-deploy --directory build/ --branch build --repo=https://github.com/konnectors/cozy-konnector-ameli.git",
-    "deploy:prod": "git-directory-deploy --directory build/ --branch latest --repo=https://github.com/konnectors/cozy-konnector-ameli.git"
+    "precommit": "yarn lint",
+    "lint": "eslint --fix .",
+    "deploy": "git-directory-deploy --directory build/ --branch ${DEPLOY_BRANCH:-build} --repo=${DEPLOY_REPOSITORY:-https://$GITHUB_TOKEN@github.com/konnectors/cozy-konnector-ameli.git}",
+    "cozyPublish": "cozy-app-publish --token $REGISTRY_TOKEN --build-commit $(git rev-parse ${DEPLOY_BRANCH:-build})"
   },
   "dependencies": {
-    "cozy-konnector-libs": "3.5.2"
+    "cozy-konnector-libs": "4.1.9"
   },
   "devDependencies": {
-    "copy-webpack-plugin": "4.4.2",
-    "eslint": "4.18.1",
-    "eslint-config-prettier": "2.9.0",
+    "copy-webpack-plugin": "4.5.1",
+    "cozy-app-publish": "0.3.6",
+    "cozy-jobs-cli": "1.0.18",
+    "eslint": "4.19.1",
+    "eslint-config-cozy-app": "0.5.1",
     "git-directory-deploy": "1.5.1",
     "husky": "0.14.3",
-    "konitor": "0.5.1",
-    "prettier": "1.11.0",
-    "pretty-quick": "1.4.1",
-    "webpack": "3.11.0"
+    "konitor": "0.8.2",
+    "webpack": "4.6.0",
+    "webpack-cli": "2.1.2"
   }
 }
