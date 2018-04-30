@@ -1,23 +1,14 @@
 {
   "version": "1.0.7",
   "name": "Ameli",
-  "slug": "ameli",
   "type": "konnector",
   "language": "node",
   "icon": "icon.svg",
+  "slug": "ameli",
   "source": "git@github.com:konnectors/cozy-konnector-ameli.git",
   "editor": "Cozy",
   "vendor_link": "https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure",
-  "developer": {
-    "name": "Brice Coquereau",
-    "url": "https://brice.coquereau.fr"
-  },
   "categories": ["insurance"],
-  "screenshots": [],
-  "langs": ["fr"],
-  "data_types": [
-    "bill"
-  ],
   "fields": {
     "login": {
       "type": "text",
@@ -34,31 +25,65 @@
       }
     }
   },
-  "locales": {
-    "fr": {
-      "short_description": "Récupère toutes vos factures ameli"
-    },
-    "en": {
-      "short_description": "Retrieves all your ameli invoices"
-    }
-  },
+  "data_types": [
+    "bill"
+  ],
   "permissions": {
     "bank operations": {
-      "description": "Required to link bills to bank operations",
       "type": "io.cozy.bank.operations"
     },
     "bills": {
-      "description": "Required to save the bills data",
       "type": "io.cozy.bills"
     },
     "files": {
-      "description": "Required to save the bills",
       "type": "io.cozy.files"
     },
     "accounts": {
-      "description": "Required to get the account's data",
       "type": "io.cozy.accounts",
       "verbs": ["GET"]
+    }
+  },
+  "developer": {
+    "name": "Brice Coquereau",
+    "url": "https://brice.coquereau.fr"
+  },
+  "langs": ["fr"],
+  "locales": {
+    "fr": {
+      "short_description": "Récupère toutes vos factures ameli",
+      "long_description": "Récupère toutes vos factures ameli",
+      "permissions": {
+        "bank operations": {
+          "description": "Utilisé pour lier les factures aux opérations bancaires"
+        },
+        "bills": {
+          "description": "Utilisé pour sauvegarder les données des factures"
+        },
+        "files": {
+          "description": "Utilisé pour sauvegarder les factures"
+        },
+        "accounts": {
+          "description": "Utilisé pour obtenir les données du compte"
+        }
+      }
+    },
+    "en": {
+      "short_description": "Retrieves all your ameli invoices",
+      "long_description": "Retrieves all your ameli invoices",
+      "permissions": {
+        "bank operations": {
+          "description": "Required to link bills to bank operations"
+        },
+        "bills": {
+          "description": "Required to save the bills data"
+        },
+        "files": {
+          "description": "Required to save the bills"
+        },
+        "accounts": {
+          "description": "Required to get the account's data"
+        }
+      }
     }
   }
 }
