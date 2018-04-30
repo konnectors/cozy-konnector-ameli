@@ -1,19 +1,22 @@
-var path = require("path");
-const CopyPlugin = require("copy-webpack-plugin");
+var path = require('path')
+const CopyPlugin = require('copy-webpack-plugin')
+const entry = require('./package.json').main
 
 module.exports = {
-  entry: "./src/index.js",
-  target: "node",
+  entry,
+  target: 'node',
+  mode: 'none',
   output: {
-    path: path.join(__dirname, "build"),
-    filename: "index.js"
+    path: path.join(__dirname, 'build'),
+    filename: 'index.js'
   },
   plugins: [
     new CopyPlugin([
-      { from: "manifest.konnector" },
-      { from: "package.json" },
-      { from: "README.md" },
-      { from: "LICENSE" }
+      { from: 'manifest.konnector' },
+      { from: 'package.json' },
+      { from: 'README.md' },
+      { from: 'assets' },
+      { from: 'LICENSE' }
     ])
   ]
-};
+}
