@@ -51,14 +51,14 @@
   "locales": {
     "fr": {
       "short_description": "Récupère toutes vos factures ameli",
-      "long_description": "Récupère toutes vos factures ameli"
+      "long_description": "Récupère toutes vos factures ameli",
       "permissions": {
         "bank operations": {
           "description": "Utilisé pour lier les factures aux opérations bancaires"
         },
         "bills": {
           "description": "Utilisé pour sauvegarder les données des factures"
-        }
+        },
         "files": {
           "description": "Utilisé pour sauvegarder les factures"
         },
@@ -76,7 +76,7 @@
         },
         "bills": {
           "description": "Required to save the bills data"
-        }
+        },
         "files": {
           "description": "Required to save the bills"
         },
