@@ -20,11 +20,13 @@ const Bill = require("./bill");
 
 const urlService = require("./urlService");
 
-let request = requestFactory({
+let request = requestFactory();
+const j = request.jar();
+request = requestFactory({
   // debug: true,
   cheerio: true,
   json: false,
-  jar: true
+  jar: j
 });
 
 module.exports = new BaseKonnector(function fetch(fields) {
@@ -61,71 +63,63 @@ const checkLogin = function(fields) {
 };
 
 // Procedure to login to Ameli website.
-const logIn = function(fields) {
+const logIn = async function(fields) {
   log("info", "Now logging in");
 
   const form = {
     connexioncompte_2numSecuriteSociale: fields.login,
     connexioncompte_2codeConfidentiel: fields.password,
     connexioncompte_2actionEvt: "connecter",
-    submit: "Valider"
+    submit: "me+connecter"
   };
 
-  return (
-    request({
-      url: urlService.getLoginUrl(),
-      resolveWithFullResponse: true
-    })
-      // First request to get the cookie
-      .then(() =>
-        request({
-          method: "POST",
-          form,
-          url: urlService.getSubmitUrl()
-        })
-      )
-      // Second request to authenticate
-      .then($ => {
-        const $errors = $("#r_errors");
-        if ($errors.length > 0) {
-          log("debug", $errors.text(), "These errors where found on screen");
-          throw new Error("LOGIN_FAILED");
-        }
+  // First request to get the cookie
+  await request({
+    url: urlService.getLoginUrl(),
+    resolveWithFullResponse: true
+  });
 
-        // The user must validate the CGU form
-        const $cgu = $("meta[http-equiv=refresh]");
-        if (
-          $cgu.length > 0 &&
-          $cgu.attr("content").includes("as_conditions_generales_page")
-        ) {
-          log("debug", $cgu.attr("content"));
-          throw new Error("USER_ACTION_NEEDED");
-        }
+  const $ = await request({
+    method: "POST",
+    form,
+    url: urlService.getSubmitUrl()
+  });
 
-        // Default case. Something unexpected went wrong after the login
-        if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
-          log(
-            "debug",
-            $("body").html(),
-            "No deconnection link found in the html"
-          );
-          log("debug", "Something unexpected went wrong after the login");
-          if ($(".centrepage h2")) {
-            log(
-              "error",
-              $(".centrepage h2")
-                .text()
-                .trim()
-            );
-            throw new Error("VENDOR_DOWN");
-          }
-          throw new Error("LOGIN_FAILED");
-        }
+  const $errors = $("#r_errors");
+  if ($errors.length > 0) {
+    log("debug", $errors.text(), "These errors where found on screen");
+    throw new Error("LOGIN_FAILED");
+  }
 
-        log("info", "Correctly logged in");
-        return request(urlService.getReimbursementUrl());
-      })
-  );
+  // The user must validate the CGU form
+  const $cgu = $("meta[http-equiv=refresh]");
+  if (
+    $cgu.length > 0 &&
+    $cgu.attr("content").includes("as_conditions_generales_page")
+  ) {
+    log("debug", $cgu.attr("content"));
+    throw new Error("USER_ACTION_NEEDED");
+  }
+
+  // Default case. Something unexpected went wrong after the login
+  if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
+    log("debug", $("body").html(), "No deconnection link found in the html");
+    log("debug", "Something unexpected went wrong after the login");
+    if ($(".centrepage h2")) {
+      log(
+        "error",
+        $(".centrepage h2")
+          .text()
+          .trim()
+      );
+      throw new Error("VENDOR_DOWN");
+    }
+    throw new Error("LOGIN_FAILED");
+  }
+
+  log("info", "Correctly logged in");
+
+  return await request(urlService.getReimbursementUrl());
 };
 
 // fetch the HTML page with the list of health cares
@@ -373,7 +367,10 @@ function getBills(reimbursements) {
             originalAmount: healthCare.montantPayé,
             fileurl: "https://assure.ameli.fr" + reimbursement.link,
             filename: getFileName(reimbursement.date),
-            groupAmount: reimbursement.groupAmount
+            groupAmount: reimbursement.groupAmount,
+            requestOptions: {
+              jar: j
+            }
           })
         );
       });
@@ -392,7 +389,10 @@ function getBills(reimbursements) {
           amount: reimbursement.participation.montantVersé,
           fileurl: "https://assure.ameli.fr" + reimbursement.link,
           filename: getFileName(reimbursement.date),
-          groupAmount: reimbursement.groupAmount
+          groupAmount: reimbursement.groupAmount,
+          requestOptions: {
+            jar: j
+          }
         })
       );
     }

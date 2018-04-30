@@ -3,11 +3,9 @@ class UrlService {
     const domain = "https://assure.ameli.fr";
 
     this.baseUrl = `${domain}/PortailAS/paiements.do?actionEvt=`;
-    this.loginUrl = `${domain}/PortailAS/appmanager/PortailAS/assure?_somtc=true`;
-    this.submitUrl =
-      `${domain}/PortailAS/appmanager/PortailAS/` +
-      `assure?_nfpb=true&_windowLabel=connexioncompte_2&connexioncompte_2_` +
-      `actionOverride=/portlets/connexioncompte/validationconnexioncompte&_pageLabel=as_login_page`;
+    this.loginUrl = `${domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_login_page&connexioncompte_2actionEvt=afficher`;
+
+    this.submitUrl = `${domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_windowLabel=connexioncompte_2&connexioncompte_2_actionOverride=/portlets/connexioncompte/validationconnexioncompte&_pageLabel=as_login_page`;
     this.reimbursementUrl = `${domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_paiements_page`;
   }
 
