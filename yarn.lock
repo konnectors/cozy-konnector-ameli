@@ -1612,9 +1612,9 @@ cozy-jobs-cli@1.2.0:
     opn "^5.1.0"
     regenerator-runtime "^0.11.1"
 
-cozy-konnector-libs@4.5.3:
-  version "4.5.3"
-  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-4.5.3.tgz#b6a1fab88fb7ed6338ce42a2162f8dfba8ecb83e"
+cozy-konnector-libs@4.5.4:
+  version "4.5.4"
+  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-4.5.4.tgz#3792fdb9e929ab039ffaa97958af2fae42bcb113"
   dependencies:
     bluebird "3.5.1"
     bluebird-retry "0.11.0"
@@ -1626,7 +1626,7 @@ cozy-konnector-libs@4.5.3:
     geco "0.11.1"
     lodash "4.17.10"
     moment "2.22.2"
-    pdfjs "2.0.0-alpha.8"
+    pdfjs "2.0.0"
     raven "2.6.2"
     request "2.87.0"
     request-debug "0.2.0"
@@ -5156,6 +5156,12 @@ opentype.js@^0.7.3:
   dependencies:
     tiny-inflate "^1.0.2"
 
+opentype.js@^0.8.0:
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/opentype.js/-/opentype.js-0.8.0.tgz#acabcfa1642fbe894a3e4d759e43ba694e02bd35"
+  dependencies:
+    tiny-inflate "^1.0.2"
+
 opn@^5.1.0:
   version "5.2.0"
   resolved "https://registry.yarnpkg.com/opn/-/opn-5.2.0.tgz#71fdf934d6827d676cecbea1531f95d354641225"
@@ -5376,7 +5382,17 @@ pbkdf2@^3.0.3:
     safe-buffer "^5.0.1"
     sha.js "^2.4.8"
 
-pdfjs@2.0.0-alpha.8, pdfjs@^2.0.0-alpha.8:
+pdfjs@2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/pdfjs/-/pdfjs-2.0.0.tgz#1f00f782f62252b516ec1ce6ded1db24a741d7c2"
+  dependencies:
+    "@rkusa/linebreak" "^1.0.0"
+    opentype.js "^0.8.0"
+    pako "^1.0.6"
+    unorm "^1.4.1"
+    uuid "^3.0.1"
+
+pdfjs@^2.0.0-alpha.8:
   version "2.0.0-alpha.8"
   resolved "https://registry.yarnpkg.com/pdfjs/-/pdfjs-2.0.0-alpha.8.tgz#47754b862602fc6a1435a08c1ea718d36906447e"
   dependencies:
