@@ -86,9 +86,7 @@ const logIn = async function(fields) {
     url: urlService.getSubmitUrl()
   })
 
-  const $errors = $('#r_errors')
-  if ($errors.length > 0) {
-    log('debug', $errors.text(), 'These errors where found on screen')
+  if ($('#connexioncompte_2nir_as').length) {
     throw new Error(errors.LOGIN_FAILED)
   }
 
