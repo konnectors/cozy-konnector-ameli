@@ -108,7 +108,7 @@ const logIn = async function(fields) {
       const errorMessage = $('.centrepage h1, .centrepage h2').text()
       log('error', errorMessage)
       if (errorMessage === 'Compte bloqué') {
-        throw new Error('USER_ACTION_NEEDED.ACCOUNT_LOCKED')
+        throw new Error('LOGIN_FAILED.TOO_MANY_ATTEMPTS')
       } else {
         if (
           $('body')
