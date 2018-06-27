@@ -15,7 +15,6 @@ try {
 } catch (e) {
   // console.error(`Unable to read the icon path from manifest: ${e}`)
 }
-const appIconRX = iconName && new RegExp(`[^/]*/${iconName}`)
 
 module.exports = {
   entry,
@@ -38,7 +37,7 @@ module.exports = {
 }
 
 function optimizeSVGIcon(buffer, path) {
-  if (appIconRX && path.match(appIconRX)) {
+  if (iconName && path.match(`[^/]*/${iconName}`)) {
     return svgo.optimize(buffer).then(resp => resp.data)
   } else {
     return buffer
