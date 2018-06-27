@@ -10,7 +10,8 @@ const {
   log,
   BaseKonnector,
   saveBills,
-  requestFactory
+  requestFactory,
+  errors
 } = require('cozy-konnector-libs')
 const moment = require('moment')
 const sortBy = require('lodash/sortBy')
@@ -88,7 +89,7 @@ const logIn = async function(fields) {
   const $errors = $('#r_errors')
   if ($errors.length > 0) {
     log('debug', $errors.text(), 'These errors where found on screen')
-    throw new Error('LOGIN_FAILED')
+    throw new Error(errors.LOGIN_FAILED)
   }
 
   // The user must validate the CGU form
@@ -98,23 +99,23 @@ const logIn = async function(fields) {
     $cgu.attr('content').includes('as_conditions_generales_page')
   ) {
     log('debug', $cgu.attr('content'))
-    throw new Error('USER_ACTION_NEEDED')
+    throw new Error(errors.USER_ACTION_NEEDED)
   }
 
   // Default case. Something unexpected went wrong after the login
   if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
     log('debug', $('body').html(), 'No deconnection link found in the html')
     log('debug', 'Something unexpected went wrong after the login')
-    if ($('.centrepage h2')) {
-      log(
-        'error',
-        $('.centrepage h2')
-          .text()
-          .trim()
-      )
-      throw new Error('VENDOR_DOWN')
+    if ($('.centrepage h2, .centrepage h1')) {
+      const errorMessage = $('.centrepage h1, .centrepage h2').text()
+      log('error', errorMessage)
+      if (errorMessage === 'Compte bloqué') {
+        throw new Error('USER_ACTION_NEEDED.ACCOUNT_LOCKED')
+      } else {
+        throw new Error(errors.VENDOR_DOWN)
+      }
     }
-    throw new Error('LOGIN_FAILED')
+    throw new Error(errors.LOGIN_FAILED)
   }
 
   log('info', 'Correctly logged in')

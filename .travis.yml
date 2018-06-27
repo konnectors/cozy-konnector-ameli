@@ -6,6 +6,7 @@ env:
   - GH_USER_EMAIL="travis@example.org"
   - GH_USER_NAME="cozy-bot"
   - DEPLOY_REPOSITORY="git@github.com:konnectors/cozy-konnector-ameli.git"
+  - secure: fKee/eCi0hxQ/0YKX57Z86VsKuVV+uy2/tliPNfa6dnpoDm+searF5uB3jB0y6jDbQ20mDhkuXx+ovSIJBacVDzgzgtRVJFgXK7JAR+J6syXi9WpynbZDmyWHcs+gJ2uJAKPxGyZSaaZZO3CHz4UKARmgdYLv8veHHJZfuEtPHhhH9QlmM2Ss1/2p+FTQ/uUHlFv1i/yDi7iOba/he9diUt1RriqzHE0ohD+nVfq7QxdEZkP4U7JBmBdS0Vea4FW5xe4IRXpRRLigFzufqlEysHzU33eiXY+kg7cOtPgL9txvLH6ieqw3j3ZMYyYAq9uCFioqrBGXrcZ9Olz7QzbBjWBRJZkr4naSZMunxDdd0sw5ZEhC8znGup1wyPhVQ0/uM3H81SCzWM2XwByLBSum6gWSnLWN+LqR1wmxYGvN5W1UDtU03iG5EBYNZ9l3uOw08XjPCq+tBgpSewLnVf+2CJPuUNmfKa1UMqBPsskVdEd+/wgt0BIThjNZRImUZ7VUbN5NpoaX9wORXnkxvw/yW4qTiraR2wYHwNmURa1eRhtVleCv2UflCf4Gkms1ng4kSy+uYxYc0OU1mlb0D5JVFNni2E0NJY7b0K09BK59ZxR5g11FY4j1o8TyHW/EAbuEFvJ7kF+rMr/WuSZNd9jmffa71Zki9jnLvsrIb0CNJ4=
   matrix:
   - secure: WGDv0ZfknIO7SIgT+eiaKn8i7U7kvN3mG9eYvPeHBK64mC6pqMwYsWLEWTD1y3y5z/fz99yFRWXzgl+J+zq2RfkhmD2aEg/Dv1ZuTpPVgvQwG/Hpie37xxUcM3gghh+2nR4pPAqYgC9LLTLlz7SaKHexBEuE644PWvZuHTGzk8ybV53xbWJtHTHxE95RI1Qwp1Qz+lUHOd4VZLPS1Q0bCV6uaL31SeXEW8z3o/Jsgh0g11JfX27mg6bJC3h5TGndfkoxynXp9jlc95GTIRebc4R7/rnNcMPgFb4hyvKFjCiRyY1u/p/pexlwqxJ/UogjixXkz9QDd4xhC2Oi3NNdRg/lDBodwzl6Ro8Jpv7XE764q3mVq00YTHN1exAXgoNBSjfXzkV0jJ9prPZ3oh61KLmuKW6PuyFleeW+1Y28VhCemZx99eUWKtRsB+yDtj3Aq180kYdMlR4JLHNRC2gan60wbM4GuvgzvX5mVeEbig4WUloXvWoeYxUDXfP5lhLk7Suv3+i36lP1+KMTFDktKV2EI9MPqhaoTAGzUOoiQBSp8OFIkPVqYXx7pSBKHPGNnH5XFgW0FbyqO+kXDs+Gl5uv8QZFBubB6/hTnNiFimydybveJhWMv3Mq7aGpmGW9lEODAnrRcLfde7UVJScayx3JgIM/xtF5D4Ddnj7fjr8=
 cache:
@@ -23,20 +24,14 @@ script:
 deploy:
 - provider: script
   skip-cleanup: true
-  script: DEPLOY_BRANCH=build yarn deploy
-  # script: DEPLOY_BRANCH=build yarn deploy && yarn cozyPublish
+  script: DEPLOY_BRANCH=build yarn deploy && yarn cozyPublish
   on:
     branch: master
 - provider: script
   skip-cleanup: true
-  script: DEPLOY_BRANCH=latest yarn deploy
+  script: DEPLOY_BRANCH=build yarn deploy && yarn cozyPublish
   on:
-    branch: prod
-# - provider: script
-#   skip-cleanup: true
-#   script: DEPLOY_BRANCH=build yarn deploy && yarn cozyPublish
-#   on:
-#     tags: true
+    tags: true
 before_install:
 - openssl aes-256-cbc -K $encrypted_5e5225ed2e56_key -iv $encrypted_5e5225ed2e56_iv
   -in github_deploy_key.enc -out /tmp/github_deploy_key -d
