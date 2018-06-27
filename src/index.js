@@ -97,7 +97,7 @@ const logIn = async function(fields) {
     $cgu.attr('content').includes('as_conditions_generales_page')
   ) {
     log('debug', $cgu.attr('content'))
-    throw new Error(errors.USER_ACTION_NEEDED)
+    throw new Error('USER_ACTION_NEEDED.CGU_FORM')
   }
 
   // Default case. Something unexpected went wrong after the login
@@ -110,6 +110,14 @@ const logIn = async function(fields) {
       if (errorMessage === 'Compte bloqué') {
         throw new Error('USER_ACTION_NEEDED.ACCOUNT_LOCKED')
       } else {
+        if (
+          $('body')
+            .html()
+            .includes('Redirection vers la page de connexion')
+        ) {
+          log('error', 'Found redirect comment but no login form')
+          throw new Error(errors.LOGIN_FAILED)
+        }
         throw new Error(errors.VENDOR_DOWN)
       }
     }
