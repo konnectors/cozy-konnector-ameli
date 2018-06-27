@@ -18,7 +18,6 @@ branches:
 script:
 - yarn lint
 - yarn build
-- if [ $TRAVIS_SECURE_ENV_VARS = "true" ]; then yarn test; fi
 deploy:
 - provider: script
   skip-cleanup: true
