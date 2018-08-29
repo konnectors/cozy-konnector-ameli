@@ -1217,9 +1217,9 @@ core-util-is@1.0.2, core-util-is@~1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/core-util-is/-/core-util-is-1.0.2.tgz#b5fd54220aa2bc5ab57aab7140c940754503c1a7"
 
-cozy-app-publish@0.5.5:
-  version "0.5.5"
-  resolved "https://registry.yarnpkg.com/cozy-app-publish/-/cozy-app-publish-0.5.5.tgz#f1855284360973a8226726d18c28c09bc0c56d6a"
+cozy-app-publish@0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/cozy-app-publish/-/cozy-app-publish-0.6.0.tgz#809a62849452953583b895996a2df9deb121fa80"
   dependencies:
     chalk "2.4.1"
     commander "2.17.1"
