@@ -195,9 +195,13 @@ const parseMainPage = function($) {
       )
 
       // This link seems to not be present in every account
-      const link = $(this)
+      let link = $(this)
         .find('.downdetail')
         .attr('href')
+
+      if (!link) {
+        link = $(this).find('[id^=liendowndecompte]')
+      }
 
       let lineId = indexGroupe + indexPaiement
 
