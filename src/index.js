@@ -33,7 +33,7 @@ request = requestFactory({
 module.exports = new BaseKonnector(function fetch(fields) {
   return checkLogin(fields)
     .then(() => logIn(fields))
-    .then($ => fetchMainPage($))
+    .then(fetchMainPage)
     .then($ => parseMainPage($))
     .then(reimbursements => getBills(reimbursements))
     .then(entries => {
@@ -130,14 +130,13 @@ const logIn = async function(fields) {
 }
 
 // fetch the HTML page with the list of health cares
-const fetchMainPage = function($) {
+const fetchMainPage = async function() {
   log('info', 'Fetching the list of bills')
 
-  // Get end date to generate the bill's url
-  const endDate = moment($('#paiements_1dateFin').attr('value'), 'DD/MM/YYYY')
-
   // We can get the history only 6 months back
-  const billUrl = urlService.getBillUrl(endDate, 6)
+  const billUrl = urlService.getBillUrl()
+
+  await request(billUrl)
 
   return request(billUrl)
 }
