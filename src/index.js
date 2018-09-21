@@ -287,7 +287,7 @@ function parseHealthCares($, container, beneficiary, reimbursement) {
         .split('<br>')
         .pop()
         .trim()
-      date = moment(date, 'DD/MM/YYYY')
+      date = date ? moment(date, 'DD/MM/YYYY') : undefined
       const healthCare = {
         prestation: $(this)
           .find('.naturePrestation')
@@ -342,7 +342,7 @@ function parseParticipation($, container, reimbursement) {
         .find('[id^=dateActePFF]')
         .text()
         .trim()
-      date = moment(date, 'DD/MM/YYYY')
+      date = date ? moment(date, 'DD/MM/YYYY') : undefined
       reimbursement.participation = {
         prestation: $(this)
           .find('[id^=naturePFF]')
@@ -371,7 +371,9 @@ function getBills(reimbursements) {
             beneficiary,
             isThirdPartyPayer: reimbursement.isThirdPartyPayer,
             date: reimbursement.date.toDate(),
-            originalDate: healthCare.date.toDate(),
+            originalDate: healthCare.date
+              ? healthCare.date.toDate()
+              : undefined,
             vendor: 'Ameli',
             isRefund: true,
             amount: healthCare.montantVersé,
@@ -394,7 +396,9 @@ function getBills(reimbursements) {
           subtype: reimbursement.participation.prestation,
           isThirdPartyPayer: reimbursement.isThirdPartyPayer,
           date: reimbursement.date.toDate(),
-          originalDate: reimbursement.participation.date.toDate(),
+          originalDate: reimbursement.participation.date
+            ? reimbursement.participation.date.toDate()
+            : undefined,
           vendor: 'Ameli',
           isRefund: true,
           amount: reimbursement.participation.montantVersé,
