@@ -2,7 +2,7 @@ const { Document } = require('cozy-konnector-libs')
 
 class Bill extends Document {
   shouldUpdate(existingEntry) {
-    return this.isEqual(existingEntry)
+    return !this.isEqual(existingEntry)
   }
 
   validate(attrs) {

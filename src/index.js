@@ -269,7 +269,9 @@ function parseDetails($, reimbursement) {
 }
 
 function parseAmount(amount) {
-  return parseFloat(amount.replace(' €', '').replace(',', '.'))
+  let result = parseFloat(amount.replace(' €', '').replace(',', '.'))
+  if (isNaN(result)) result = 0
+  return result
 }
 
 function parseHealthCares($, container, beneficiary, reimbursement) {
@@ -363,52 +365,50 @@ function getBills(reimbursements) {
   reimbursements.forEach(reimbursement => {
     for (const beneficiary in reimbursement.beneficiaries) {
       reimbursement.beneficiaries[beneficiary].forEach(healthCare => {
-        bills.push(
-          new Bill({
-            type: 'health',
-            subtype: healthCare.prestation,
-            beneficiary,
-            isThirdPartyPayer: reimbursement.isThirdPartyPayer,
-            date: reimbursement.date.toDate(),
-            originalDate: healthCare.date
-              ? healthCare.date.toDate()
-              : undefined,
-            vendor: 'Ameli',
-            isRefund: true,
-            amount: healthCare.montantVersé,
-            originalAmount: healthCare.montantPayé,
-            fileurl: 'https://assure.ameli.fr' + reimbursement.link,
-            filename: getFileName(reimbursement.date),
-            groupAmount: reimbursement.groupAmount,
-            requestOptions: {
-              jar: j
-            }
-          })
-        )
-      })
-    }
-
-    if (reimbursement.participation) {
-      bills.push(
-        new Bill({
+        const newbill = {
           type: 'health',
-          subtype: reimbursement.participation.prestation,
+          subtype: healthCare.prestation,
+          beneficiary,
           isThirdPartyPayer: reimbursement.isThirdPartyPayer,
           date: reimbursement.date.toDate(),
-          originalDate: reimbursement.participation.date
-            ? reimbursement.participation.date.toDate()
-            : undefined,
           vendor: 'Ameli',
           isRefund: true,
-          amount: reimbursement.participation.montantVersé,
+          amount: healthCare.montantVersé,
+          originalAmount: healthCare.montantPayé,
           fileurl: 'https://assure.ameli.fr' + reimbursement.link,
           filename: getFileName(reimbursement.date),
           groupAmount: reimbursement.groupAmount,
           requestOptions: {
             jar: j
           }
-        })
-      )
+        }
+        if (healthCare.date) {
+          newbill.originalDate = healthCare.date.toDate()
+        }
+        bills.push(new Bill(newbill))
+      })
+    }
+
+    if (reimbursement.participation) {
+      const newbill = {
+        type: 'health',
+        subtype: reimbursement.participation.prestation,
+        isThirdPartyPayer: reimbursement.isThirdPartyPayer,
+        date: reimbursement.date.toDate(),
+        vendor: 'Ameli',
+        isRefund: true,
+        amount: reimbursement.participation.montantVersé,
+        fileurl: 'https://assure.ameli.fr' + reimbursement.link,
+        filename: getFileName(reimbursement.date),
+        groupAmount: reimbursement.groupAmount,
+        requestOptions: {
+          jar: j
+        }
+      }
+      if (reimbursement.participation.date) {
+        newbill.originalDate = reimbursement.participation.date.toDate()
+      }
+      bills.push(new Bill(newbill))
     }
   })
   return bills.filter(bill => !isNaN(bill.amount))
