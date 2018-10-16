@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "name": "Ameli",
   "type": "konnector",
   "language": "node",
@@ -8,7 +8,9 @@
   "source": "git@github.com:konnectors/cozy-konnector-ameli.git",
   "editor": "Cozy",
   "vendor_link": "https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure",
-  "categories": ["insurance"],
+  "categories": [
+    "insurance"
+  ],
   "fields": {
     "login": {
       "type": "text",
@@ -40,14 +42,18 @@
     },
     "accounts": {
       "type": "io.cozy.accounts",
-      "verbs": ["GET"]
+      "verbs": [
+        "GET"
+      ]
     }
   },
   "developer": {
     "name": "Brice Coquereau",
     "url": "https://brice.coquereau.fr"
   },
-  "langs": ["fr"],
+  "langs": [
+    "fr"
+  ],
   "locales": {
     "fr": {
       "short_description": "Récupère toutes vos factures ameli",
