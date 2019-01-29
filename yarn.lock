@@ -1427,9 +1427,9 @@ cosmiconfig@^5.0.7:
     js-yaml "^3.9.0"
     parse-json "^4.0.0"
 
-cozy-app-publish@0.10.4:
-  version "0.10.4"
-  resolved "https://registry.yarnpkg.com/cozy-app-publish/-/cozy-app-publish-0.10.4.tgz#8040719656dc469de4e730fba43dd64776235ca6"
+cozy-app-publish@0.10.5:
+  version "0.10.5"
+  resolved "https://registry.yarnpkg.com/cozy-app-publish/-/cozy-app-publish-0.10.5.tgz#01992b00b904623434253bab6b3c3bdb31eeaf77"
   dependencies:
     chalk "2.4.2"
     commander "2.19.0"
@@ -1437,7 +1437,7 @@ cozy-app-publish@0.10.4:
     fs-extra "7.0.1"
     node-fetch "2.3.0"
     prompt "1.0.0"
-    request "^2.88.0"
+    request "2.88.0"
     tar "4.4.8"
 
 cozy-client-js@0.9.0:
@@ -5688,7 +5688,7 @@ request@2.81.0:
     tunnel-agent "^0.6.0"
     uuid "^3.0.0"
 
-request@2.88.0, request@^2.88.0:
+request@2.88.0:
   version "2.88.0"
   resolved "https://registry.yarnpkg.com/request/-/request-2.88.0.tgz#9c2fca4f7d35b592efe57c7f0a55e81052124fef"
   dependencies:
