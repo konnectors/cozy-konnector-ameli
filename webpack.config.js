@@ -5,7 +5,15 @@ const SvgoInstance = require('svgo')
 
 const entry = require('./package.json').main
 
-const svgo = new SvgoInstance()
+const svgo = new SvgoInstance({
+  plugins: [
+    {
+      inlineStyles: {
+        onlyMatchedOnce: false
+      }
+    }
+  ]
+})
 
 let iconName
 try {
@@ -15,6 +23,7 @@ try {
 } catch (e) {
   // console.error(`Unable to read the icon path from manifest: ${e}`)
 }
+const appIconRX = iconName && new RegExp(`[^/]*/${iconName}`)
 
 module.exports = {
   entry,
@@ -33,11 +42,18 @@ module.exports = {
       { from: '.travis.yml' },
       { from: 'LICENSE' }
     ])
-  ]
+  ],
+  module: {
+    // to ignore the warnings like :
+    // WARNING in ../libs/node_modules/bindings/bindings.js 76:22-40
+    // Critical dependency: the request of a dependency is an expression
+    // Since we cannot change this dependency. I think it won't hide more important messages
+    exprContextCritical: false
+  }
 }
 
 function optimizeSVGIcon(buffer, path) {
-  if (iconName && path.match(`[^/]*/${iconName}`)) {
+  if (appIconRX && path.match(appIconRX)) {
     return svgo.optimize(buffer).then(resp => resp.data)
   } else {
     return buffer
