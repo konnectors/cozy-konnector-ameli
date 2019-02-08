@@ -110,14 +110,7 @@ const logIn = async function(fields) {
       if (errorMessage === 'Compte bloqué') {
         throw new Error('LOGIN_FAILED.TOO_MANY_ATTEMPTS')
       } else {
-        if (
-          $('body')
-            .html()
-            .includes('Redirection vers la page de connexion')
-        ) {
-          log('error', 'Found redirect comment but no login form')
-          throw new Error(errors.LOGIN_FAILED)
-        }
+        log('error', 'Found redirect comment but no login form')
         throw new Error(errors.VENDOR_DOWN)
       }
     }
