@@ -12,30 +12,34 @@
   "main": "./src/index.js",
   "eslintConfig": {
     "extends": [
-      "eslint-config-cozy-app"
+      "cozy-app"
     ]
   },
   "eslintIgnore": [
     "build"
   ],
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn lint"
+    }
+  },
   "scripts": {
     "start": "node ./src/index.js",
-    "dev": "cozy-run-dev",
-    "standalone": "cozy-run-standalone",
+    "dev": "cozy-konnector-dev",
+    "standalone": "cozy-konnector-standalone",
     "pretest": "npm run clean",
     "test": "konitor testit .",
     "check": "konitor check .",
     "clean": "rm -rf ./data",
     "build": "webpack",
-    "precommit": "yarn lint",
     "lint": "eslint --fix .",
-    "deploy": "git-directory-deploy --directory build/ --branch ${DEPLOY_BRANCH:-build} --repo=${DEPLOY_REPOSITORY:-https://$GITHUB_TOKEN@github.com/konnectors/cozy-konnector-ameli.git}",
+    "deploy": "git-directory-deploy --directory build/ --branch ${DEPLOY_BRANCH:-build} --repo=${DEPLOY_REPOSITORY:-git@github.com:konnectors/cozy-konnector-ameli.git}",
     "cozyPublish": "cozy-app-publish --token $REGISTRY_TOKEN --build-commit $(git rev-parse ${DEPLOY_BRANCH:-build})",
     "travisDeployKey": "./bin/generate_travis_deploy_key"
   },
   "dependencies": {
     "cozy-konnector-libs": "4.14.3",
-    "moment": "^2.24.0"
+    "moment": "2.24.0"
   },
   "devDependencies": {
     "copy-webpack-plugin": "4.6.0",

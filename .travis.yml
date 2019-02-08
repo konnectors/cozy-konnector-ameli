@@ -18,6 +18,7 @@ branches:
 script:
 - yarn lint
 - yarn build
+- yarn run check
 deploy:
 - provider: script
   skip-cleanup: true
