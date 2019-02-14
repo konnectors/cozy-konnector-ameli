@@ -359,7 +359,7 @@ function getBills(reimbursements) {
     for (const beneficiary in reimbursement.beneficiaries) {
       reimbursement.beneficiaries[beneficiary].forEach(healthCare => {
         const newbill = {
-          type: 'health',
+          type: 'health_costs',
           subtype: healthCare.prestation,
           beneficiary,
           isThirdPartyPayer: reimbursement.isThirdPartyPayer,
