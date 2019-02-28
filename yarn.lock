@@ -1513,10 +1513,10 @@ cozy-jobs-cli@1.7.10:
     regenerator-runtime "0.13.1"
     replay "2.4.0"
 
-cozy-konnector-libs@4.14.6:
-  version "4.14.6"
-  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-4.14.6.tgz#97e5c422204276b19f162e9cab1e3bc58d3db947"
-  integrity sha512-4oVgObARI2AgNe8tvA1fCGN0hqIv1jM/T/Zafgt3bDlc8IPxGfXatVFEjhRJqucE3rVdnOfm2xCcUHvNcxMEYA==
+cozy-konnector-libs@4.14.9:
+  version "4.14.9"
+  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-4.14.9.tgz#81349f714619184d4923c18eb3878f5eeab2e442"
+  integrity sha512-o9cCHh2nG3QBakn7mKxpnB5GQO9NbRqsQktJh+zPAAZTD34YkbN0Q9C6rLA5AZX/J1qZG6OvSBf9Kpj3H5Havg==
   dependencies:
     bluebird "3.5.3"
     bluebird-retry "0.11.0"
@@ -1536,7 +1536,7 @@ cozy-konnector-libs@4.14.6:
     raw-body "2.3.3"
     request "2.88.0"
     request-debug "0.2.0"
-    request-promise "4.2.2"
+    request-promise "4.2.4"
 
 cozy-konnector-libs@^4.14.8:
   version "4.14.8"
