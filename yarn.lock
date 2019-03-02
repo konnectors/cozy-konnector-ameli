@@ -1544,32 +1544,7 @@ cozy-jobs-cli@1.7.11:
     regenerator-runtime "0.13.1"
     replay "2.4.0"
 
-cozy-konnector-libs@4.14.9:
-  version "4.14.9"
-  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-4.14.9.tgz#81349f714619184d4923c18eb3878f5eeab2e442"
-  integrity sha512-o9cCHh2nG3QBakn7mKxpnB5GQO9NbRqsQktJh+zPAAZTD34YkbN0Q9C6rLA5AZX/J1qZG6OvSBf9Kpj3H5Havg==
-  dependencies:
-    bluebird "3.5.3"
-    bluebird-retry "0.11.0"
-    btoa "1.2.1"
-    cheerio "1.0.0-rc.2"
-    cozy-client-js "0.9.0"
-    cozy-logger "1.3.1"
-    date-fns "1.30.1"
-    geco "0.11.1"
-    isomorphic-fetch "2.2.1"
-    lodash "4.17.11"
-    lodash-id "^0.14.0"
-    lowdb "1.0.0"
-    pdfjs "2.1.0"
-    pdfjs-dist "2.0.943"
-    raven "2.6.4"
-    raw-body "2.3.3"
-    request "2.88.0"
-    request-debug "0.2.0"
-    request-promise "4.2.4"
-
-cozy-konnector-libs@^4.14.9:
+cozy-konnector-libs@4.14.9, cozy-konnector-libs@^4.14.9:
   version "4.14.9"
   resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-4.14.9.tgz#81349f714619184d4923c18eb3878f5eeab2e442"
   integrity sha512-o9cCHh2nG3QBakn7mKxpnB5GQO9NbRqsQktJh+zPAAZTD34YkbN0Q9C6rLA5AZX/J1qZG6OvSBf9Kpj3H5Havg==
@@ -2353,6 +2328,14 @@ eslint-scope@^4.0.0:
     esrecurse "^4.1.0"
     estraverse "^4.1.1"
 
+eslint-scope@^4.0.2:
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/eslint-scope/-/eslint-scope-4.0.2.tgz#5f10cd6cabb1965bf479fa65745673439e21cb0e"
+  integrity sha512-5q1+B/ogmHl8+paxtOKx38Z8LtWkVGuNt3+GQNErqwLl6ViNp/gdJGMCjZNxZ8j/VYjDNZ2Fo+eQc1TAVPIzbg==
+  dependencies:
+    esrecurse "^4.1.0"
+    estraverse "^4.1.1"
+
 eslint-utils@^1.3.1:
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/eslint-utils/-/eslint-utils-1.3.1.tgz#9a851ba89ee7c460346f97cf8939c7298827e512"
@@ -2361,10 +2344,10 @@ eslint-visitor-keys@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/eslint-visitor-keys/-/eslint-visitor-keys-1.0.0.tgz#3f3180fb2e291017716acb4c9d6d5b5c34a6a81d"
 
-eslint@5.14.1:
-  version "5.14.1"
-  resolved "https://registry.yarnpkg.com/eslint/-/eslint-5.14.1.tgz#490a28906be313685c55ccd43a39e8d22efc04ba"
-  integrity sha512-CyUMbmsjxedx8B0mr79mNOqetvkbij/zrXnFeK2zc3pGRn3/tibjiNAv/3UxFEyfMDjh+ZqTrJrEGBFiGfD5Og==
+eslint@5.15.0:
+  version "5.15.0"
+  resolved "https://registry.yarnpkg.com/eslint/-/eslint-5.15.0.tgz#f313a2f7c7628d39adeefdba4a9c41f842012c9e"
+  integrity sha512-xwG7SS5JLeqkiR3iOmVgtF8Y6xPdtr6AAsN6ph7Q6R/fv+3UlKYoika8SmNzmb35qdRF+RfTY35kMEdtbi+9wg==
   dependencies:
     "@babel/code-frame" "^7.0.0"
     ajv "^6.9.1"
@@ -2372,7 +2355,7 @@ eslint@5.14.1:
     cross-spawn "^6.0.5"
     debug "^4.0.1"
     doctrine "^3.0.0"
-    eslint-scope "^4.0.0"
+    eslint-scope "^4.0.2"
     eslint-utils "^1.3.1"
     eslint-visitor-keys "^1.0.0"
     espree "^5.0.1"
