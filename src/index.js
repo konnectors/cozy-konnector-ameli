@@ -56,7 +56,7 @@ const checkLogin = function(fields) {
   log('info', 'Checking the length of the login')
   if (fields.login.length > 13) {
     // remove the key from the social security number
-    fields.login = fields.login.substr(0, 13)
+    fields.login = fields.login.replace(/\s/g, '').substr(0, 13)
     log('debug', `Fixed the login length to 13`)
   }
 
