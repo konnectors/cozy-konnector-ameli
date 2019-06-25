@@ -10,6 +10,7 @@ const {
   log,
   BaseKonnector,
   saveBills,
+  saveIdentity,
   requestFactory,
   errors
 } = require('cozy-konnector-libs')
@@ -50,6 +51,8 @@ module.exports = new BaseKonnector(function fetch(fields) {
         amountDelta: 0.1
       })
     })
+    .then(fetchIdentity)
+    .then(ident => saveIdentity(ident, fields.login))
 })
 
 const checkLogin = function(fields) {
@@ -409,4 +412,62 @@ function getBills(reimbursements) {
 
 function getFileName(date) {
   return `${moment(date).format('YYYYMMDD')}_ameli.pdf`
+}
+
+const fetchIdentity = async function() {
+  log('info', 'Generating identity')
+  let ident = {}
+  const infosUrl = urlService.getInfosUrl()
+  const $ = await request(infosUrl)
+
+  const givenName = $('.blocNomPrenom .nom')
+    .eq(0)
+    .text()
+    .trim()
+  const rawFullName = $('.NomEtPrenomLabel')
+    .eq(0)
+    .text()
+  const familyName = rawFullName.replace(givenName, '').trim()
+  const birthday = moment(
+    $('.blocNomPrenom .dateNaissance').text(),
+    'DD/MM/YYYY'
+  ).format('YYYY-MM-DD')
+  const socialSecurityNumber = $('.blocNumSecu')
+    .text()
+    .replace(/ /g, '')
+  const rawAddress = $('div[title="Modifier mon adresse postale"] .infoDroite')
+    .text()
+    .trim()
+  const rawPhone = $(
+    'div[title="Modifier mes numéros de télephone"] .infoDroite'
+  )
+    .eq(0)
+    .text()
+    .trim()
+  const phoneNumber = rawPhone.replace(/[^0-9]/g, '')
+  ident = {
+    name: {
+      givenName,
+      familyName
+    },
+    birthday,
+    socialSecurityNumber
+  }
+  if (rawAddress) {
+    const postcode = rawAddress.match(/ \d{5}/)[0].trim()
+    const [street, city] = rawAddress.split(postcode).map(e => e.trim())
+    ident.address = {
+      unformattedAddress: rawAddress,
+      street,
+      postcode,
+      city
+    }
+  }
+  if (phoneNumber && phoneNumber != 'Ajouter') {
+    ident.phone = {
+      type: 'mobile',
+      number: phoneNumber
+    }
+  }
+  return ident
 }

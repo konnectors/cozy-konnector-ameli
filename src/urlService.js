@@ -7,6 +7,7 @@ class UrlService {
 
     this.submitUrl = `${domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_windowLabel=connexioncompte_2&connexioncompte_2_actionOverride=/portlets/connexioncompte/validationconnexioncompte&_pageLabel=as_login_page`
     this.reimbursementUrl = `${domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_paiements_page`
+    this.infosUrl = `${domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_info_perso_page`
   }
 
   getBaseUrl() {
@@ -23,6 +24,10 @@ class UrlService {
 
   getReimbursementUrl() {
     return this.reimbursementUrl
+  }
+
+  getInfosUrl() {
+    return this.infosUrl
   }
 
   getBillUrl() {
