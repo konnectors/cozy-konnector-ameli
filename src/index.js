@@ -416,10 +416,10 @@ function getFileName(date) {
 
 const fetchIdentity = async function() {
   log('info', 'Generating identity')
-  let ident = {}
   const infosUrl = urlService.getInfosUrl()
   const $ = await request(infosUrl)
 
+  // Extracting necessary datas
   const givenName = $('.blocNomPrenom .nom')
     .eq(0)
     .text()
@@ -427,6 +427,7 @@ const fetchIdentity = async function() {
   const rawFullName = $('.NomEtPrenomLabel')
     .eq(0)
     .text()
+  // Deduce familyName by substracting givenName
   const familyName = rawFullName.replace(givenName, '').trim()
   const birthday = moment(
     $('.blocNomPrenom .dateNaissance').text(),
@@ -434,18 +435,24 @@ const fetchIdentity = async function() {
   ).format('YYYY-MM-DD')
   const socialSecurityNumber = $('.blocNumSecu')
     .text()
-    .replace(/ /g, '')
+    .replace(/\s/g, '')
   const rawAddress = $('div[title="Modifier mon adresse postale"] .infoDroite')
     .text()
     .trim()
-  const rawPhone = $(
-    'div[title="Modifier mes numéros de télephone"] .infoDroite'
-  )
+  const rawMobile = $(
+    'div[title="Modifier mes numéros de télephone"]')
     .eq(0)
+    .find('.infoDroite')
     .text()
     .trim()
-  const phoneNumber = rawPhone.replace(/[^0-9]/g, '')
-  ident = {
+  const rawFixe = $('div[title="Modifier mes numéros de télephone"]')
+    .eq(1)
+    .find('.infoDroite')
+    .text()
+    .trim()
+
+  // Making ident object as io.cozy.contacts
+  let ident = {
     name: {
       givenName,
       familyName
@@ -456,18 +463,40 @@ const fetchIdentity = async function() {
   if (rawAddress) {
     const postcode = rawAddress.match(/ \d{5}/)[0].trim()
     const [street, city] = rawAddress.split(postcode).map(e => e.trim())
-    ident.address = {
+    ident.address = [{
       unformattedAddress: rawAddress,
       street,
       postcode,
       city
-    }
+    }]
   }
-  if (phoneNumber && phoneNumber != 'Ajouter') {
-    ident.phone = {
-      type: 'mobile',
-      number: phoneNumber
-    }
+  if (rawMobile != '') {
+    const mobileNumber = rawMobile.replace(/[^0-9]/g, '')
+    ident.phone = addPhone(
+      {
+        type: 'mobile',
+        number: mobileNumber
+      },
+      ident.phone)
+  }
+  if (rawFixe != 'Ajouter') {
+    const fixeNumber = rawFixe.replace(/[^0-9]/g, '')
+    ident.phone = addPhone(
+      {
+        type: 'home',
+        number: fixeNumber
+      },
+      ident.phone)
   }
   return ident
+}
+
+
+function addPhone(newObj, phoneArray) {
+  if (Array.isArray(phoneArray)) {
+    phoneArray.push(newObj)
+  } else {
+    phoneArray = [newObj]
+  }
+  return phoneArray
 }
