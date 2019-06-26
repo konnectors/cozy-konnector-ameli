@@ -439,8 +439,7 @@ const fetchIdentity = async function() {
   const rawAddress = $('div[title="Modifier mon adresse postale"] .infoDroite')
     .text()
     .trim()
-  const rawMobile = $(
-    'div[title="Modifier mes numéros de télephone"]')
+  const rawMobile = $('div[title="Modifier mes numéros de télephone"]')
     .eq(0)
     .find('.infoDroite')
     .text()
@@ -463,12 +462,14 @@ const fetchIdentity = async function() {
   if (rawAddress) {
     const postcode = rawAddress.match(/ \d{5}/)[0].trim()
     const [street, city] = rawAddress.split(postcode).map(e => e.trim())
-    ident.address = [{
-      unformattedAddress: rawAddress,
-      street,
-      postcode,
-      city
-    }]
+    ident.address = [
+      {
+        unformattedAddress: rawAddress,
+        street,
+        postcode,
+        city
+      }
+    ]
   }
   if (rawMobile != '') {
     const mobileNumber = rawMobile.replace(/[^0-9]/g, '')
@@ -477,7 +478,8 @@ const fetchIdentity = async function() {
         type: 'mobile',
         number: mobileNumber
       },
-      ident.phone)
+      ident.phone
+    )
   }
   if (rawFixe != 'Ajouter') {
     const fixeNumber = rawFixe.replace(/[^0-9]/g, '')
@@ -486,11 +488,11 @@ const fetchIdentity = async function() {
         type: 'home',
         number: fixeNumber
       },
-      ident.phone)
+      ident.phone
+    )
   }
   return ident
 }
-
 
 function addPhone(newObj, phoneArray) {
   if (Array.isArray(phoneArray)) {
