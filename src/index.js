@@ -10,7 +10,6 @@ const {
   log,
   BaseKonnector,
   saveBills,
-  saveIdentity,
   requestFactory,
   errors
 } = require('cozy-konnector-libs')
@@ -52,7 +51,7 @@ module.exports = new BaseKonnector(function fetch(fields) {
       })
     })
     .then(fetchIdentity)
-    .then(ident => saveIdentity(ident, fields.login))
+    .then(ident => this.saveIdentity(ident, fields.login))
 })
 
 const checkLogin = function(fields) {
