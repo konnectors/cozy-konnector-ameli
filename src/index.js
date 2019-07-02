@@ -463,7 +463,7 @@ const fetchIdentity = async function() {
     const [street, city] = rawAddress.split(postcode).map(e => e.trim())
     ident.address = [
       {
-        unformattedAddress: rawAddress,
+        formattedAddress: rawAddress,
         street,
         postcode,
         city
