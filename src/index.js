@@ -1,5 +1,3 @@
-'use strict'
-
 // Force sentry DSN into environment variables
 // In the future, will be set by the stack
 process.env.SENTRY_DSN =
@@ -47,7 +45,9 @@ module.exports = new BaseKonnector(function fetch(fields) {
         timeout: Date.now() + 60 * 1000,
         identifiers,
         dateDelta: 10,
-        amountDelta: 0.1
+        amountDelta: 0.1,
+        sourceAccount: this._account._id,
+        sourceAccountIdentifier: fields.login
       })
     })
     .then(fetchIdentity)
@@ -104,13 +104,20 @@ const logIn = async function(fields) {
 
   // Default case. Something unexpected went wrong after the login
   if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
-    log('debug', $('body').html(), 'No deconnection link found in the html')
+    // log('debug', $('body').html(), 'No deconnection link found in the html')
     log('debug', 'Something unexpected went wrong after the login')
     if ($('.centrepage h2, .centrepage h1')) {
       const errorMessage = $('.centrepage h1, .centrepage h2').text()
       log('error', errorMessage)
       if (errorMessage === 'Compte bloqué') {
         throw new Error('LOGIN_FAILED.TOO_MANY_ATTEMPTS')
+      } else if (
+        $('meta[http-equiv=refresh]')
+          .attr('content')
+          .includes('as_saisie_mail_connexionencours_page')
+      ) {
+        log('warn', 'User needs to confirm email address')
+        throw new Error(errors.USER_ACTION_NEEDED)
       } else {
         log('error', 'Found redirect comment but no login form')
         throw new Error(errors.VENDOR_DOWN)
