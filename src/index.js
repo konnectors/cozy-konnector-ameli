@@ -111,6 +111,8 @@ const logIn = async function(fields) {
       log('error', errorMessage)
       if (errorMessage === 'Compte bloqué') {
         throw new Error('LOGIN_FAILED.TOO_MANY_ATTEMPTS')
+      } else if (errorMessage.includes('Service momentanément indisponible')) {
+        throw new Error(errors.VENDOR_DOWN)
       } else if (
         $('meta[http-equiv=refresh]')
           .attr('content')
