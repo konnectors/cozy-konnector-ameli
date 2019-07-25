@@ -96,9 +96,10 @@ const logIn = async function(fields) {
   const $cgu = $('meta[http-equiv=refresh]')
   if (
     $cgu.length > 0 &&
+    $cgu.attr('content') &&
     $cgu.attr('content').includes('as_conditions_generales_page')
   ) {
-    log('debug', $cgu.attr('content'))
+    log('info', $cgu.attr('content'))
     throw new Error('USER_ACTION_NEEDED.CGU_FORM')
   }
 
@@ -106,23 +107,28 @@ const logIn = async function(fields) {
   if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
     // log('debug', $('body').html(), 'No deconnection link found in the html')
     log('debug', 'Something unexpected went wrong after the login')
-    if ($('.centrepage h2, .centrepage h1')) {
-      const errorMessage = $('.centrepage h1, .centrepage h2').text()
+    const errorMessage = $('.centrepage h1, .centrepage h2').text()
+    if (errorMessage) {
       log('error', errorMessage)
       if (errorMessage === 'Compte bloqué') {
         throw new Error('LOGIN_FAILED.TOO_MANY_ATTEMPTS')
       } else if (errorMessage.includes('Service momentanément indisponible')) {
         throw new Error(errors.VENDOR_DOWN)
-      } else if (
-        $('meta[http-equiv=refresh]')
-          .attr('content')
-          .includes('as_saisie_mail_connexionencours_page')
-      ) {
-        log('warn', 'User needs to confirm email address')
-        throw new Error(errors.USER_ACTION_NEEDED)
       } else {
-        log('error', 'Found redirect comment but no login form')
-        throw new Error(errors.VENDOR_DOWN)
+        const refreshContent = $('meta[http-equiv=refresh]').attr('content')
+        if (refreshContent) {
+          log('error', 'refreshContent')
+          log('error', refreshContent)
+          if (refreshContent.includes('as_saisie_mail_connexionencours_page')) {
+            log('warn', 'User needs to confirm email address')
+            throw new Error(errors.USER_ACTION_NEEDED)
+          } else {
+            log('error', 'Found redirect comment but no login form')
+            throw new Error(errors.VENDOR_DOWN)
+          }
+        } else {
+          throw new Error(errors.VENDOR_DOWN)
+        }
       }
     }
     throw new Error(errors.LOGIN_FAILED)
