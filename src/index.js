@@ -7,7 +7,6 @@ process.env.SENTRY_DSN =
 const {
   log,
   BaseKonnector,
-  saveBills,
   requestFactory,
   errors
 } = require('cozy-konnector-libs')
@@ -33,7 +32,7 @@ module.exports = new BaseKonnector(function fetch(fields) {
     .then(() => logIn(fields))
     .then(fetchMainPage)
     .then($ => parseMainPage($))
-    .then(reimbursements => getBills(reimbursements))
+    .then(reimbursements => getBills(reimbursements, fields.login))
     .then(entries => {
       // get custom bank identifier if any
       let identifiers = ['c.p.a.m.', 'caisse', 'cpam', 'ameli']
@@ -41,7 +40,7 @@ module.exports = new BaseKonnector(function fetch(fields) {
         identifiers = fields.bank_identifier
       }
 
-      return saveBills(entries, fields.folderPath, {
+      return this.saveBills(entries, fields.folderPath, {
         timeout: Date.now() + 60 * 1000,
         identifiers,
         dateDelta: 10,
@@ -370,7 +369,7 @@ function parseParticipation($, container, reimbursement) {
     })
 }
 
-function getBills(reimbursements) {
+function getBills(reimbursements, login) {
   const bills = []
   reimbursements.forEach(reimbursement => {
     for (const beneficiary in reimbursement.beneficiaries) {
@@ -387,6 +386,18 @@ function getBills(reimbursements) {
           originalAmount: healthCare.montantPayé,
           fileurl: 'https://assure.ameli.fr' + reimbursement.link,
           filename: getFileName(reimbursement.date),
+          fileAttributes: {
+            metadata: {
+              classification: 'invoicing',
+              datetime: reimbursement.date.toDate(),
+              datetimeLabel: 'issueDate',
+              contentAuthor: 'ameli',
+              subClassification: 'payment_statement',
+              categories: ['public_service', 'health'],
+              issueDate: reimbursement.date.toDate(),
+              contractReference: login
+            }
+          },
           groupAmount: reimbursement.groupAmount,
           requestOptions: {
             jar: j
@@ -410,6 +421,18 @@ function getBills(reimbursements) {
         amount: reimbursement.participation.montantVersé,
         fileurl: 'https://assure.ameli.fr' + reimbursement.link,
         filename: getFileName(reimbursement.date),
+        fileAttributes: {
+          metadata: {
+            classification: 'invoicing',
+            datetime: reimbursement.date.toDate(),
+            datetimeLabel: 'issueDate',
+            contentAuthor: 'ameli',
+            subClassification: 'payment_statement',
+            categories: ['public_service', 'health'],
+            issueDate: reimbursement.date.toDate(),
+            contractReference: login
+          }
+        },
         groupAmount: reimbursement.groupAmount,
         requestOptions: {
           jar: j
