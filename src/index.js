@@ -234,9 +234,7 @@ const parseMainPage = function($) {
       reimbursement => {
         log(
           'info',
-          `Fetching details for ${reimbursement.date} ${
-            reimbursement.groupAmount
-          }`
+          `Fetching details for ${reimbursement.date} ${reimbursement.groupAmount}`
         )
         return request(reimbursement.detailsUrl).then($ =>
           parseDetails($, reimbursement)
