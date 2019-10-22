@@ -21,7 +21,7 @@ const urlService = require('./urlService')
 let request = requestFactory()
 const j = request.jar()
 request = requestFactory({
-  debug: true,
+  // debug: true,
   cheerio: true,
   json: false,
   jar: j
