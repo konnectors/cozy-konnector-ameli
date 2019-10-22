@@ -21,7 +21,7 @@ const urlService = require('./urlService')
 let request = requestFactory()
 const j = request.jar()
 request = requestFactory({
-  // debug: true,
+  debug: true,
   cheerio: true,
   json: false,
   jar: j
@@ -87,7 +87,16 @@ const logIn = async function(fields) {
     url: urlService.getSubmitUrl()
   })
 
-  if ($('#connexioncompte_2nir_as').length) {
+  const loginFailedString =
+    'Le num&#xE9;ro de s&#xE9;curit&#xE9; sociale et le code personnel' +
+    ' ne correspondent pas'
+  if (
+    $('.zone-alerte').filter((i, el) =>
+      $(el)
+        .html()
+        .includes(loginFailedString)
+    ).length >= 1
+  ) {
     throw new Error(errors.LOGIN_FAILED)
   }
 
@@ -130,7 +139,7 @@ const logIn = async function(fields) {
         }
       }
     }
-    throw new Error(errors.LOGIN_FAILED)
+    throw new Error(errors.VENDOR_DOWN)
   }
 
   log('info', 'Correctly logged in')
