@@ -54,13 +54,19 @@ module.exports = new BaseKonnector(function fetch(fields) {
 })
 
 const checkLogin = function(fields) {
+  /* As known in Oct2019, from error message,
+     Social Security Number should be 13 chars from this set [0-9AB]
+  */
+
   log('info', 'Checking the length of the login')
   if (fields.login.length > 13) {
     // remove the key from the social security number
     fields.login = fields.login.replace(/\s/g, '').substr(0, 13)
     log('debug', `Fixed the login length to 13`)
   }
-
+  if (fields.login.lenght < 13) {
+    log('debug', 'Login is under 13 character')
+  }
   return Promise.resolve()
 }
 
@@ -87,17 +93,24 @@ const logIn = async function(fields) {
     url: urlService.getSubmitUrl()
   })
 
-  const loginFailedString =
-    'Le num&#xE9;ro de s&#xE9;curit&#xE9; sociale et le code personnel' +
-    ' ne correspondent pas'
-  if (
-    $('.zone-alerte').filter((i, el) =>
-      $(el)
-        .html()
-        .includes(loginFailedString)
-    ).length >= 1
-  ) {
+  const visibleZoneAlerte = $('.zone-alerte').filter((i, el) => !($(el).hasClass('invisible')))
+  if (visibleZoneAlerte.length > 0) {
+    log('warn', 'One or several alert showed to user:')
+    log('warn', visibleZoneAlerte.text())
+  }
+
+  // Real LOGIN_FAILED case, clearly announce to user from website
+  const loginFailedString = 'Le numéro de sécurité sociale et le code' +
+        ' personnel ne correspondent pas'
+  if (visibleZoneAlerte.text().includes(loginFailedString)) {
     throw new Error(errors.LOGIN_FAILED)
+  }
+
+  // User seems not affiliated anymore to Régime Général
+  const NotMoreAffiliatedString = 'vous ne dépendez plus du régime général de' +
+        ` l'Assurance Maladie`
+  if (visibleZoneAlerte.text().includes(NotMoreAffiliatedString)) {
+    throw new Error(errors.USER_ACTION_NEEDED_ACCOUNT_REMOVED)
   }
 
   // The user must validate the CGU form
@@ -135,10 +148,12 @@ const logIn = async function(fields) {
             throw new Error(errors.VENDOR_DOWN)
           }
         } else {
+          log('error', 'Unknown error message')
           throw new Error(errors.VENDOR_DOWN)
         }
       }
     }
+    log('debug', 'Logout button not detected, but for an unknown case')
     throw new Error(errors.VENDOR_DOWN)
   }
 
