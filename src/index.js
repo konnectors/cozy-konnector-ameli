@@ -18,6 +18,7 @@ const Bill = require('./bill')
 
 const urlService = require('./urlService')
 
+const cheerio = require('cheerio')
 let request = requestFactory()
 const j = request.jar()
 request = requestFactory({
@@ -26,12 +27,18 @@ request = requestFactory({
   json: false,
   jar: j
 })
+const requestNoCheerio = requestFactory({
+  // debug: true,
+  cheerio: false,
+  json: true,
+  jar: j
+})
 
 module.exports = new BaseKonnector(function fetch(fields) {
   return checkLogin(fields)
     .then(() => logIn(fields))
     .then(fetchMainPage)
-    .then($ => parseMainPage($))
+    .then(reqNoCheerio => parseMainPage(reqNoCheerio))
     .then(reimbursements => getBills(reimbursements, fields.login))
     .then(entries => {
       // get custom bank identifier if any
@@ -93,22 +100,25 @@ const logIn = async function(fields) {
     url: urlService.getSubmitUrl()
   })
 
-  const visibleZoneAlerte = $('.zone-alerte').filter((i, el) => !($(el).hasClass('invisible')))
+  const visibleZoneAlerte = $('.zone-alerte').filter(
+    (i, el) => !$(el).hasClass('invisible')
+  )
   if (visibleZoneAlerte.length > 0) {
     log('warn', 'One or several alert showed to user:')
     log('warn', visibleZoneAlerte.text())
   }
 
   // Real LOGIN_FAILED case, clearly announce to user from website
-  const loginFailedString = 'Le numéro de sécurité sociale et le code' +
-        ' personnel ne correspondent pas'
+  const loginFailedString =
+    'Le numéro de sécurité sociale et le code' +
+    ' personnel ne correspondent pas'
   if (visibleZoneAlerte.text().includes(loginFailedString)) {
     throw new Error(errors.LOGIN_FAILED)
   }
 
   // User seems not affiliated anymore to Régime Général
-  const NotMoreAffiliatedString = 'vous ne dépendez plus du régime général de' +
-        ` l'Assurance Maladie`
+  const NotMoreAffiliatedString =
+    'vous ne dépendez plus du régime général de' + ` l'Assurance Maladie`
   if (visibleZoneAlerte.text().includes(NotMoreAffiliatedString)) {
     throw new Error(errors.USER_ACTION_NEEDED_ACCOUNT_REMOVED)
   }
@@ -171,13 +181,14 @@ const fetchMainPage = async function() {
 
   await request(billUrl)
 
-  return request(billUrl)
+  return requestNoCheerio(billUrl)
 }
 
 // Parse the fetched page to extract bill data.
-const parseMainPage = function($) {
+const parseMainPage = function(reqNoCheerio) {
   let reimbursements = []
   let i = 0
+  const $ = cheerio.load(reqNoCheerio.tableauPaiement)
 
   // Each bloc represents a month that includes 0 to n reimbursement
   $('.blocParMois').each(function() {
