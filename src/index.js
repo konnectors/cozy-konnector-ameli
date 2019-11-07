@@ -71,8 +71,12 @@ const checkLogin = function(fields) {
     fields.login = fields.login.replace(/\s/g, '').substr(0, 13)
     log('debug', `Fixed the login length to 13`)
   }
-  if (fields.login.lenght < 13) {
+  if (fields.login.length < 13) {
     log('debug', 'Login is under 13 character')
+  }
+  if (!(fields.password)) {
+    log('warn', 'No password set in account, aborting')
+    throw new Error(errors.LOGIN_FAILED)
   }
   return Promise.resolve()
 }
