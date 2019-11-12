@@ -74,7 +74,7 @@ const checkLogin = function(fields) {
   if (fields.login.length < 13) {
     log('debug', 'Login is under 13 character')
   }
-  if (!(fields.password)) {
+  if (!fields.password) {
     log('warn', 'No password set in account, aborting')
     throw new Error(errors.LOGIN_FAILED)
   }
