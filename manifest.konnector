@@ -101,6 +101,6 @@
       }
     }
   },
-  "banksTransactionRegExp": "(cpam|c\\.p\\.a\\.m|caisse primaire)",
+  "banksTransactionRegExp": "(cpc?am|c\\.p\\.(c\\.)?a\\.m|caisse primaire)",
   "manifest_version": "2"
 }
