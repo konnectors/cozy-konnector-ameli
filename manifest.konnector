@@ -1,5 +1,5 @@
 {
-  "version": "1.12.2",
+  "version": "1.13.0",
   "name": "Ameli",
   "type": "konnector",
   "language": "node",
@@ -101,6 +101,6 @@
       }
     }
   },
-  "banksTransactionRegExp": "(cpam|c\\.p\\.a\\.m|caisse primaire)",
+  "banksTransactionRegExp": "(cpc?am|c\\.p\\.(c\\.)?a\\.m|caisse primaire)",
   "manifest_version": "2"
 }
