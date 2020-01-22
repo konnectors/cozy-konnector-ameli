@@ -60,7 +60,7 @@
   "locales": {
     "fr": {
       "short_description": "Récupère toutes vos factures ameli",
-      "long_description": "Récupère toutes vos factures ameli",
+      "long_description": "Récupère toutes vos factures ameli.\n\n*A noter* : Veillez à bien utiliser votre numéro de sécurité social comme identifiant et non un identifiant.",
       "permissions": {
         "bank operations": {
           "description": "Utilisé pour lier les factures aux opérations bancaires"
