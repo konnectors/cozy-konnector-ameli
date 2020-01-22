@@ -19,14 +19,13 @@
     },
     "password": {
       "type": "password"
-    },
-    "advancedFields": {
-      "folderPath": {
-        "advanced": true,
-        "isRequired": false
-      }
     }
   },
+  "folders": [{"defaultDir": "$administrative/$konnector/$account"}],
+  "time_interval": [
+    0,
+    24
+  ],
   "data_types": [
     "bill"
   ],
