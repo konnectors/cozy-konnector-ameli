@@ -19,14 +19,13 @@
     },
     "password": {
       "type": "password"
-    },
-    "advancedFields": {
-      "folderPath": {
-        "advanced": true,
-        "isRequired": false
-      }
     }
   },
+  "folders": [{"defaultDir": "$administrative/$konnector/$account"}],
+  "time_interval": [
+    0,
+    24
+  ],
   "data_types": [
     "bill"
   ],
@@ -41,10 +40,7 @@
       "type": "io.cozy.files"
     },
     "accounts": {
-      "type": "io.cozy.accounts",
-      "verbs": [
-        "GET"
-      ]
+      "type": "io.cozy.accounts"
     },
     "identities": {
       "type": "io.cozy.identities"
@@ -60,7 +56,7 @@
   "locales": {
     "fr": {
       "short_description": "Récupère toutes vos factures ameli",
-      "long_description": "Récupère toutes vos factures ameli",
+      "long_description": "Récupère toutes vos factures ameli.\n\n*A noter* : Veillez à bien utiliser votre numéro de sécurité social comme identifiant et non un identifiant.",
       "permissions": {
         "bank operations": {
           "description": "Utilisé pour lier les factures aux opérations bancaires"
@@ -101,6 +97,6 @@
       }
     }
   },
-  "banksTransactionRegExp": "(cpam|c\\.p\\.a\\.m|caisse primaire)",
+  "banksTransactionRegExp": "(cpc?am|c\\.p\\.(c\\.)?a\\.m|caisse primaire)",
   "manifest_version": "2"
 }
