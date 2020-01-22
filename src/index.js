@@ -32,32 +32,34 @@ const requestNoCheerio = requestFactory({
   jar: j
 })
 
-module.exports = new BaseKonnector(function fetch(fields) {
-  return checkLogin(fields)
-    .then(() => logIn.bind(this)(fields))
-    .then(fetchMainPage)
-    .then(reqNoCheerio => parseMainPage(reqNoCheerio))
-    .then(reimbursements => getBills(reimbursements, fields.login))
-    .then(entries => {
-      // get custom bank identifier if any
-      let identifiers = ['c.p.a.m.', 'caisse', 'cpam', 'ameli']
-      if (fields.bank_identifier && fields.bank_identifier.length) {
-        identifiers = fields.bank_identifier
-      }
+module.exports = new BaseKonnector(start)
 
-      return this.saveBills(entries, fields.folderPath, {
-        identifiers,
-        dateDelta: 10,
-        amountDelta: 0.1,
-        sourceAccount: this.accountId,
-        sourceAccountIdentifier: fields.login
-      })
-    })
-    .then(fetchIdentity)
-    .then(ident => this.saveIdentity(ident, fields.login))
-})
+async function start(fields) {
+  await checkLogin(fields)
+  await logIn.bind(this)(fields)
+  const reqNoCheerio = await fetchMainPage()
+  const reimbursements = await parseMainPage(reqNoCheerio)
+  const entries = await getBills(reimbursements, fields.login)
 
-const checkLogin = function(fields) {
+  // get custom bank identifier if any
+  let identifiers = ['c.p.a.m.', 'caisse', 'cpam', 'ameli']
+  if (fields.bank_identifier && fields.bank_identifier.length) {
+    identifiers = fields.bank_identifier
+  }
+
+  await this.saveBills(entries, fields.folderPath, {
+    identifiers,
+    dateDelta: 10,
+    amountDelta: 0.1,
+    sourceAccount: this.accountId,
+    sourceAccountIdentifier: fields.login
+  })
+
+  const ident = await fetchIdentity()
+  await this.saveIdentity(ident, fields.login)
+}
+
+const checkLogin = async function(fields) {
   /* As known in Oct2019, from error message,
      Social Security Number should be 13 chars from this set [0-9AB]
   */
@@ -75,7 +77,6 @@ const checkLogin = function(fields) {
     log('warn', 'No password set in account, aborting')
     throw new Error(errors.LOGIN_FAILED)
   }
-  return Promise.resolve()
 }
 
 // Procedure to login to Ameli website.
@@ -269,14 +270,13 @@ const parseMainPage = function(reqNoCheerio) {
   return bluebird
     .map(
       reimbursements,
-      reimbursement => {
+      async reimbursement => {
         log(
-          'info',
+          'debug',
           `Fetching details for ${reimbursement.date} ${reimbursement.groupAmount}`
         )
-        return request(reimbursement.detailsUrl).then($ =>
-          parseDetails($, reimbursement)
-        )
+        const $ = await request(reimbursement.detailsUrl)
+        return parseDetails($, reimbursement)
       },
       { concurrency: 10 }
     )
