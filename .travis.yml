@@ -3,7 +3,6 @@ node_js:
 - '12'
 env:
   global:
-  - DEPLOY_REPOSITORY="git@github.com:konnectors/cozy-konnector-ameli.git"
   # Token to access Cozy Registry, you should replace it with a token specific to this konnector
   - secure: fKee/eCi0hxQ/0YKX57Z86VsKuVV+uy2/tliPNfa6dnpoDm+searF5uB3jB0y6jDbQ20mDhkuXx+ovSIJBacVDzgzgtRVJFgXK7JAR+J6syXi9WpynbZDmyWHcs+gJ2uJAKPxGyZSaaZZO3CHz4UKARmgdYLv8veHHJZfuEtPHhhH9QlmM2Ss1/2p+FTQ/uUHlFv1i/yDi7iOba/he9diUt1RriqzHE0ohD+nVfq7QxdEZkP4U7JBmBdS0Vea4FW5xe4IRXpRRLigFzufqlEysHzU33eiXY+kg7cOtPgL9txvLH6ieqw3j3ZMYyYAq9uCFioqrBGXrcZ9Olz7QzbBjWBRJZkr4naSZMunxDdd0sw5ZEhC8znGup1wyPhVQ0/uM3H81SCzWM2XwByLBSum6gWSnLWN+LqR1wmxYGvN5W1UDtU03iG5EBYNZ9l3uOw08XjPCq+tBgpSewLnVf+2CJPuUNmfKa1UMqBPsskVdEd+/wgt0BIThjNZRImUZ7VUbN5NpoaX9wORXnkxvw/yW4qTiraR2wYHwNmURa1eRhtVleCv2UflCf4Gkms1ng4kSy+uYxYc0OU1mlb0D5JVFNni2E0NJY7b0K09BK59ZxR5g11FY4j1o8TyHW/EAbuEFvJ7kF+rMr/WuSZNd9jmffa71Zki9jnLvsrIb0CNJ4=
   # MATTERMOST_HOOK_URL
