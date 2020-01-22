@@ -1,5 +1,3 @@
-// Force sentry DSN into environment variables
-// In the future, will be set by the stack
 process.env.SENTRY_DSN =
   process.env.SENTRY_DSN ||
   'https://ae2447d6c4544985ae50a03520a06f89:5371dd68dfea408bbd9fbc8c97a9309a@sentry.cozycloud.cc/14'
@@ -48,11 +46,10 @@ module.exports = new BaseKonnector(function fetch(fields) {
       }
 
       return this.saveBills(entries, fields.folderPath, {
-        timeout: Date.now() + 60 * 1000,
         identifiers,
         dateDelta: 10,
         amountDelta: 0.1,
-        sourceAccount: this._account._id,
+        sourceAccount: this.accountId,
         sourceAccountIdentifier: fields.login
       })
     })
@@ -84,6 +81,7 @@ const checkLogin = function(fields) {
 // Procedure to login to Ameli website.
 const logIn = async function(fields) {
   log('info', 'Now logging in')
+  await this.deactivateAutoSuccessfulLogin()
 
   const form = {
     connexioncompte_2numSecuriteSociale: fields.login,
@@ -171,7 +169,7 @@ const logIn = async function(fields) {
     throw new Error(errors.VENDOR_DOWN)
   }
 
-  log('info', 'Correctly logged in')
+  await this.notifySuccessfulLogin()
 
   return await request(urlService.getReimbursementUrl())
 }
