@@ -111,10 +111,11 @@ const logIn = async function(fields) {
   }
 
   // Real LOGIN_FAILED case, clearly announce to user from website
-  const loginFailedString =
-    'Le numéro de sécurité sociale et le code' +
-    ' personnel ne correspondent pas'
-  if (visibleZoneAlerte.text().includes(loginFailedString)) {
+  const loginFailedStrings = [
+    'Le numéro de sécurité sociale et le code personnel ne correspondent pas',
+    'Votre numéro de Sécurité sociale doit contenir des chiffres, A ou B'
+  ]
+  if (loginFailedStrings.some(str => visibleZoneAlerte.text().includes(str))) {
     throw new Error(errors.LOGIN_FAILED)
   }
 
