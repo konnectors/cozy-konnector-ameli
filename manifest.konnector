@@ -19,12 +19,6 @@
     },
     "password": {
       "type": "password"
-    },
-    "advancedFields": {
-      "folderPath": {
-        "advanced": true,
-        "isRequired": false
-      }
     }
   },
   "data_types": [
@@ -41,10 +35,7 @@
       "type": "io.cozy.files"
     },
     "accounts": {
-      "type": "io.cozy.accounts",
-      "verbs": [
-        "GET"
-      ]
+      "type": "io.cozy.accounts"
     },
     "identities": {
       "type": "io.cozy.identities"
