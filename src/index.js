@@ -52,7 +52,9 @@ async function start(fields) {
     dateDelta: 10,
     amountDelta: 0.1,
     sourceAccount: this.accountId,
-    sourceAccountIdentifier: fields.login
+    sourceAccountIdentifier: fields.login,
+    fileIdAttributes: ['vendorRef'],
+    shouldUpdate: (entry, dbEntry) => entry.vendorRef && !dbEntry.vendorRef
   })
 
   const ident = await fetchIdentity()
@@ -257,6 +259,7 @@ const parseMainPage = function(reqNoCheerio) {
         lineId,
         detailsUrl,
         link,
+        idPaiement,
         groupAmount,
         isThirdPartyPayer: naturePaiement === 'PAIEMENT_A_UN_TIERS',
         beneficiaries: {}
@@ -421,7 +424,8 @@ function getBills(reimbursements, login) {
           amount: healthCare.montantVersé,
           originalAmount: healthCare.montantPayé,
           fileurl: 'https://assure.ameli.fr' + reimbursement.link,
-          filename: getFileName(reimbursement.date),
+          vendorRef: reimbursement.idPaiement,
+          filename: getFileName(reimbursement),
           fileAttributes: {
             metadata: {
               classification: 'invoicing',
@@ -456,7 +460,8 @@ function getBills(reimbursements, login) {
         isRefund: true,
         amount: reimbursement.participation.montantVersé,
         fileurl: 'https://assure.ameli.fr' + reimbursement.link,
-        filename: getFileName(reimbursement.date),
+        vendorRef: reimbursement.idPaiement,
+        filename: getFileName(reimbursement),
         fileAttributes: {
           metadata: {
             classification: 'invoicing',
@@ -483,8 +488,8 @@ function getBills(reimbursements, login) {
   return bills.filter(bill => !isNaN(bill.amount))
 }
 
-function getFileName(date) {
-  return `${moment(date).format('YYYYMMDD')}_ameli.pdf`
+function getFileName(reimbursement) {
+  return `${moment(reimbursement.date).format('YYYYMMDD')}_ameli.pdf`
 }
 
 const fetchIdentity = async function() {
