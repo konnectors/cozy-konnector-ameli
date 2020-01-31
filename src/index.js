@@ -41,20 +41,29 @@ async function start(fields) {
   const reimbursements = await parseMainPage(reqNoCheerio)
   const entries = await getBills(reimbursements, fields.login)
 
-  // get custom bank identifier if any
-  let identifiers = ['c.p.a.m.', 'caisse', 'cpam', 'ameli']
-  if (fields.bank_identifier && fields.bank_identifier.length) {
-    identifiers = fields.bank_identifier
-  }
-
+  // first run saveBills without keys to update existing bills with new attributes which will be
+  // used as keys for bills
+  // TODO this will be removed once the connector has been run at least one time for each accounts
   await this.saveBills(entries, fields.folderPath, {
-    identifiers,
-    dateDelta: 10,
-    amountDelta: 0.1,
     sourceAccount: this.accountId,
     sourceAccountIdentifier: fields.login,
     fileIdAttributes: ['vendorRef'],
-    shouldUpdate: (entry, dbEntry) => entry.vendorRef && !dbEntry.vendorRef
+    shouldUpdate: (entry, dbEntry) => {
+      const result = entry.vendorRef && !dbEntry.vendorRef
+      return result
+    },
+    linkBankOperations: false
+  })
+  await this.saveBills(entries, fields.folderPath, {
+    sourceAccount: this.accountId,
+    sourceAccountIdentifier: fields.login,
+    fileIdAttributes: ['vendorRef'],
+    shouldUpdate: (entry, dbEntry) => {
+      const result = entry.vendorRef && !dbEntry.vendorRef
+      return result
+    },
+    keys: ['vendorRef', 'date', 'amount', 'beneficiary', 'subtype', 'index'],
+    linkBankOperations: false
   })
 
   const ident = await fetchIdentity()
@@ -325,7 +334,7 @@ function parseAmount(amount) {
 function parseHealthCares($, container, beneficiary, reimbursement) {
   $(container)
     .find('tr')
-    .each(function() {
+    .each(function(index) {
       if ($(this).find('th').length > 0) {
         return null // ignore header
       }
@@ -338,6 +347,7 @@ function parseHealthCares($, container, beneficiary, reimbursement) {
         .trim()
       date = date ? moment(date, 'DD/MM/YYYY') : undefined
       const healthCare = {
+        index,
         prestation: $(this)
           .find('.naturePrestation')
           .text()
@@ -419,6 +429,7 @@ function getBills(reimbursements, login) {
           beneficiary,
           isThirdPartyPayer: reimbursement.isThirdPartyPayer,
           date: reimbursement.date.toDate(),
+          index: healthCare.index,
           vendor: 'Ameli',
           isRefund: true,
           amount: healthCare.montantVersé,
@@ -426,6 +437,7 @@ function getBills(reimbursements, login) {
           fileurl: 'https://assure.ameli.fr' + reimbursement.link,
           vendorRef: reimbursement.idPaiement,
           filename: getFileName(reimbursement),
+          shouldReplaceName: getOldFileName(reimbursement),
           fileAttributes: {
             metadata: {
               classification: 'invoicing',
@@ -462,6 +474,7 @@ function getBills(reimbursements, login) {
         fileurl: 'https://assure.ameli.fr' + reimbursement.link,
         vendorRef: reimbursement.idPaiement,
         filename: getFileName(reimbursement),
+        shouldReplaceName: getOldFileName(reimbursement),
         fileAttributes: {
           metadata: {
             classification: 'invoicing',
@@ -489,6 +502,12 @@ function getBills(reimbursements, login) {
 }
 
 function getFileName(reimbursement) {
+  return `${moment(reimbursement.date).format(
+    'YYYYMMDD'
+  )}_ameli_${reimbursement.groupAmount.toFixed(2)}EUR.pdf`
+}
+
+function getOldFileName(reimbursement) {
   return `${moment(reimbursement.date).format('YYYYMMDD')}_ameli.pdf`
 }
 
