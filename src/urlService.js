@@ -35,7 +35,7 @@ class UrlService {
       'afficherPaiementsComplementaires&' +
       'Beneficiaire=tout_selectionner&' +
       'afficherReleves=true&' +
-      'afficherIJ=false&' +
+      'afficherIJ=true&' +
       'afficherPT=false&' +
       'afficherInva=false&' +
       'afficherRentes=false&' +
