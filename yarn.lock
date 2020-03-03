@@ -161,10 +161,10 @@
   dependencies:
     "@types/node" ">= 8"
 
-"@pollyjs/adapter-node-http@4.0.2":
-  version "4.0.2"
-  resolved "https://registry.yarnpkg.com/@pollyjs/adapter-node-http/-/adapter-node-http-4.0.2.tgz#30a84200009f04c3ded637ce98ef30f8359ff097"
-  integrity sha512-GCwb510WDX+ShBNpqSyUyF5fltcfu3P+IOWP80b6RzWpySpgFWHF9r/xlnxn5MRFUidPoGAZir9k4UsQyslCCg==
+"@pollyjs/adapter-node-http@4.0.3":
+  version "4.0.3"
+  resolved "https://registry.yarnpkg.com/@pollyjs/adapter-node-http/-/adapter-node-http-4.0.3.tgz#87e9cff4559b2dc00679f27e12b8ea0cb59925ca"
+  integrity sha512-1ucveKkUovKXNIMkHs0tKSbDoSu+sPnImhUgrHqqTuUvOIou9gLIwjPAPI4k7JY3CqUKrOhq8TCsyGa3YumFow==
   dependencies:
     "@pollyjs/adapter" "^4.0.2"
     "@pollyjs/utils" "^4.0.2"
@@ -248,6 +248,11 @@
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/@types/color-name/-/color-name-1.1.1.tgz#1c1261bbeaa10a8055bbc5d8ab84b7b2afc846a0"
   integrity sha512-rr+OQyAjxze7GgWrSaJwydHStIhHq2lvY3BOC2Mj7KnzI7XK0Uw1TOOdI9lDoajEbSWLiYgoo4f1R51erQfhPQ==
+
+"@types/debug@^4.1.5":
+  version "4.1.5"
+  resolved "https://registry.yarnpkg.com/@types/debug/-/debug-4.1.5.tgz#b14efa8852b7768d898906613c23f688713e02cd"
+  integrity sha512-Q1y515GcOdTHgagaVFhHnIFQ38ygs/kmxdNpvpou+raI9UO3YZcHDngBSYKQklcKlvA7iuQlmIKbzvmxcOE9CQ==
 
 "@types/node@*", "@types/node@>= 8":
   version "13.1.8"
@@ -1212,10 +1217,10 @@ combined-stream@^1.0.6, combined-stream@~1.0.6:
   dependencies:
     delayed-stream "~1.0.0"
 
-commander@4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/commander/-/commander-4.1.0.tgz#545983a0603fe425bc672d66c9e3c89c42121a83"
-  integrity sha512-NIQrwvv9V39FHgGFm36+U9SMQzbiHvU79k+iADraJTpmrFFfx7Ds0IvDoAdZsDrknlkRk14OYoWXb57uTh7/sw==
+commander@4.1.1:
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-4.1.1.tgz#9fd602bd936294e9e9ef46a3f4d6964044b18068"
+  integrity sha512-NOKm8xhkzAjzFx8B2v5OAHT+u5pRQc2UCa2Vq9jYL/31o2wi9mxBA7LIFs3sV5VSC49z6pEhfbMULvShKj26WA==
 
 commander@^2.19.0, commander@^2.20.0:
   version "2.20.3"
@@ -1382,10 +1387,10 @@ cosmiconfig@^6.0.0:
     path-type "^4.0.0"
     yaml "^1.7.2"
 
-cozy-app-publish@0.20.1:
-  version "0.20.1"
-  resolved "https://registry.yarnpkg.com/cozy-app-publish/-/cozy-app-publish-0.20.1.tgz#caa347bdffea6b4ebd72772b8259c5b3737fbbe1"
-  integrity sha512-lvLb1C7cFSiq2QRXyG9L8iZXo2Psc6lyc60lUy2VgMYigCrPpSYnfBbagcSs6W3gdK9+BfCmcKzyFuR2IdDiZA==
+cozy-app-publish@0.22.3:
+  version "0.22.3"
+  resolved "https://registry.yarnpkg.com/cozy-app-publish/-/cozy-app-publish-0.22.3.tgz#4c45d1c3e2d36e4c00707633b1f68ea69b811725"
+  integrity sha512-zLxz0A/sbICa22Ti1Kp//v4zkZg3UIJoDrdfLYrZkFtTO+igL2Q4IqGUjCNCjjm3KsRcdk6aeh1i2fs6fmuZlw==
   dependencies:
     argparse "^1.0.10"
     chalk "2.4.2"
@@ -1407,19 +1412,40 @@ cozy-client-js@0.16.4, cozy-client-js@^0.16.4:
     pouchdb-browser "7.0.0"
     pouchdb-find "7.0.0"
 
-cozy-client@10.5.0, cozy-client@^10.5.0:
-  version "10.5.0"
-  resolved "https://registry.yarnpkg.com/cozy-client/-/cozy-client-10.5.0.tgz#0dbf05786d9549c266d2f2c20a7448af6d828bb7"
-  integrity sha512-j2z1lj1yxLOK6mNPKnS+DjLibXrABVMsd9+YM9Beh29KW6f5gefNXecrfBcfWGoUOYF2z3j2xtxeTnncEWQM+A==
+cozy-client@11.1.1:
+  version "11.1.1"
+  resolved "https://registry.yarnpkg.com/cozy-client/-/cozy-client-11.1.1.tgz#10d75b3a6797dabc45b110546773470224595a7c"
+  integrity sha512-anhUQWRdj3zaRS/79tQh0+iZR/47Gf6ay7qTbZ9XfpKz+73qhlPLvwyD24Vn39entLMES7G1vUgJdFPx3x3M1Q==
   dependencies:
     btoa "^1.2.1"
     cozy-device-helper "^1.7.3"
     cozy-logger "^1.6.0"
-    cozy-stack-client "^10.4.0"
+    cozy-stack-client "^11.1.0"
     isomorphic-fetch "^2.2.1"
     lodash "^4.17.13"
     microee "^0.0.6"
-    opn "^6.0.0"
+    open "^7.0.2"
+    prop-types "^15.6.2"
+    react-redux "^5.0.7"
+    redux "^3.7.2"
+    redux-thunk "^2.3.0"
+    server-destroy "^1.0.1"
+    sift "^6.0.0"
+    url-search-params-polyfill "^7.0.0"
+
+cozy-client@^11.1.1:
+  version "11.2.1"
+  resolved "https://registry.yarnpkg.com/cozy-client/-/cozy-client-11.2.1.tgz#0e261df94499cc93561fa2f305028ae6c99c8f12"
+  integrity sha512-JqMiDF8UPZ3ZP3LRl1s1x2EkKXcw8NCSnPSUGUo3jmqop3gvs0JHYeixakVeWVQpZzb90BFfUbEmZvtSb9gXyA==
+  dependencies:
+    btoa "^1.2.1"
+    cozy-device-helper "^1.7.3"
+    cozy-logger "^1.6.0"
+    cozy-stack-client "^11.2.0"
+    isomorphic-fetch "^2.2.1"
+    lodash "^4.17.13"
+    microee "^0.0.6"
+    open "^7.0.2"
     prop-types "^15.6.2"
     react-redux "^5.0.7"
     redux "^3.7.2"
@@ -1447,30 +1473,30 @@ cozy-doctypes@^1.72.0:
     lodash "4.17.15"
     prop-types "^15.7.2"
 
-cozy-jobs-cli@1.11.2:
-  version "1.11.2"
-  resolved "https://registry.yarnpkg.com/cozy-jobs-cli/-/cozy-jobs-cli-1.11.2.tgz#c6e8e7ebb98ba113d4915383ba5e5d1ebb2b0b11"
-  integrity sha512-jXuxoTdMpjJynsg0h+Sr2rNRWMuqfwNZA9jl+viPsmyO9x67mQ0zHoynl6bEPgZhezPfSkOmm4OuboUoue2Guw==
+cozy-jobs-cli@1.12.0:
+  version "1.12.0"
+  resolved "https://registry.yarnpkg.com/cozy-jobs-cli/-/cozy-jobs-cli-1.12.0.tgz#11accc1fe06c7b6cfd61ad14cc9025cf90ac6bd6"
+  integrity sha512-k5fWdpg2yKyvKLjTiqYLB7Ky1YP2xGrfXmcZWMgNRvPhATKiVCiCrX/Wz8yJV3Kfi0bdTDGstzOYhrwp/EsK2w==
   dependencies:
-    "@pollyjs/adapter-node-http" "4.0.2"
+    "@pollyjs/adapter-node-http" "4.0.3"
     "@pollyjs/core" "4.0.2"
     "@pollyjs/persister-fs" "4.0.2"
     babel-runtime "6.26.0"
     cheerio "1.0.0-rc.3"
     cli-highlight "2.1.4"
-    commander "4.1.0"
-    cozy-client "10.5.0"
+    commander "4.1.1"
+    cozy-client "11.1.1"
     cozy-client-js "0.16.4"
-    cozy-konnector-libs "^4.32.4"
+    cozy-konnector-libs "^4.33.0"
     cozy-logger "1.6.0"
-    open "7.0.0"
+    open "7.0.2"
     pretty "2.0.0"
     strip-json-comments "3.0.1"
 
-cozy-konnector-libs@4.32.4, cozy-konnector-libs@^4.32.4:
-  version "4.32.4"
-  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-4.32.4.tgz#cf32e6a39ba6cac20508b0b2b19442bebec45e2a"
-  integrity sha512-w3IJ98gsdjS3LO/qPfKBEcQ9jR3iJqJzTlG4bdncFD/Y8BXNUvcFxdh6AZdFV3yAc05GhOxeH36f+y3IJL2wwg==
+cozy-konnector-libs@4.33.0, cozy-konnector-libs@^4.33.0:
+  version "4.33.0"
+  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-4.33.0.tgz#3fb2043444f0aa410edbfe06ae46f2af3cc4e4f1"
+  integrity sha512-/bvbY3go3oYuShTxg0M0Cm25QqoP4RW2eIpd8UmRwwkxq08bXElg5u99Dnu6amAvwzCYvKp13yNSLeZbtMUx0w==
   dependencies:
     babel-runtime "^6.26.0"
     bluebird "^3.7.2"
@@ -1478,19 +1504,19 @@ cozy-konnector-libs@4.32.4, cozy-konnector-libs@^4.32.4:
     btoa "1.2.1"
     cheerio "^1.0.0-rc.3"
     classificator "^0.3.3"
-    cozy-client "^10.5.0"
+    cozy-client "^11.1.1"
     cozy-client-js "^0.16.4"
     cozy-doctypes "^1.72.0"
     cozy-logger "^1.6.0"
     date-fns "^1.30.1"
-    file-type "^13.1.2"
+    file-type "^14.1.2"
     geco "^0.11.1"
     lodash-id "^0.14.0"
     lowdb "^1.0.0"
     mime-types "^2.1.26"
     raven "^2.6.4"
     raw-body "^2.4.1"
-    request "^2.88.0"
+    request "^2.88.2"
     request-debug "^0.2.0"
     request-promise "^4.2.5"
     strip-json-comments "^3.0.1"
@@ -1503,10 +1529,10 @@ cozy-logger@1.6.0, cozy-logger@^1.6.0:
     chalk "^2.4.2"
     json-stringify-safe "5.0.1"
 
-cozy-stack-client@^10.4.0:
-  version "10.4.0"
-  resolved "https://registry.yarnpkg.com/cozy-stack-client/-/cozy-stack-client-10.4.0.tgz#5fc104eb881982c42feae126c2cb6de58e416f9f"
-  integrity sha512-VoiztT2NXaNQYOtp2w4QVQh9Y05ikJ4ityIOATY9mNjG6Ah+cs42P0SxBw9rcG6J6/hRI6gZqeo95qFwixDdMg==
+cozy-stack-client@^11.1.0, cozy-stack-client@^11.2.0:
+  version "11.2.0"
+  resolved "https://registry.yarnpkg.com/cozy-stack-client/-/cozy-stack-client-11.2.0.tgz#78506c47e86063dbfc3d214f2833a8b693286344"
+  integrity sha512-782/jXltjoUs0qoukJjW8KFZWGMODH0hIzdyYZQQu2v3G16pfM4qjudoVekHYDPXu+5um3qLCqYrbHR0+sfOfQ==
   dependencies:
     detect-node "^2.0.4"
     mime "^2.4.0"
@@ -2086,10 +2112,10 @@ escape-string-regexp@^1.0.5:
   resolved "https://registry.yarnpkg.com/escape-string-regexp/-/escape-string-regexp-1.0.5.tgz#1b61c0562190a8dff6ae3bb2cf0200ca130b86d4"
   integrity sha1-G2HAViGQqN/2rjuyzwIAyhMLhtQ=
 
-eslint-config-cozy-app@1.4.0:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-cozy-app/-/eslint-config-cozy-app-1.4.0.tgz#fb751b78cafc4384f90b22570459376f5f775ff9"
-  integrity sha512-0XYwjd9XO6Sl3Rp5aiZnlCkXReg1xBrLWGnlDATgO2/EoHMEe9AUX7/Y7ui/j1YJwThZ5twjdkcjb8YJXgOX1w==
+eslint-config-cozy-app@1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-cozy-app/-/eslint-config-cozy-app-1.5.0.tgz#a68addd27286984d808304f4cdac95ef8757aa8c"
+  integrity sha512-3iHvM5b77w2Xl9ZnbRvRVmfOaKJt6JmNGkNbOQTqihLesehlX9C6ax4XueEIBfwvJVP/P1b8OAuXOcr+5pi07Q==
   dependencies:
     babel-eslint "10.0.1"
     eslint "5.16.0"
@@ -2477,13 +2503,13 @@ file-entry-cache@^5.0.1:
   dependencies:
     flat-cache "^2.0.1"
 
-file-type@^13.1.2:
-  version "13.1.2"
-  resolved "https://registry.yarnpkg.com/file-type/-/file-type-13.1.2.tgz#0e5b72bca7569c152e2d5a84ece07e94f77f833f"
-  integrity sha512-NiHXbmclwHN38eHZfRklosbm7/W+1yacDzRCyddd0NiyuJUArQDmzJ8GPSFJGl82+I59u7sNGfcAVnJsfXJb8A==
+file-type@^14.1.2:
+  version "14.1.2"
+  resolved "https://registry.yarnpkg.com/file-type/-/file-type-14.1.2.tgz#ee7adfa2a0483d8be3a38aea58fdf2705ab00fb4"
+  integrity sha512-9NI4+QzDlEPB6OETc/FcJt8i8vNT396VweRwEwLcE07MnorWkZDopNuc+MeoYA7ArbzoK044JbaDExWys8deTQ==
   dependencies:
     readable-web-to-node-stream "^2.0.0"
-    strtok3 "^5.0.2"
+    strtok3 "^6.0.0"
     token-types "^2.0.0"
     typedarray-to-buffer "^3.1.5"
 
@@ -2822,7 +2848,7 @@ har-schema@^2.0.0:
   resolved "https://registry.yarnpkg.com/har-schema/-/har-schema-2.0.0.tgz#a94c2224ebcac04782a0d9035521f24735b7ec92"
   integrity sha1-qUwiJOvKwEeCoNkDVSHyRzW37JI=
 
-har-validator@~5.1.0:
+har-validator@~5.1.0, har-validator@~5.1.3:
   version "5.1.3"
   resolved "https://registry.yarnpkg.com/har-validator/-/har-validator-5.1.3.tgz#1ef89ebd3e4996557675eed9893110dc350fa080"
   integrity sha512-sNvOCzEQNr/qrvJgc3UG/kD4QtlHycrzwS+6mfTrrSq97BvaYcPZZI1ZSqGSPR73Cxn4LKTD4PttRwfU7jWq5g==
@@ -2982,10 +3008,10 @@ https-browserify@^1.0.0:
   resolved "https://registry.yarnpkg.com/https-browserify/-/https-browserify-1.0.0.tgz#ec06c10e0a34c0f2faf199f7fd7fc78fffd03c73"
   integrity sha1-7AbBDgo0wPL68Zn3/X/Hj//QPHM=
 
-husky@4.2.1:
-  version "4.2.1"
-  resolved "https://registry.yarnpkg.com/husky/-/husky-4.2.1.tgz#b09f1bd9129e6c323cc515dc17081d0615e2d7c1"
-  integrity sha512-Qa0lRreeIf4Tl92sSs42ER6qc3hzoyQPPorzOrFWfPEVbdi6LuvJEqWKPk905fOWIR76iBpp7ECZNIwk+a8xuQ==
+husky@4.2.3:
+  version "4.2.3"
+  resolved "https://registry.yarnpkg.com/husky/-/husky-4.2.3.tgz#3b18d2ee5febe99e27f2983500202daffbc3151e"
+  integrity sha512-VxTsSTRwYveKXN4SaH1/FefRJYCtx+wx04sSVcOpD7N2zjoHxa+cEJ07Qg5NmV3HAK+IRKOyNVpi2YBIVccIfQ==
   dependencies:
     chalk "^3.0.0"
     ci-info "^2.0.0"
@@ -3227,6 +3253,11 @@ is-descriptor@^1.0.0, is-descriptor@^1.0.2:
     is-data-descriptor "^1.0.0"
     kind-of "^6.0.2"
 
+is-docker@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/is-docker/-/is-docker-2.0.0.tgz#2cb0df0e75e2d064fe1864c37cdeacb7b2dcf25b"
+  integrity sha512-pJEdRugimx4fBMra5z2/5iRdZ63OhYV0vr0Dwm5+xtW4D1FvRkB8hamMIhnWfyJeDdyr/aa7BDyNbtG38VxgoQ==
+
 is-extendable@^0.1.0, is-extendable@^0.1.1:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/is-extendable/-/is-extendable-0.1.1.tgz#62b110e289a471418e3ec36a617d472e301dfc89"
@@ -3350,7 +3381,7 @@ is-wsl@^1.1.0:
   resolved "https://registry.yarnpkg.com/is-wsl/-/is-wsl-1.1.0.tgz#1f16e4aa22b04d1336b66188a66af3c600c3a66d"
   integrity sha1-HxbkqiKwTRM2tmGIpmrzxgDDpm0=
 
-is-wsl@^2.1.0:
+is-wsl@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/is-wsl/-/is-wsl-2.1.1.tgz#4a1c152d429df3d441669498e2486d3596ebaf1d"
   integrity sha512-umZHcSrwlDHo2TGMXv0DZ8dIUGunZ2Iv68YZnrmCiBPkZ4aaOhtv7pXJKeki9k3qJ3RJr0cDyitcl5wEH3AYog==
@@ -4261,24 +4292,18 @@ onetime@^5.1.0:
   dependencies:
     mimic-fn "^2.1.0"
 
-open@7.0.0:
-  version "7.0.0"
-  resolved "https://registry.yarnpkg.com/open/-/open-7.0.0.tgz#7e52999b14eb73f90f0f0807fe93897c4ae73ec9"
-  integrity sha512-K6EKzYqnwQzk+/dzJAQSBORub3xlBTxMz+ntpZpH/LyCa1o6KjXhuN+2npAaI9jaSmU3R1Q8NWf4KUWcyytGsQ==
+open@7.0.2, open@^7.0.2:
+  version "7.0.2"
+  resolved "https://registry.yarnpkg.com/open/-/open-7.0.2.tgz#fb3681f11f157f2361d2392307548ca1792960e8"
+  integrity sha512-70E/pFTPr7nZ9nLDPNTcj3IVqnNvKuP4VsBmoKV9YGTnChe0mlS3C4qM7qKarhZ8rGaHKLfo+vBTHXDp6ZSyLQ==
   dependencies:
-    is-wsl "^2.1.0"
+    is-docker "^2.0.0"
+    is-wsl "^2.1.1"
 
 opencollective-postinstall@^2.0.2:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/opencollective-postinstall/-/opencollective-postinstall-2.0.2.tgz#5657f1bede69b6e33a45939b061eb53d3c6c3a89"
   integrity sha512-pVOEP16TrAO2/fjej1IdOyupJY8KDUM1CvsaScRbw6oddvpQoOfGk4ywha0HKKVAD6RkW4x6Q+tNBwhf3Bgpuw==
-
-opn@^6.0.0:
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/opn/-/opn-6.0.0.tgz#3c5b0db676d5f97da1233d1ed42d182bc5a27d2d"
-  integrity sha512-I9PKfIZC+e4RXZ/qr1RhgyCnGgYX0UEIlXgWnCOVACIvFgaC9rz6Won7xbdhoHrd8IIhV7YEpHjreNUNkqCGkQ==
-  dependencies:
-    is-wsl "^1.1.0"
 
 optionator@^0.8.2:
   version "0.8.3"
@@ -5106,7 +5131,7 @@ request-promise@^4.2.5:
     stealthy-require "^1.1.1"
     tough-cookie "^2.3.3"
 
-request@2.88.0, request@^2.88.0:
+request@2.88.0:
   version "2.88.0"
   resolved "https://registry.yarnpkg.com/request/-/request-2.88.0.tgz#9c2fca4f7d35b592efe57c7f0a55e81052124fef"
   integrity sha512-NAqBSrijGLZdM0WZNsInLJpkJokL72XYjUpnB0iwsRgxh7dB6COrHnTBNwN0E+lHDAJzu7kLAkDeY08z2/A0hg==
@@ -5129,6 +5154,32 @@ request@2.88.0, request@^2.88.0:
     qs "~6.5.2"
     safe-buffer "^5.1.2"
     tough-cookie "~2.4.3"
+    tunnel-agent "^0.6.0"
+    uuid "^3.3.2"
+
+request@^2.88.2:
+  version "2.88.2"
+  resolved "https://registry.yarnpkg.com/request/-/request-2.88.2.tgz#d73c918731cb5a87da047e207234146f664d12b3"
+  integrity sha512-MsvtOrfG9ZcrOwAW+Qi+F6HbD0CWXEh9ou77uOb7FM2WPhwT7smM833PzanhJLsgXjN89Ir6V2PczXNnMpwKhw==
+  dependencies:
+    aws-sign2 "~0.7.0"
+    aws4 "^1.8.0"
+    caseless "~0.12.0"
+    combined-stream "~1.0.6"
+    extend "~3.0.2"
+    forever-agent "~0.6.1"
+    form-data "~2.3.2"
+    har-validator "~5.1.3"
+    http-signature "~1.2.0"
+    is-typedarray "~1.0.0"
+    isstream "~0.1.2"
+    json-stringify-safe "~5.0.1"
+    mime-types "~2.1.19"
+    oauth-sign "~0.9.0"
+    performance-now "^2.1.0"
+    qs "~6.5.2"
+    safe-buffer "^5.1.2"
+    tough-cookie "~2.5.0"
     tunnel-agent "^0.6.0"
     uuid "^3.3.2"
 
@@ -5721,12 +5772,13 @@ strip-json-comments@^2.0.1:
   resolved "https://registry.yarnpkg.com/strip-json-comments/-/strip-json-comments-2.0.1.tgz#3c531942e908c2697c0ec344858c286c7ca0a60a"
   integrity sha1-PFMZQukIwml8DsNEhYwobHygpgo=
 
-strtok3@^5.0.2:
-  version "5.0.2"
-  resolved "https://registry.yarnpkg.com/strtok3/-/strtok3-5.0.2.tgz#bb81f1f56742e16f1a30ccce5dc3d9498aa5475a"
-  integrity sha512-EFeVpFC5qDsqPEJSrIYyS/ueFBknGhgSK9cW+YAJF/cgJG/KSjoK7X6rK5xnpcLe7y1LVkVFCXWbAb+ClNKzKQ==
+strtok3@^6.0.0:
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/strtok3/-/strtok3-6.0.0.tgz#d6b900863daeacfe6c1724c6e7bb36d7a58e83c8"
+  integrity sha512-ZXlmE22LZnIBvEU3n/kZGdh770fYFie65u5+2hLK9s74DoFtpkQIdBZVeYEzlolpGa+52G5IkzjUWn+iXynOEQ==
   dependencies:
     "@tokenizer/token" "^0.1.1"
+    "@types/debug" "^4.1.5"
     debug "^4.1.1"
     peek-readable "^3.1.0"
 
@@ -5941,7 +5993,7 @@ toni@>=0.6.2:
   dependencies:
     bolgia ">=2.7.4"
 
-tough-cookie@^2.3.1, tough-cookie@^2.3.3:
+tough-cookie@^2.3.1, tough-cookie@^2.3.3, tough-cookie@~2.5.0:
   version "2.5.0"
   resolved "https://registry.yarnpkg.com/tough-cookie/-/tough-cookie-2.5.0.tgz#cd9fb2a0aa1d5a12b473bd9fb96fa3dcff65ade2"
   integrity sha512-nlLsUzgm1kfLXSXfRZMc1KLAugd4hqJHDTvc2hDIwS3mZAfMEuMbc03SujMF+GEcpaX/qboeycw6iO8JwVv2+g==
@@ -6253,10 +6305,10 @@ watchpack@^1.6.0:
     graceful-fs "^4.1.2"
     neo-async "^2.5.0"
 
-webpack-cli@3.3.10:
-  version "3.3.10"
-  resolved "https://registry.yarnpkg.com/webpack-cli/-/webpack-cli-3.3.10.tgz#17b279267e9b4fb549023fae170da8e6e766da13"
-  integrity sha512-u1dgND9+MXaEt74sJR4PR7qkPxXUSQ0RXYq8x1L6Jg1MYVEmGPrH6Ah6C4arD4r0J1P5HKjRqpab36k0eIzPqg==
+webpack-cli@3.3.11:
+  version "3.3.11"
+  resolved "https://registry.yarnpkg.com/webpack-cli/-/webpack-cli-3.3.11.tgz#3bf21889bf597b5d82c38f215135a411edfdc631"
+  integrity sha512-dXlfuml7xvAFwYUPsrtQAA9e4DOe58gnzSxhgrO/ZM/gyXTBowrsYeubyN4mqGhYdpXMFNyQ6emjJS9M7OBd4g==
   dependencies:
     chalk "2.4.2"
     cross-spawn "6.0.5"
@@ -6286,10 +6338,10 @@ webpack-sources@^1.4.0, webpack-sources@^1.4.1:
     source-list-map "^2.0.0"
     source-map "~0.6.1"
 
-webpack@4.41.5:
-  version "4.41.5"
-  resolved "https://registry.yarnpkg.com/webpack/-/webpack-4.41.5.tgz#3210f1886bce5310e62bb97204d18c263341b77c"
-  integrity sha512-wp0Co4vpyumnp3KlkmpM5LWuzvZYayDwM2n17EHFr4qxBBbRokC7DJawPJC7TfSFZ9HZ6GsdH40EBj4UV0nmpw==
+webpack@4.42.0:
+  version "4.42.0"
+  resolved "https://registry.yarnpkg.com/webpack/-/webpack-4.42.0.tgz#b901635dd6179391d90740a63c93f76f39883eb8"
+  integrity sha512-EzJRHvwQyBiYrYqhyjW9AqM90dE4+s1/XtCfn7uWg6cS72zH+2VPFAlsnW0+W0cDi0XRjNKUMoJtpSi50+Ph6w==
   dependencies:
     "@webassemblyjs/ast" "1.8.5"
     "@webassemblyjs/helper-module-context" "1.8.5"
