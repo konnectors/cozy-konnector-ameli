@@ -6,12 +6,14 @@ const {
   log,
   BaseKonnector,
   requestFactory,
-  errors
+  errors,
+  scrape
 } = require('cozy-konnector-libs')
 const moment = require('moment')
 const sortBy = require('lodash/sortBy')
 moment.locale('fr')
 const bluebird = require('bluebird')
+const crypto = require('crypto')
 const Bill = require('./bill')
 
 const urlService = require('./urlService')
@@ -34,10 +36,80 @@ const requestNoCheerio = requestFactory({
 
 module.exports = new BaseKonnector(start)
 
+async function fetchMessages() {
+  const $ = await request.get(urlService.getMessagesUrl())
+
+  const docs = scrape(
+    $,
+    {
+      vendorRef: {
+        sel: 'td:nth-child(1) input',
+        attr: 'value'
+      },
+      from: 'td:nth-child(3)',
+      title: 'td:nth-child(4)',
+      date: {
+        sel: 'td:nth-child(5)',
+        parse: date => moment(date, 'DD/MM/YY')
+      },
+      detailsLink: {
+        sel: 'td:nth-child(5) a',
+        attr: 'href'
+      }
+    },
+    '#tableauMessagesRecus tbody tr'
+  )
+
+  const piecesJointes = []
+  for (const doc of docs) {
+    const $ = await request(doc.detailsLink)
+    const $form = $('#pdfSimple')
+    const fileprefix = `${doc.date.format('YYYYMMDD')}_ameli_${
+      doc.title
+    }_${crypto
+      .createHash('sha1')
+      .update(doc.vendorRef)
+      .digest('hex')
+      .substr(0, 5)}`
+    Object.assign(doc, {
+      fileurl: urlService.getDomain() + $form.attr('action'),
+      requestOptions: {
+        jar: j,
+        method: 'POST',
+        form: {
+          idMessage: $form.find(`[name='idMessage']`).val(),
+          telechargementPDF: $form.find(`[name='telechargementPDF']`).val(),
+          nomPDF: $form.find(`[name='nomPDF']`).val()
+        }
+      },
+      filename: `${fileprefix}.pdf`
+    })
+
+    const hasAttachment = $('.telechargement_PJ').length
+    if (hasAttachment)
+      piecesJointes.push({
+        fileurl: urlService.getDomain() + $('.telechargement_PJ').attr('href'),
+        filename: fileprefix + '_PJ.pdf',
+        vendorRef: doc.vendorRef + '_PJ',
+        requestOptions: {
+          jar: j
+        }
+      })
+  }
+
+  return [...docs, ...piecesJointes]
+}
+
 async function start(fields) {
   await checkLogin(fields)
   await logIn.bind(this)(fields)
   const reqNoCheerio = await fetchMainPage()
+  const messages = await fetchMessages()
+  await this.saveFiles(messages, fields, {
+    contentType: true,
+    fileIdAttributes: ['vendorRef']
+  })
+
   const reimbursements = await parseMainPage(reqNoCheerio)
   const entries = await getHealthCareBills(reimbursements, fields.login)
 
@@ -589,7 +661,7 @@ function getFileName(reimbursement) {
   const amount = reimbursement.groupAmount || reimbursement.amount
   return `${moment(reimbursement.date).format('YYYYMMDD')}_ameli${
     nature ? '_' + nature : ''
-  }_${amount.toFixed(2)}EUR.pdf`
+  }${amount ? '_' + amount.toFixed(2) + 'EUR' : ''}.pdf`
 }
 
 function getOldFileName(reimbursement) {
