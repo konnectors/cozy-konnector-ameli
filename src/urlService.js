@@ -9,6 +9,7 @@ class UrlService {
     this.reimbursementUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_paiements_page`
     this.infosUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_info_perso_page`
     this.messagesUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_messages_recus_page`
+    this.attestationUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_windowLabel=attDroitsAccueil&attDroitsAccueil_actionOverride=/portlets/accueil/attdroits&_pageLabel=as_accueil_page`
   }
 
   getDomain() {
@@ -37,6 +38,10 @@ class UrlService {
 
   getMessagesUrl() {
     return this.messagesUrl
+  }
+
+  getAttestationUrl() {
+    return this.attestationUrl
   }
 
   getBillUrl() {

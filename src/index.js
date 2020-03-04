@@ -22,19 +22,115 @@ const cheerio = require('cheerio')
 let request = requestFactory()
 const j = request.jar()
 request = requestFactory({
-  // debug: true,
+  debug: true,
   cheerio: true,
   json: false,
   jar: j
 })
 const requestNoCheerio = requestFactory({
-  // debug: true,
+  debug: true,
   cheerio: false,
   json: true,
   jar: j
 })
 
 module.exports = new BaseKonnector(start)
+
+async function start(fields) {
+  await checkLogin(fields)
+  await logIn.bind(this)(fields)
+  const reqNoCheerio = await fetchMainPage()
+
+  const attestationUrl = await fetchAttestation()
+
+  if (attestationUrl) {
+    await this.saveFiles(
+      [
+        {
+          fileurl: attestationUrl,
+          filename: 'Attestation_de_droits.pdf',
+          shouldReplaceFile: () => true,
+          requestOptions: {
+            jar: j
+          }
+        }
+      ],
+      fields,
+      {
+        contentType: true,
+        fileIdAttributes: ['vendorRef']
+      }
+    )
+  }
+  process.exit()
+
+  const messages = await fetchMessages()
+  await this.saveFiles(messages, fields, {
+    contentType: true,
+    fileIdAttributes: ['vendorRef']
+  })
+
+  const reimbursements = await parseMainPage(reqNoCheerio)
+  const entries = await getHealthCareBills(reimbursements, fields.login)
+
+  // first run saveBills without keys to update existing bills with new attributes which will be
+  // used as keys for bills
+  // TODO this will be removed once the connector has been run at least one time for each accounts
+  if (entries.length) {
+    await this.saveBills(entries, fields, {
+      sourceAccount: this.accountId,
+      sourceAccountIdentifier: fields.login,
+      fileIdAttributes: ['vendorRef'],
+      shouldUpdate: (entry, dbEntry) => {
+        const result = entry.vendorRef && !dbEntry.vendorRef
+        return result
+      },
+      linkBankOperations: false
+    })
+    await this.saveBills(entries, fields, {
+      sourceAccount: this.accountId,
+      sourceAccountIdentifier: fields.login,
+      fileIdAttributes: ['vendorRef'],
+      shouldUpdate: (entry, dbEntry) => {
+        const result = entry.vendorRef && !dbEntry.vendorRef
+        return result
+      },
+      keys: ['vendorRef', 'date', 'amount', 'beneficiary', 'subtype', 'index'],
+      linkBankOperations: false
+    })
+  }
+
+  const IndemniteBills = getIndemniteBills(reimbursements, fields.login)
+  if (IndemniteBills.length) {
+    await this.saveBills(IndemniteBills, fields, {
+      sourceAccount: this.accountId,
+      sourceAccountIdentifier: fields.login,
+      fileIdAttributes: ['vendorRef'],
+      keys: ['vendorRef', 'date', 'amount', 'subtype'],
+      linkBankOperations: false
+    })
+  }
+
+  const ident = await fetchIdentity()
+  await this.saveIdentity(ident, fields.login)
+}
+
+async function fetchAttestation() {
+  const $ = await request.post(urlService.getAttestationUrl(), {
+    form: {
+      attDroitsAccueilidBeneficiaire: 'FAMILLE',
+      attDroitsAccueilmentionsComplementaires: 'ETM',
+      attDroitsAccueilactionEvt: 'confirmer',
+      attDroitsAccueilblocOuvert: true
+    }
+  })
+  const $link = $('.r_lien_pdf')
+  if ($link.length) {
+    return urlService.getDomain() + $link.attr('href')
+  }
+
+  return null
+}
 
 async function fetchMessages() {
   const $ = await request.get(urlService.getMessagesUrl())
@@ -98,61 +194,6 @@ async function fetchMessages() {
   }
 
   return [...docs, ...piecesJointes]
-}
-
-async function start(fields) {
-  await checkLogin(fields)
-  await logIn.bind(this)(fields)
-  const reqNoCheerio = await fetchMainPage()
-  const messages = await fetchMessages()
-  await this.saveFiles(messages, fields, {
-    contentType: true,
-    fileIdAttributes: ['vendorRef']
-  })
-
-  const reimbursements = await parseMainPage(reqNoCheerio)
-  const entries = await getHealthCareBills(reimbursements, fields.login)
-
-  // first run saveBills without keys to update existing bills with new attributes which will be
-  // used as keys for bills
-  // TODO this will be removed once the connector has been run at least one time for each accounts
-  if (entries.length) {
-    await this.saveBills(entries, fields, {
-      sourceAccount: this.accountId,
-      sourceAccountIdentifier: fields.login,
-      fileIdAttributes: ['vendorRef'],
-      shouldUpdate: (entry, dbEntry) => {
-        const result = entry.vendorRef && !dbEntry.vendorRef
-        return result
-      },
-      linkBankOperations: false
-    })
-    await this.saveBills(entries, fields, {
-      sourceAccount: this.accountId,
-      sourceAccountIdentifier: fields.login,
-      fileIdAttributes: ['vendorRef'],
-      shouldUpdate: (entry, dbEntry) => {
-        const result = entry.vendorRef && !dbEntry.vendorRef
-        return result
-      },
-      keys: ['vendorRef', 'date', 'amount', 'beneficiary', 'subtype', 'index'],
-      linkBankOperations: false
-    })
-  }
-
-  const IndemniteBills = getIndemniteBills(reimbursements, fields.login)
-  if (IndemniteBills.length) {
-    await this.saveBills(IndemniteBills, fields, {
-      sourceAccount: this.accountId,
-      sourceAccountIdentifier: fields.login,
-      fileIdAttributes: ['vendorRef'],
-      keys: ['vendorRef', 'date', 'amount', 'subtype'],
-      linkBankOperations: false
-    })
-  }
-
-  const ident = await fetchIdentity()
-  await this.saveIdentity(ident, fields.login)
 }
 
 const checkLogin = async function(fields) {
