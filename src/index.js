@@ -22,13 +22,13 @@ const cheerio = require('cheerio')
 let request = requestFactory()
 const j = request.jar()
 request = requestFactory({
-  debug: true,
+  // debug: true,
   cheerio: true,
   json: false,
   jar: j
 })
 const requestNoCheerio = requestFactory({
-  debug: true,
+  // debug: true,
   cheerio: false,
   json: true,
   jar: j
@@ -48,7 +48,7 @@ async function start(fields) {
       [
         {
           fileurl: attestationUrl,
-          filename: 'Attestation_de_droits.pdf',
+          filename: 'Attestation_de_droits_ameli.pdf',
           shouldReplaceFile: () => true,
           requestOptions: {
             jar: j
@@ -62,7 +62,6 @@ async function start(fields) {
       }
     )
   }
-  process.exit()
 
   const messages = await fetchMessages()
   await this.saveFiles(messages, fields, {
