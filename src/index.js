@@ -159,7 +159,7 @@ async function fetchMessages() {
   for (const doc of docs) {
     const $ = await request(doc.detailsLink)
     const $form = $('#pdfSimple')
-    const fileprefix = `${doc.date.format('YYYYMMDD')}_ameli_${
+    const fileprefix = `${doc.date.format('YYYYMMDD')}_ameli_message_${
       doc.title
     }_${crypto
       .createHash('sha1')
@@ -200,14 +200,14 @@ const checkLogin = async function(fields) {
      Social Security Number should be 13 chars from this set [0-9AB]
   */
 
-  log('info', 'Checking the length of the login')
+  log('debug', 'Checking the length of the login')
   if (fields.login.length > 13) {
     // remove the key from the social security number
     fields.login = fields.login.replace(/\s/g, '').substr(0, 13)
-    log('debug', `Fixed the login length to 13`)
+    log('info', `Fixed the login length to 13`)
   }
   if (fields.login.length < 13) {
-    log('debug', 'Login is under 13 character')
+    log('info', 'Login is under 13 character')
   }
   if (!fields.password) {
     log('warn', 'No password set in account, aborting')
@@ -217,7 +217,6 @@ const checkLogin = async function(fields) {
 
 // Procedure to login to Ameli website.
 const logIn = async function(fields) {
-  log('info', 'Now logging in')
   await this.deactivateAutoSuccessfulLogin()
 
   const form = {
@@ -270,13 +269,12 @@ const logIn = async function(fields) {
     $cgu.attr('content') &&
     $cgu.attr('content').includes('as_conditions_generales_page')
   ) {
-    log('info', $cgu.attr('content'))
+    log('debug', $cgu.attr('content'))
     throw new Error('USER_ACTION_NEEDED.CGU_FORM')
   }
 
   // Default case. Something unexpected went wrong after the login
   if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
-    // log('debug', $('body').html(), 'No deconnection link found in the html')
     log('debug', 'Something unexpected went wrong after the login')
     const errorMessage = $('.centrepage h1, .centrepage h2').text()
     if (errorMessage) {
@@ -314,7 +312,7 @@ const logIn = async function(fields) {
 
 // fetch the HTML page with the list of health cares
 const fetchMainPage = async function() {
-  log('info', 'Fetching the list of bills')
+  log('debug', 'Fetching the list of bills')
 
   // We can get the history only 6 months back
   const billUrl = urlService.getBillUrl()
@@ -409,10 +407,6 @@ const parseMainPage = function(reqNoCheerio) {
     .map(
       reimbursements,
       async reimbursement => {
-        log(
-          'debug',
-          `Fetching details for ${reimbursement.date} ${reimbursement.groupAmount}`
-        )
         const $ = await request(reimbursement.detailsUrl)
         if (
           ['PAIEMENT_A_UN_TIERS', 'REMBOURSEMENT_SOINS'].includes(
@@ -709,7 +703,7 @@ function getOldFileName(reimbursement) {
 }
 
 const fetchIdentity = async function() {
-  log('info', 'Generating identity')
+  log('debug', 'Generating identity')
   const infosUrl = urlService.getInfosUrl()
   const $ = await request(infosUrl)
 
