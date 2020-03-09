@@ -6,12 +6,14 @@ const {
   log,
   BaseKonnector,
   requestFactory,
-  errors
+  errors,
+  scrape
 } = require('cozy-konnector-libs')
 const moment = require('moment')
 const sortBy = require('lodash/sortBy')
 moment.locale('fr')
 const bluebird = require('bluebird')
+const crypto = require('crypto')
 const Bill = require('./bill')
 
 const urlService = require('./urlService')
@@ -32,55 +34,189 @@ const requestNoCheerio = requestFactory({
   jar: j
 })
 
-module.exports = new BaseKonnector(function fetch(fields) {
-  return checkLogin(fields)
-    .then(() => logIn.bind(this)(fields))
-    .then(fetchMainPage)
-    .then(reqNoCheerio => parseMainPage(reqNoCheerio))
-    .then(reimbursements => getBills(reimbursements, fields.login))
-    .then(entries => {
-      // get custom bank identifier if any
-      let identifiers = ['c.p.a.m.', 'caisse', 'cpam', 'ameli']
-      if (fields.bank_identifier && fields.bank_identifier.length) {
-        identifiers = fields.bank_identifier
+module.exports = new BaseKonnector(start)
+
+async function start(fields) {
+  await checkLogin(fields)
+  await logIn.bind(this)(fields)
+  const reqNoCheerio = await fetchMainPage()
+
+  const attestationUrl = await fetchAttestation()
+
+  if (attestationUrl) {
+    await this.saveFiles(
+      [
+        {
+          fileurl: attestationUrl,
+          filename: 'Attestation_de_droits_ameli.pdf',
+          shouldReplaceFile: () => true,
+          requestOptions: {
+            jar: j
+          }
+        }
+      ],
+      fields,
+      {
+        contentType: true,
+        fileIdAttributes: ['vendorRef']
       }
+    )
+  }
 
-      return this.saveBills(entries, fields.folderPath, {
-        identifiers,
-        dateDelta: 10,
-        amountDelta: 0.1,
-        sourceAccount: this.accountId,
-        sourceAccountIdentifier: fields.login
-      })
+  const messages = await fetchMessages()
+  await this.saveFiles(messages, fields, {
+    contentType: true,
+    fileIdAttributes: ['vendorRef']
+  })
+
+  const reimbursements = await parseMainPage(reqNoCheerio)
+  const entries = await getHealthCareBills(reimbursements, fields.login)
+
+  // first run saveBills without keys to update existing bills with new attributes which will be
+  // used as keys for bills
+  // TODO this will be removed once the connector has been run at least one time for each accounts
+  if (entries.length) {
+    await this.saveBills(entries, fields, {
+      sourceAccount: this.accountId,
+      sourceAccountIdentifier: fields.login,
+      fileIdAttributes: ['vendorRef'],
+      shouldUpdate: (entry, dbEntry) => {
+        const result = entry.vendorRef && !dbEntry.vendorRef
+        return result
+      },
+      linkBankOperations: false
     })
-    .then(fetchIdentity)
-    .then(ident => this.saveIdentity(ident, fields.login))
-})
+    await this.saveBills(entries, fields, {
+      sourceAccount: this.accountId,
+      sourceAccountIdentifier: fields.login,
+      fileIdAttributes: ['vendorRef'],
+      shouldUpdate: (entry, dbEntry) => {
+        const result = entry.vendorRef && !dbEntry.vendorRef
+        return result
+      },
+      keys: ['vendorRef', 'date', 'amount', 'beneficiary', 'subtype', 'index'],
+      linkBankOperations: false
+    })
+  }
 
-const checkLogin = function(fields) {
+  const IndemniteBills = getIndemniteBills(reimbursements, fields.login)
+  if (IndemniteBills.length) {
+    await this.saveBills(IndemniteBills, fields, {
+      sourceAccount: this.accountId,
+      sourceAccountIdentifier: fields.login,
+      fileIdAttributes: ['vendorRef'],
+      keys: ['vendorRef', 'date', 'amount', 'subtype'],
+      linkBankOperations: false
+    })
+  }
+
+  const ident = await fetchIdentity()
+  await this.saveIdentity(ident, fields.login)
+}
+
+async function fetchAttestation() {
+  const $ = await request.post(urlService.getAttestationUrl(), {
+    form: {
+      attDroitsAccueilidBeneficiaire: 'FAMILLE',
+      attDroitsAccueilmentionsComplementaires: 'ETM',
+      attDroitsAccueilactionEvt: 'confirmer',
+      attDroitsAccueilblocOuvert: true
+    }
+  })
+  const $link = $('.r_lien_pdf')
+  if ($link.length) {
+    return urlService.getDomain() + $link.attr('href')
+  }
+
+  return null
+}
+
+async function fetchMessages() {
+  const $ = await request.get(urlService.getMessagesUrl())
+
+  const docs = scrape(
+    $,
+    {
+      vendorRef: {
+        sel: 'td:nth-child(1) input',
+        attr: 'value'
+      },
+      from: 'td:nth-child(3)',
+      title: 'td:nth-child(4)',
+      date: {
+        sel: 'td:nth-child(5)',
+        parse: date => moment(date, 'DD/MM/YY')
+      },
+      detailsLink: {
+        sel: 'td:nth-child(5) a',
+        attr: 'href'
+      }
+    },
+    '#tableauMessagesRecus tbody tr'
+  )
+
+  const piecesJointes = []
+  for (const doc of docs) {
+    const $ = await request(doc.detailsLink)
+    const $form = $('#pdfSimple')
+    const fileprefix = `${doc.date.format('YYYYMMDD')}_ameli_message_${
+      doc.title
+    }_${crypto
+      .createHash('sha1')
+      .update(doc.vendorRef)
+      .digest('hex')
+      .substr(0, 5)}`
+    Object.assign(doc, {
+      fileurl: urlService.getDomain() + $form.attr('action'),
+      requestOptions: {
+        jar: j,
+        method: 'POST',
+        form: {
+          idMessage: $form.find(`[name='idMessage']`).val(),
+          telechargementPDF: $form.find(`[name='telechargementPDF']`).val(),
+          nomPDF: $form.find(`[name='nomPDF']`).val()
+        }
+      },
+      filename: `${fileprefix}.pdf`
+    })
+
+    const hasAttachment = $('.telechargement_PJ').length
+    if (hasAttachment)
+      piecesJointes.push({
+        fileurl: urlService.getDomain() + $('.telechargement_PJ').attr('href'),
+        filename: fileprefix + '_PJ.pdf',
+        vendorRef: doc.vendorRef + '_PJ',
+        requestOptions: {
+          jar: j
+        }
+      })
+  }
+
+  return [...docs, ...piecesJointes]
+}
+
+const checkLogin = async function(fields) {
   /* As known in Oct2019, from error message,
      Social Security Number should be 13 chars from this set [0-9AB]
   */
 
-  log('info', 'Checking the length of the login')
+  log('debug', 'Checking the length of the login')
   if (fields.login.length > 13) {
     // remove the key from the social security number
     fields.login = fields.login.replace(/\s/g, '').substr(0, 13)
-    log('debug', `Fixed the login length to 13`)
+    log('info', `Fixed the login length to 13`)
   }
   if (fields.login.length < 13) {
-    log('debug', 'Login is under 13 character')
+    log('info', 'Login is under 13 character')
   }
   if (!fields.password) {
     log('warn', 'No password set in account, aborting')
     throw new Error(errors.LOGIN_FAILED)
   }
-  return Promise.resolve()
 }
 
 // Procedure to login to Ameli website.
 const logIn = async function(fields) {
-  log('info', 'Now logging in')
   await this.deactivateAutoSuccessfulLogin()
 
   const form = {
@@ -133,13 +269,12 @@ const logIn = async function(fields) {
     $cgu.attr('content') &&
     $cgu.attr('content').includes('as_conditions_generales_page')
   ) {
-    log('info', $cgu.attr('content'))
+    log('debug', $cgu.attr('content'))
     throw new Error('USER_ACTION_NEEDED.CGU_FORM')
   }
 
   // Default case. Something unexpected went wrong after the login
   if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
-    // log('debug', $('body').html(), 'No deconnection link found in the html')
     log('debug', 'Something unexpected went wrong after the login')
     const errorMessage = $('.centrepage h1, .centrepage h2').text()
     if (errorMessage) {
@@ -177,7 +312,7 @@ const logIn = async function(fields) {
 
 // fetch the HTML page with the list of health cares
 const fetchMainPage = async function() {
-  log('info', 'Fetching the list of bills')
+  log('debug', 'Fetching the list of bills')
 
   // We can get the history only 6 months back
   const billUrl = urlService.getBillUrl()
@@ -256,6 +391,8 @@ const parseMainPage = function(reqNoCheerio) {
         lineId,
         detailsUrl,
         link,
+        idPaiement,
+        naturePaiement,
         groupAmount,
         isThirdPartyPayer: naturePaiement === 'PAIEMENT_A_UN_TIERS',
         beneficiaries: {}
@@ -269,21 +406,26 @@ const parseMainPage = function(reqNoCheerio) {
   return bluebird
     .map(
       reimbursements,
-      reimbursement => {
-        log(
-          'info',
-          `Fetching details for ${reimbursement.date} ${reimbursement.groupAmount}`
-        )
-        return request(reimbursement.detailsUrl).then($ =>
-          parseDetails($, reimbursement)
-        )
+      async reimbursement => {
+        const $ = await request(reimbursement.detailsUrl)
+        if (
+          ['PAIEMENT_A_UN_TIERS', 'REMBOURSEMENT_SOINS'].includes(
+            reimbursement.naturePaiement
+          )
+        ) {
+          return parseHealthCareDetails($, reimbursement)
+        } else if (
+          reimbursement.naturePaiement === 'INDEMNITE_JOURNALIERE_ASSURE'
+        ) {
+          return parseIndemniteJournaliere($, reimbursement)
+        }
       },
       { concurrency: 10 }
     )
     .then(() => reimbursements)
 }
 
-function parseDetails($, reimbursement) {
+function parseHealthCareDetails($, reimbursement) {
   let currentBeneficiary = null
 
   // compatibility code since not every accounts have this kind of links
@@ -319,10 +461,25 @@ function parseAmount(amount) {
   return result
 }
 
+function parseIndemniteJournaliere($, reimbursement) {
+  const parsed = $('detailpaiement > div > h2')
+    .text()
+    .match(/Paiement effectué le (.*) pour un montant de (.*) €/)
+
+  if (parsed) {
+    const [date, amount] = parsed.slice(1, 3)
+    Object.assign(reimbursement, {
+      date: moment(date, 'DD/MM/YYYY'),
+      amount: parseAmount(amount)
+    })
+  }
+  return reimbursement
+}
+
 function parseHealthCares($, container, beneficiary, reimbursement) {
   $(container)
     .find('tr')
-    .each(function() {
+    .each(function(index) {
       if ($(this).find('th').length > 0) {
         return null // ignore header
       }
@@ -335,6 +492,7 @@ function parseHealthCares($, container, beneficiary, reimbursement) {
         .trim()
       date = date ? moment(date, 'DD/MM/YYYY') : undefined
       const healthCare = {
+        index,
         prestation: $(this)
           .find('.naturePrestation')
           .text()
@@ -405,23 +563,101 @@ function parseParticipation($, container, reimbursement) {
     })
 }
 
-function getBills(reimbursements, login) {
+function getIndemniteBills(reimbursements, login) {
+  return reimbursements
+    .filter(r => ['INDEMNITE_JOURNALIERE_ASSURE'].includes(r.naturePaiement))
+    .map(reimbursement => {
+      return {
+        type: 'health_costs',
+        subtype: 'indemnite_journaliere',
+        date: reimbursement.date.toDate(),
+        vendor: 'Ameli',
+        isRefund: true,
+        amount: reimbursement.amount,
+        fileurl: 'https://assure.ameli.fr' + reimbursement.link,
+        vendorRef: reimbursement.idPaiement,
+        filename: getFileName(reimbursement),
+        fileAttributes: {
+          metadata: {
+            classification: 'invoicing',
+            datetime: reimbursement.date.toDate(),
+            datetimeLabel: 'issueDate',
+            contentAuthor: 'ameli',
+            subClassification: 'payment_statement',
+            categories: ['public_service', 'health'],
+            issueDate: reimbursement.date.toDate(),
+            contractReference: login
+          }
+        },
+        requestOptions: {
+          jar: j
+        }
+      }
+    })
+    .filter(bill => !isNaN(bill.amount))
+}
+
+function getHealthCareBills(reimbursements, login) {
   const bills = []
-  reimbursements.forEach(reimbursement => {
-    for (const beneficiary in reimbursement.beneficiaries) {
-      reimbursement.beneficiaries[beneficiary].forEach(healthCare => {
+  reimbursements
+    .filter(r =>
+      ['PAIEMENT_A_UN_TIERS', 'REMBOURSEMENT_SOINS'].includes(r.naturePaiement)
+    )
+    .forEach(reimbursement => {
+      for (const beneficiary in reimbursement.beneficiaries) {
+        reimbursement.beneficiaries[beneficiary].forEach(healthCare => {
+          const newbill = {
+            type: 'health_costs',
+            subtype: healthCare.prestation,
+            beneficiary,
+            isThirdPartyPayer: reimbursement.isThirdPartyPayer,
+            date: reimbursement.date.toDate(),
+            index: healthCare.index,
+            vendor: 'Ameli',
+            isRefund: true,
+            amount: healthCare.montantVersé,
+            originalAmount: healthCare.montantPayé,
+            fileurl: 'https://assure.ameli.fr' + reimbursement.link,
+            vendorRef: reimbursement.idPaiement,
+            filename: getFileName(reimbursement),
+            shouldReplaceName: getOldFileName(reimbursement),
+            fileAttributes: {
+              metadata: {
+                classification: 'invoicing',
+                datetime: reimbursement.date.toDate(),
+                datetimeLabel: 'issueDate',
+                contentAuthor: 'ameli',
+                subClassification: 'payment_statement',
+                categories: ['public_service', 'health'],
+                issueDate: reimbursement.date.toDate(),
+                contractReference: login
+              }
+            },
+            groupAmount: reimbursement.groupAmount,
+            requestOptions: {
+              jar: j
+            }
+          }
+          if (healthCare.date) {
+            newbill.originalDate = healthCare.date.toDate()
+          }
+          bills.push(new Bill(newbill))
+        })
+      }
+
+      if (reimbursement.participation) {
         const newbill = {
-          type: 'health_costs',
-          subtype: healthCare.prestation,
-          beneficiary,
+          type: 'health',
+          subtype: reimbursement.participation.prestation,
           isThirdPartyPayer: reimbursement.isThirdPartyPayer,
           date: reimbursement.date.toDate(),
           vendor: 'Ameli',
           isRefund: true,
-          amount: healthCare.montantVersé,
-          originalAmount: healthCare.montantPayé,
+          amount: reimbursement.participation.montantVersé,
           fileurl: 'https://assure.ameli.fr' + reimbursement.link,
-          filename: getFileName(reimbursement.date),
+          vendorRef: reimbursement.idPaiement,
+          filename: getFileName(reimbursement),
+          shouldReplaceName: getOldFileName(reimbursement),
           fileAttributes: {
             metadata: {
               classification: 'invoicing',
@@ -439,56 +675,35 @@ function getBills(reimbursements, login) {
             jar: j
           }
         }
-        if (healthCare.date) {
-          newbill.originalDate = healthCare.date.toDate()
+        if (reimbursement.participation.date) {
+          newbill.originalDate = reimbursement.participation.date.toDate()
         }
         bills.push(new Bill(newbill))
-      })
-    }
-
-    if (reimbursement.participation) {
-      const newbill = {
-        type: 'health',
-        subtype: reimbursement.participation.prestation,
-        isThirdPartyPayer: reimbursement.isThirdPartyPayer,
-        date: reimbursement.date.toDate(),
-        vendor: 'Ameli',
-        isRefund: true,
-        amount: reimbursement.participation.montantVersé,
-        fileurl: 'https://assure.ameli.fr' + reimbursement.link,
-        filename: getFileName(reimbursement.date),
-        fileAttributes: {
-          metadata: {
-            classification: 'invoicing',
-            datetime: reimbursement.date.toDate(),
-            datetimeLabel: 'issueDate',
-            contentAuthor: 'ameli',
-            subClassification: 'payment_statement',
-            categories: ['public_service', 'health'],
-            issueDate: reimbursement.date.toDate(),
-            contractReference: login
-          }
-        },
-        groupAmount: reimbursement.groupAmount,
-        requestOptions: {
-          jar: j
-        }
       }
-      if (reimbursement.participation.date) {
-        newbill.originalDate = reimbursement.participation.date.toDate()
-      }
-      bills.push(new Bill(newbill))
-    }
-  })
+    })
   return bills.filter(bill => !isNaN(bill.amount))
 }
 
-function getFileName(date) {
-  return `${moment(date).format('YYYYMMDD')}_ameli.pdf`
+function getFileName(reimbursement) {
+  const natureMap = {
+    PAIEMENT_A_UN_TIERS: 'tiers_payant',
+    REMBOURSEMENT_SOINS: 'remboursement_soins',
+    INDEMNITE_JOURNALIERE_ASSURE: 'indemnites_journalieres'
+  }
+
+  const nature = natureMap[reimbursement.naturePaiement]
+  const amount = reimbursement.groupAmount || reimbursement.amount
+  return `${moment(reimbursement.date).format('YYYYMMDD')}_ameli${
+    nature ? '_' + nature : ''
+  }${amount ? '_' + amount.toFixed(2) + 'EUR' : ''}.pdf`
+}
+
+function getOldFileName(reimbursement) {
+  return `${moment(reimbursement.date).format('YYYYMMDD')}_ameli.pdf`
 }
 
 const fetchIdentity = async function() {
-  log('info', 'Generating identity')
+  log('debug', 'Generating identity')
   const infosUrl = urlService.getInfosUrl()
   const $ = await request(infosUrl)
 

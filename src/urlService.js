@@ -1,13 +1,19 @@
 class UrlService {
   constructor() {
-    const domain = 'https://assure.ameli.fr'
+    this.domain = 'https://assure.ameli.fr'
 
-    this.baseUrl = `${domain}/PortailAS/paiements.do?actionEvt=`
-    this.loginUrl = `${domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_login_page&connexioncompte_2actionEvt=afficher`
+    this.baseUrl = `${this.domain}/PortailAS/paiements.do?actionEvt=`
+    this.loginUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_login_page&connexioncompte_2actionEvt=afficher`
 
-    this.submitUrl = `${domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_windowLabel=connexioncompte_2&connexioncompte_2_actionOverride=/portlets/connexioncompte/validationconnexioncompte&_pageLabel=as_login_page`
-    this.reimbursementUrl = `${domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_paiements_page`
-    this.infosUrl = `${domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_info_perso_page`
+    this.submitUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_windowLabel=connexioncompte_2&connexioncompte_2_actionOverride=/portlets/connexioncompte/validationconnexioncompte&_pageLabel=as_login_page`
+    this.reimbursementUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_paiements_page`
+    this.infosUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_info_perso_page`
+    this.messagesUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_messages_recus_page`
+    this.attestationUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_windowLabel=attDroitsAccueil&attDroitsAccueil_actionOverride=/portlets/accueil/attdroits&_pageLabel=as_accueil_page`
+  }
+
+  getDomain() {
+    return this.domain
   }
 
   getBaseUrl() {
@@ -30,12 +36,20 @@ class UrlService {
     return this.infosUrl
   }
 
+  getMessagesUrl() {
+    return this.messagesUrl
+  }
+
+  getAttestationUrl() {
+    return this.attestationUrl
+  }
+
   getBillUrl() {
     const action =
       'afficherPaiementsComplementaires&' +
       'Beneficiaire=tout_selectionner&' +
       'afficherReleves=true&' +
-      'afficherIJ=false&' +
+      'afficherIJ=true&' +
       'afficherPT=false&' +
       'afficherInva=false&' +
       'afficherRentes=false&' +
