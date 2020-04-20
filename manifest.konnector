@@ -1,5 +1,5 @@
 {
-  "version": "1.13.0",
+  "version": "1.13.1",
   "name": "Ameli",
   "type": "konnector",
   "language": "node",
@@ -13,14 +13,19 @@
   ],
   "fields": {
     "login": {
-      "type": "text", "min": 13,
+      "type": "text",
+      "min": 13,
       "max": 13
     },
     "password": {
       "type": "password"
     }
   },
-  "folders": [{"defaultDir": "$administrative/$konnector/$account"}],
+  "folders": [
+    {
+      "defaultDir": "$administrative/$konnector/$account"
+    }
+  ],
   "time_interval": [
     0,
     24
