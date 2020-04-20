@@ -202,6 +202,7 @@ const checkLogin = async function(fields) {
   }
   if (fields.login.length < 13) {
     log('info', 'Login is under 13 character')
+    throw new Error(errors.LOGIN_FAILED)
   }
   if (!fields.password) {
     log('warn', 'No password set in account, aborting')
