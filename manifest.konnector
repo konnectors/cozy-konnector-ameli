@@ -108,5 +108,12 @@
     }
   },
   "banksTransactionRegExp": "(cpc?am|c\\.p\\.(c\\.)?a\\.m|caisse primaire)",
+  "features": [
+    "LOGIN_OK",
+    "METADATA_DEDUP",
+    "KEEP_SESSION",
+    "IDENTITY",
+    "HEALTH"
+  ],
   "manifest_version": "2"
 }
