@@ -1,5 +1,5 @@
 {
-  "version": "1.13.2",
+  "version": "1.14.0",
   "name": "Ameli",
   "type": "konnector",
   "language": "node",
@@ -13,8 +13,7 @@
   ],
   "fields": {
     "login": {
-      "type": "text",
-      "min": 13,
+      "type": "text", "min": 13,
       "max": 13
     },
     "password": {
@@ -108,12 +107,5 @@
     }
   },
   "banksTransactionRegExp": "(cpc?am|c\\.p\\.(c\\.)?a\\.m|caisse primaire)",
-  "features": [
-    "LOGIN_OK",
-    "METADATA_DEDUP",
-    "KEEP_SESSION",
-    "IDENTITY",
-    "HEALTH"
-  ],
   "manifest_version": "2"
 }
