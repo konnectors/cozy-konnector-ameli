@@ -77,8 +77,6 @@ async function start(fields) {
   // TODO this will be removed once the connector has been run at least one time for each accounts
   if (entries.length) {
     await this.saveBills(entries, fields, {
-      sourceAccount: this.accountId,
-      sourceAccountIdentifier: fields.login,
       fileIdAttributes: ['vendorRef'],
       shouldUpdate: (entry, dbEntry) => {
         const result = entry.vendorRef && !dbEntry.vendorRef
@@ -87,8 +85,6 @@ async function start(fields) {
       linkBankOperations: false
     })
     await this.saveBills(entries, fields, {
-      sourceAccount: this.accountId,
-      sourceAccountIdentifier: fields.login,
       fileIdAttributes: ['vendorRef'],
       shouldUpdate: (entry, dbEntry) => {
         const result = entry.vendorRef && !dbEntry.vendorRef
@@ -102,8 +98,6 @@ async function start(fields) {
   const IndemniteBills = getIndemniteBills(reimbursements, fields.login)
   if (IndemniteBills.length) {
     await this.saveBills(IndemniteBills, fields, {
-      sourceAccount: this.accountId,
-      sourceAccountIdentifier: fields.login,
       fileIdAttributes: ['vendorRef'],
       keys: ['vendorRef', 'date', 'amount', 'subtype'],
       linkBankOperations: false
@@ -263,14 +257,24 @@ const logIn = async function(fields) {
   }
 
   // The user must validate the CGU form
-  const $cgu = $('meta[http-equiv=refresh]')
+  const $redirect = $('meta[http-equiv=refresh]')
   if (
-    $cgu.length > 0 &&
-    $cgu.attr('content') &&
-    $cgu.attr('content').includes('as_conditions_generales_page')
+    $redirect.length > 0 &&
+    $redirect.attr('content') &&
+    !$redirect.attr('content').includes('as_accueil_page')
   ) {
-    log('debug', $cgu.attr('content'))
-    throw new Error('USER_ACTION_NEEDED.CGU_FORM')
+    log('debug', 'There is a redirection after login')
+    log('debug', $redirect.attr('content'))
+    if ($redirect.attr('content').includes('as_conditions_generales_page')) {
+      throw new Error('USER_ACTION_NEEDED.CGU_FORM')
+    } else if (
+      $redirect.attr('content').includes('as_saisie_mail_connexionencours_page')
+    ) {
+      throw new Error('USER_ACTION_NEEDED.EMAIL_NEEDED')
+    } else {
+      log('error', 'Unknown redirection after login')
+      throw new Error(errors.VENDOR_DOWN)
+    }
   }
 
   // Default case. Something unexpected went wrong after the login
@@ -301,6 +305,7 @@ const logIn = async function(fields) {
         }
       }
     }
+
     log('debug', 'Logout button not detected, but for an unknown case')
     throw new Error(errors.VENDOR_DOWN)
   }
