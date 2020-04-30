@@ -1,5 +1,5 @@
 {
-  "version": "1.14.0",
+  "version": "1.15.0",
   "name": "Ameli",
   "type": "konnector",
   "language": "node",
@@ -13,7 +13,8 @@
   ],
   "fields": {
     "login": {
-      "type": "text", "min": 13,
+      "type": "text",
+      "min": 13,
       "max": 13
     },
     "password": {
