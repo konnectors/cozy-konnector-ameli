@@ -12,6 +12,14 @@ class UrlService {
     this.attestationUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_windowLabel=attDroitsAccueil&attDroitsAccueil_actionOverride=/portlets/accueil/attdroits&_pageLabel=as_accueil_page`
   }
 
+  setCsrf(csrf) {
+    this.csrf = csrf
+  }
+
+  getCsrf() {
+    return this.csrf
+  }
+
   getDomain() {
     return this.domain
   }
@@ -41,7 +49,7 @@ class UrlService {
   }
 
   getAttestationUrl() {
-    return this.attestationUrl
+    return this.attestationUrl + '&' + this.getCsrf()
   }
 
   getBillUrl() {
@@ -63,7 +71,8 @@ class UrlService {
 &idPaiement=${idPaiement}\
 &naturePaiement=${naturePaiement}\
 &indexGroupe=${indexGroupe}\
-&indexPaiement=${indexPaiement}`
+&indexPaiement=${indexPaiement}\
+&idNoCache=${Date.now()}`
   }
 }
 

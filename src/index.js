@@ -51,14 +51,15 @@ async function start(fields) {
           filename: 'Attestation_de_droits_ameli.pdf',
           shouldReplaceFile: () => true,
           requestOptions: {
-            jar: j
+            jar: j,
+            gzip: true
           }
         }
       ],
       fields,
       {
         contentType: true,
-        fileIdAttributes: ['vendorRef']
+        fileIdAttributes: ['filename']
       }
     )
   }
@@ -120,7 +121,8 @@ async function fetchAttestation() {
       attDroitsAccueilidBeneficiaire: 'FAMILLE',
       attDroitsAccueilmentionsComplementaires: 'ETM',
       attDroitsAccueilactionEvt: 'confirmer',
-      attDroitsAccueilblocOuvert: true
+      attDroitsAccueilblocOuvert: true,
+      _ct: urlService.getCsrf()
     }
   })
   const $link = $('.r_lien_pdf')
@@ -133,6 +135,7 @@ async function fetchAttestation() {
 
 async function fetchMessages() {
   const $ = await request.get(urlService.getMessagesUrl())
+  await refreshCsrf()
 
   const docs = scrape(
     $,
@@ -175,6 +178,9 @@ async function fetchMessages() {
           idMessage: $form.find(`[name='idMessage']`).val(),
           telechargementPDF: $form.find(`[name='telechargementPDF']`).val(),
           nomPDF: $form.find(`[name='nomPDF']`).val()
+        },
+        qs: {
+          _ct: urlService.getCsrf()
         }
       },
       filename: `${fileprefix}.pdf`
@@ -187,7 +193,10 @@ async function fetchMessages() {
         filename: fileprefix + '_PJ.pdf',
         vendorRef: doc.vendorRef + '_PJ',
         requestOptions: {
-          jar: j
+          jar: j,
+          qs: {
+            _ct: urlService.getCsrf()
+          }
         }
       })
   }
@@ -216,6 +225,36 @@ const checkLogin = async function(fields) {
   }
 }
 
+const refreshCsrf = async function() {
+  const csrfBody = await requestNoCheerio({
+    har: {
+      method: 'POST',
+      url: 'https://assure.ameli.fr/PortailAS/JavaScriptServlet',
+      headers: [
+        {
+          name: 'Host',
+          value: 'assure.ameli.fr'
+        },
+        {
+          name: 'Accept',
+          value: '*/*'
+        },
+        {
+          name: 'FETCH-CSRF-TOKEN',
+          value: '1'
+        },
+        {
+          name: 'Origin',
+          value: 'https://assure.ameli.fr'
+        }
+      ]
+    }
+  })
+
+  const [, csrf] = csrfBody.split(':')
+  urlService.setCsrf(csrf)
+}
+
 // Procedure to login to Ameli website.
 const logIn = async function(fields) {
   await this.deactivateAutoSuccessfulLogin()
@@ -232,6 +271,9 @@ const logIn = async function(fields) {
     url: urlService.getLoginUrl(),
     resolveWithFullResponse: true
   })
+
+  await refreshCsrf()
+  form._ct = urlService.getCsrf()
 
   const $ = await request({
     method: 'POST',
@@ -320,11 +362,13 @@ const fetchMainPage = async function() {
 
   await request(billUrl)
 
-  return requestNoCheerio(billUrl)
+  const result = await requestNoCheerio(billUrl)
+  await refreshCsrf()
+  return result
 }
 
 // Parse the fetched page to extract bill data.
-const parseMainPage = function(reqNoCheerio) {
+const parseMainPage = async function(reqNoCheerio) {
   let reimbursements = []
   let i = 0
   const $ = cheerio.load(reqNoCheerio.tableauPaiement)
@@ -408,7 +452,11 @@ const parseMainPage = function(reqNoCheerio) {
     .map(
       reimbursements,
       async reimbursement => {
-        const $ = await request(reimbursement.detailsUrl)
+        const $ = await request(reimbursement.detailsUrl, {
+          headers: {
+            _ct: urlService.getCsrf()
+          }
+        })
         if (
           ['PAIEMENT_A_UN_TIERS', 'REMBOURSEMENT_SOINS'].includes(
             reimbursement.naturePaiement
@@ -591,7 +639,8 @@ function getIndemniteBills(reimbursements, login) {
           }
         },
         requestOptions: {
-          jar: j
+          jar: j,
+          gzip: true
         }
       }
     })
