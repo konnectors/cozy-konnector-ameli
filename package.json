@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "cozy-konnector-libs": "4.36.0",
-    "moment": "2.27.0"
+    "moment": "2.29.1"
   },
   "devDependencies": {
     "copy-webpack-plugin": "6.2.1",
