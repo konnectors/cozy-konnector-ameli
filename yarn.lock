@@ -1132,33 +1132,13 @@ cozy-jobs-cli@1.15.5:
     pretty "2.0.0"
     strip-json-comments "3.1.1"
 
-cozy-jobs-cli@^1.15.4:
-  version "1.15.4"
-  resolved "https://registry.yarnpkg.com/cozy-jobs-cli/-/cozy-jobs-cli-1.15.4.tgz#df88bdd746f91814d1f1a50aaf30a5f0c04bc9ae"
-  integrity sha512-CfYlQorpXDwHPMDQsfyVJwSmboenojL7qjKcGDmcQ/y2Gbs+l//mD7N7kzZjz8MtVSCCAwDZDWtEKFM6aclz4A==
-  dependencies:
-    "@pollyjs/adapter-node-http" "5.1.0"
-    "@pollyjs/core" "5.1.0"
-    "@pollyjs/persister-fs" "5.0.0"
-    babel-runtime "6.26.0"
-    cheerio "1.0.0-rc.5"
-    cli-highlight "2.1.9"
-    commander "6.2.1"
-    cozy-client "16.10.2"
-    cozy-konnector-libs "^4.38.1"
-    cozy-logger "1.6.0"
-    open "7.3.0"
-    pretty "2.0.0"
-    strip-json-comments "3.1.1"
-
-cozy-konnector-build@1.1.4:
-  version "1.1.4"
-  resolved "https://registry.yarnpkg.com/cozy-konnector-build/-/cozy-konnector-build-1.1.4.tgz#822adf5f0fc89cba03071b91ae0e7ef56df7f671"
-  integrity sha512-8g31+8cuBSSoVYExK5lFVLi2KVgkAbVwsjGcR76b691T4HcMpaDFPvLGW8wZ2vZe+3musYcfL2nzSuLzwaIL4g==
+cozy-konnector-build@1.1.5:
+  version "1.1.5"
+  resolved "https://registry.yarnpkg.com/cozy-konnector-build/-/cozy-konnector-build-1.1.5.tgz#87745ddded6f773b26fbf4d8f08b1be0bd39354c"
+  integrity sha512-pf71K2JBkws+azxsFJRADCfqaAAZpEVpE4/3aWD3tYvCKOjEo5Abg1AMFXKRbSMMzzZMTJdr36vMVRYV4QLhrA==
   dependencies:
     copy-webpack-plugin "7.0.0"
     cozy-app-publish "0.26.0"
-    cozy-jobs-cli "^1.15.4"
     eslint-config-cozy-app "2.0.0"
     git-directory-deploy "1.5.1"
     husky "4.3.6"
@@ -1166,7 +1146,7 @@ cozy-konnector-build@1.1.4:
     webpack "5.11.1"
     webpack-cli "4.3.1"
 
-cozy-konnector-libs@4.38.1, cozy-konnector-libs@^4.38.1:
+cozy-konnector-libs@4.38.1:
   version "4.38.1"
   resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-4.38.1.tgz#043d389c26f4a05c4f2918e2ab4362da8cdf1889"
   integrity sha512-rWIu6f8ssNi22lxYyxhW7JZ8iRLqgKLjjaQji5Qvq2nfeaQ6ulER/xAP13tB3okr1ftEG5RTHESn+MS7IVMx1g==
