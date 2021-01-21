@@ -53,6 +53,11 @@ async function start(fields) {
           requestOptions: {
             jar: j,
             gzip: true
+          },
+          fileAttributes: {
+            metadata: {
+              carbonCopy: true
+            }
           }
         }
       ],
@@ -77,16 +82,6 @@ async function start(fields) {
   // used as keys for bills
   // TODO this will be removed once the connector has been run at least one time for each accounts
   if (entries.length) {
-    await this.saveBills(entries, fields, {
-      sourceAccount: this.accountId,
-      sourceAccountIdentifier: fields.login,
-      fileIdAttributes: ['vendorRef'],
-      shouldUpdate: (entry, dbEntry) => {
-        const result = entry.vendorRef && !dbEntry.vendorRef
-        return result
-      },
-      linkBankOperations: false
-    })
     await this.saveBills(entries, fields, {
       sourceAccount: this.accountId,
       sourceAccountIdentifier: fields.login,
@@ -183,7 +178,12 @@ async function fetchMessages() {
           _ct: urlService.getCsrf()
         }
       },
-      filename: `${fileprefix}.pdf`
+      filename: `${fileprefix}.pdf`,
+      fileAttributes: {
+        metadata: {
+          carbonCopy: true
+        }
+      }
     })
 
     const hasAttachment = $('.telechargement_PJ').length
@@ -196,6 +196,11 @@ async function fetchMessages() {
           jar: j,
           qs: {
             _ct: urlService.getCsrf()
+          }
+        },
+        fileAttributes: {
+          metadata: {
+            carbonCopy: true
           }
         }
       })
@@ -628,6 +633,7 @@ function getIndemniteBills(reimbursements, login) {
         filename: getFileName(reimbursement),
         fileAttributes: {
           metadata: {
+            carbonCopy: true,
             classification: 'invoicing',
             datetime: reimbursement.date.toDate(),
             datetimeLabel: 'issueDate',
@@ -673,6 +679,7 @@ function getHealthCareBills(reimbursements, login) {
             shouldReplaceName: getOldFileName(reimbursement),
             fileAttributes: {
               metadata: {
+                carbonCopy: true,
                 classification: 'invoicing',
                 datetime: reimbursement.date.toDate(),
                 datetimeLabel: 'issueDate',

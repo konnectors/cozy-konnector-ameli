@@ -43,6 +43,9 @@
     "files": {
       "type": "io.cozy.files"
     },
+    "carbon_copy": {
+      "type": "io.cozy.certified.carbon_copy"
+    },
     "accounts": {
       "type": "io.cozy.accounts"
     },
@@ -68,6 +71,9 @@
       "short_description": "Récupère dans votre Cozy les relevés de remboursements, votre attestations et vos messages",
       "long_description": "Ameli est le site de la Caisse Nationale d'Assurance Maladie accessible sur [www.ameli.fr](https://www.ameli.fr).\n\n<br>**Connectez votre compte Ameli à votre Cozy pour**\n\n- récupérer vos attestations de remboursement de santé (SECU)\n- récupérer vos attestations d'indemnités journalières\n- récupérer votre attestation de droits\n\n**Accédez directement à vos documents dans votre Drive personnel**\n\nEn connectant votre compte Ameli, votre Cozy crée automatiquement un dossier dans **Drive > Administratif > Ameli**. Vos remboursements de santé sont à portée de main et toujours accessibles !\n\n<br>**Suivez le montant de vos remboursements avec Banks**\n\nLes attestations récupérées sont automatiquement liées aux opérations bancaires Ameli associées à votre compte si vous utilisez l’application  Banks. Finis les maux de tête à faire les comptes !\n\n<br>**Sauvegardez vos identifiants avec pass**\n\nEn installant le gestionnaire de mots de passe, vos identifiants sont sauvegardés une bonne fois pour toutes pour vous faciliter la connexion au site d'Ameli. Adieu les mots de passe oubliés !\n\n<br>**Configuration**\n\nPour connecter votre compte, il vous suffit de renseigner dans les champs :\n\n - votre numéro de sécurité sociale mentionné sur votre carte vitale\n - votre mot de passe créé pour accéder au site <a href=\"https://www.ameli.fr\" target=_blank>www.ameli.fr</a>.\n\nUne fois connecté, votre Cozy se connectera régulièrement à votre compte Ameli pour récupérer les nouveaux éléments et les historiser dans un dossier Ameli dans Drive.</p><p>Si vous déconnectez votre compte Ameli, les informations déjà sauvegardées dans votre Cozy restent disponibles. Vous pouvez les supprimer manuellement par ailleurs.",
       "permissions": {
+        "carboncopy": {
+          "description": "Utilisé pour certifier que vos fichiers sont copie conforme avec les documents d'origine"
+        },
         "bank operations": {
           "description": "Utilisé pour lier les factures aux opérations bancaires"
         },
@@ -92,6 +98,9 @@
         "bank operations": {
           "description": "Required to link bills to bank operations"
         },
+        "carboncopy": {
+          "description": "Required for carbon copy documents"
+        },
         "bills": {
           "description": "Required to save the bills data"
         },
@@ -107,12 +116,14 @@
       }
     }
   },
-  "banksTransactionRegExp": "(cpc?am|c\\.p\\.(c\\.)?a\\.m|caisse primaire)",
   "features": [
     "LOGIN_OK",
     "METADATA_DEDUP",
     "IDENTITY",
-    "HEALTH"
+    "DOC_QUALIFICATION",
+    "HEALTH",
+    "CARBON_COPY"
   ],
+  "banksTransactionRegExp": "(cpc?am|c\\.p\\.(c\\.)?a\\.m|caisse primaire)",
   "manifest_version": "2"
 }
