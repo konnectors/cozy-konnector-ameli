@@ -324,6 +324,10 @@ const logIn = async function(fields) {
   // Default case. Something unexpected went wrong after the login
   if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
     log('debug', 'Something unexpected went wrong after the login')
+    if ($.html().includes('modif_code_perso_ameli_apres_reinit')) {
+      log('info', 'Password renew required, user action is needed')
+      throw new Error(errors.USER_ACTION_NEEDED)
+    }
     const errorMessage = $('.centrepage h1, .centrepage h2').text()
     if (errorMessage) {
       log('error', errorMessage)
