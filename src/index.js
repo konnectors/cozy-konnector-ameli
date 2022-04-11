@@ -22,14 +22,14 @@ const cheerio = require('cheerio')
 let request = requestFactory()
 const j = request.jar()
 request = requestFactory({
-  debug: true,
+  // debug: true,
   cheerio: true,
   json: false,
   jar: j,
   userAgent: false
 })
 const requestNoCheerio = requestFactory({
-  debug: true,
+  // debug: true,
   cheerio: false,
   json: true,
   jar: j,
@@ -65,6 +65,7 @@ async function start(fields) {
       ],
       fields,
       {
+        requestInstance: requestNoCheerio,
         contentType: true,
         fileIdAttributes: ['filename']
       }
@@ -73,6 +74,7 @@ async function start(fields) {
 
   const messages = await fetchMessages()
   await this.saveFiles(messages, fields, {
+    requestInstance: requestNoCheerio,
     contentType: true,
     fileIdAttributes: ['vendorRef']
   })
@@ -92,6 +94,7 @@ async function start(fields) {
         const result = entry.vendorRef && !dbEntry.vendorRef
         return result
       },
+      requestInstance: requestNoCheerio,
       keys: ['vendorRef', 'date', 'amount', 'beneficiary', 'subtype', 'index'],
       linkBankOperations: false
     })
@@ -102,6 +105,7 @@ async function start(fields) {
     await this.saveBills(IndemniteBills, fields, {
       sourceAccount: this.accountId,
       sourceAccountIdentifier: fields.login,
+      requestInstance: requestNoCheerio,
       fileIdAttributes: ['vendorRef'],
       keys: ['vendorRef', 'date', 'amount', 'subtype'],
       linkBankOperations: false
@@ -891,18 +895,18 @@ async function franceConnectLogin(fields) {
     form,
     url: 'https://fc.assure.ameli.fr/FRCO-app/j_spring_security_check'
   })
-  const $4 = await request({
+  const $FClogin = await request({
     method: 'POST',
     url: 'https://app.franceconnect.gouv.fr/confirm-redirect-client'
   })
 
-  if ($4('[title="Déconnexion du compte ameli"]').length !== 1) {
+  if ($FClogin('[title="Déconnexion du compte ameli"]').length !== 1) {
     log('debug', 'Something unexpected went wrong after the login')
-    if ($4.html().includes('modif_code_perso_ameli_apres_reinit')) {
+    if ($FClogin.html().includes('modif_code_perso_ameli_apres_reinit')) {
       log('info', 'Password renew required, user action is needed')
       throw new Error(errors.USER_ACTION_NEEDED)
     }
-    const errorMessage = $4('.centrepage h1, .centrepage h2').text()
+    const errorMessage = $FClogin('.centrepage h1, .centrepage h2').text()
     if (errorMessage) {
       log('error', errorMessage)
       if (errorMessage === 'Compte bloqué') {
@@ -910,7 +914,9 @@ async function franceConnectLogin(fields) {
       } else if (errorMessage.includes('Service momentanément indisponible')) {
         throw new Error(errors.VENDOR_DOWN)
       } else {
-        const refreshContent = $4('meta[http-equiv=refresh]').attr('content')
+        const refreshContent = $FClogin('meta[http-equiv=refresh]').attr(
+          'content'
+        )
         if (refreshContent) {
           log('error', 'refreshContent')
           log('error', refreshContent)
@@ -930,10 +936,6 @@ async function franceConnectLogin(fields) {
     log('debug', 'Logout button not detected, but for an unknown case')
     throw new Error(errors.VENDOR_DOWN)
   } else {
-    return $4
+    return $FClogin
   }
-  // log('debug', $1.html())
-  // log('debug', $2.html())
-  // log('debug', $3.html())
-  // log('debug', $4.html())
 }
