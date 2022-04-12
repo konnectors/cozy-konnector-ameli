@@ -25,13 +25,15 @@ request = requestFactory({
   // debug: true,
   cheerio: true,
   json: false,
-  jar: j
+  jar: j,
+  userAgent: false
 })
 const requestNoCheerio = requestFactory({
   // debug: true,
   cheerio: false,
   json: true,
-  jar: j
+  jar: j,
+  userAgent: false
 })
 
 module.exports = new BaseKonnector(start)
@@ -63,6 +65,7 @@ async function start(fields) {
       ],
       fields,
       {
+        requestInstance: requestNoCheerio,
         contentType: true,
         fileIdAttributes: ['filename']
       }
@@ -71,6 +74,7 @@ async function start(fields) {
 
   const messages = await fetchMessages()
   await this.saveFiles(messages, fields, {
+    requestInstance: requestNoCheerio,
     contentType: true,
     fileIdAttributes: ['vendorRef']
   })
@@ -90,6 +94,7 @@ async function start(fields) {
         const result = entry.vendorRef && !dbEntry.vendorRef
         return result
       },
+      requestInstance: requestNoCheerio,
       keys: ['vendorRef', 'date', 'amount', 'beneficiary', 'subtype', 'index'],
       linkBankOperations: false
     })
@@ -100,6 +105,7 @@ async function start(fields) {
     await this.saveBills(IndemniteBills, fields, {
       sourceAccount: this.accountId,
       sourceAccountIdentifier: fields.login,
+      requestInstance: requestNoCheerio,
       fileIdAttributes: ['vendorRef'],
       keys: ['vendorRef', 'date', 'amount', 'subtype'],
       linkBankOperations: false
@@ -272,11 +278,29 @@ const logIn = async function(fields) {
   }
 
   // First request to get the cookie
-  await request({
+  const $login = await request({
     url: urlService.getLoginUrl(),
     resolveWithFullResponse: true
   })
-
+  if (
+    $login.body
+      .html()
+      .includes(
+        'Suite à une opération de maintenance, cliquez sur FranceConnect et utilisez vos identifiants ameli pour accéder à votre compte.'
+      )
+  ) {
+    log(
+      'debug',
+      'Ameli website has ongoing maintenance, trying to connect with FranceConnect'
+    )
+    const FCLogin = await franceConnectLogin(fields)
+    log('debug', FCLogin)
+    if (FCLogin('[title="Déconnexion du compte ameli"]')) {
+      log('debug', 'LOGIN OK')
+      await this.notifySuccessfulLogin()
+      return await request(urlService.getReimbursementUrl())
+    }
+  }
   await refreshCsrf()
   form._ct = urlService.getCsrf()
 
@@ -285,7 +309,6 @@ const logIn = async function(fields) {
     form,
     url: urlService.getSubmitUrl()
   })
-
   const visibleZoneAlerte = $('.zone-alerte').filter(
     (i, el) => !$(el).hasClass('invisible')
   )
@@ -850,4 +873,69 @@ function addPhone(newObj, phoneArray) {
     phoneArray = [newObj]
   }
   return phoneArray
+}
+
+async function franceConnectLogin(fields) {
+  const form = {
+    j_username: fields.login,
+    j_password: fields.password,
+    j_etape: 'CLASSIQUE'
+  }
+
+  await request({
+    method: 'GET',
+    url: 'https://assure.ameli.fr/PortailAS/FranceConnect'
+  })
+  await request({
+    method: 'GET',
+    url: 'https://app.franceconnect.gouv.fr/call?provider=ameli&storeFI=1'
+  })
+  await request({
+    method: 'POST',
+    form,
+    url: 'https://fc.assure.ameli.fr/FRCO-app/j_spring_security_check'
+  })
+  const $FClogin = await request({
+    method: 'POST',
+    url: 'https://app.franceconnect.gouv.fr/confirm-redirect-client'
+  })
+
+  if ($FClogin('[title="Déconnexion du compte ameli"]').length !== 1) {
+    log('debug', 'Something unexpected went wrong after the login')
+    if ($FClogin.html().includes('modif_code_perso_ameli_apres_reinit')) {
+      log('info', 'Password renew required, user action is needed')
+      throw new Error(errors.USER_ACTION_NEEDED)
+    }
+    const errorMessage = $FClogin('.centrepage h1, .centrepage h2').text()
+    if (errorMessage) {
+      log('error', errorMessage)
+      if (errorMessage === 'Compte bloqué') {
+        throw new Error('LOGIN_FAILED.TOO_MANY_ATTEMPTS')
+      } else if (errorMessage.includes('Service momentanément indisponible')) {
+        throw new Error(errors.VENDOR_DOWN)
+      } else {
+        const refreshContent = $FClogin('meta[http-equiv=refresh]').attr(
+          'content'
+        )
+        if (refreshContent) {
+          log('error', 'refreshContent')
+          log('error', refreshContent)
+          if (refreshContent.includes('as_saisie_mail_connexionencours_page')) {
+            log('warn', 'User needs to confirm email address')
+            throw new Error(errors.USER_ACTION_NEEDED)
+          } else {
+            log('error', 'Found redirect comment but no login form')
+            throw new Error(errors.VENDOR_DOWN)
+          }
+        } else {
+          log('error', 'Unknown error message')
+          throw new Error(errors.VENDOR_DOWN)
+        }
+      }
+    }
+    log('debug', 'Logout button not detected, but for an unknown case')
+    throw new Error(errors.VENDOR_DOWN)
+  } else {
+    return $FClogin
+  }
 }
