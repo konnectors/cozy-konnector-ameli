@@ -5,7 +5,7 @@ class UrlService {
     this.baseUrl = `${this.domain}/PortailAS/paiements.do?actionEvt=`
     this.loginUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_login_page&connexioncompte_2actionEvt=afficher`
 
-    this.submitUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_windowLabel=connexioncompte_2&connexioncompte_2_actionOverride=/portlets/connexioncompte/validationconnexioncompte&_pageLabel=as_login_page`
+    this.submitUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure`
     this.reimbursementUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_paiements_page`
     this.infosUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_info_perso_page`
     this.messagesUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_messages_recus_page`
