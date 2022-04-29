@@ -269,7 +269,6 @@ const refreshCsrf = async function() {
 // Procedure to login to Ameli website.
 const logIn = async function(fields) {
   await this.deactivateAutoSuccessfulLogin()
-  log('debug', this.notifySuccessfulLogin)
   const login = await classicLogin(fields)
   if (login('[title="Déconnexion du compte ameli"]')) {
     log('debug', 'LOGIN OK')
@@ -852,25 +851,7 @@ async function classicLogin(fields) {
 
   // For users consent reasons, we got to ask for user's permission to login through FranceConnect.
   // As a result, we keep the code allowing this connection but until we find a solution to this issue, we must not try to login through FranceConnect.
-
-  // if (
-  //   $login.body
-  //     .html()
-  //     .includes(
-  //       'Suite à une opération de maintenance, cliquez sur FranceConnect et utilisez vos identifiants ameli pour accéder à votre compte.'
-  //     )
-  // ) {
-  //   log(
-  //     'debug',
-  //     'Ameli website has ongoing maintenance, trying to connect with FranceConnect'
-  //   )
-  //   const FCLogin = await franceConnectLogin(fields)
-  //   if (FCLogin('[title="Déconnexion du compte ameli"]')) {
-  //     log('debug', 'LOGIN OK')
-  //     await this.notifySuccessfulLogin()
-  //     return await request(urlService.getReimbursementUrl())
-  //   }
-  // }
+  // If needed use function checkMaintenance()
 
   await refreshCsrf()
   form._ct = urlService.getCsrf()
@@ -945,6 +926,27 @@ async function classicLogin(fields) {
     log('debug', 'Logout button not detected, but for an unknown case')
     throw new Error(errors.VENDOR_DOWN)
   }
-  await this.notifySuccessfulLogin()
-  return await request(urlService.getReimbursementUrl())
+  return $
+}
+
+// eslint-disable-next-line no-unused-vars
+async function checkMaintenance(loginPage, fields) {
+  if (
+    loginPage.body
+      .html()
+      .includes(
+        'Suite à une opération de maintenance, cliquez sur FranceConnect et utilisez vos identifiants ameli pour accéder à votre compte.'
+      )
+  ) {
+    log(
+      'debug',
+      'Ameli website has ongoing maintenance, trying to connect with FranceConnect'
+    )
+    const FCLogin = await franceConnectLogin(fields)
+    if (FCLogin('[title="Déconnexion du compte ameli"]')) {
+      log('debug', 'LOGIN OK')
+      await this.notifySuccessfulLogin()
+      return await request(urlService.getReimbursementUrl())
+    }
+  }
 }
