@@ -269,120 +269,12 @@ const refreshCsrf = async function () {
 // Procedure to login to Ameli website.
 const logIn = async function (fields) {
   await this.deactivateAutoSuccessfulLogin()
-
-  const form = {
-    connexioncompte_2numSecuriteSociale: fields.login,
-    connexioncompte_2codeConfidentiel: fields.password,
-    connexioncompte_2actionEvt: 'connecter',
-    submit: 'me+connecter'
+  const login = await classicLogin(fields)
+  if (login('[title="Déconnexion du compte ameli"]')) {
+    log('debug', 'LOGIN OK')
+    await this.notifySuccessfulLogin()
+    return await request(urlService.getReimbursementUrl())
   }
-
-  // First request to get the cookie
-  const $login = await request({
-    url: urlService.getLoginUrl(),
-    resolveWithFullResponse: true
-  })
-  if (
-    $login.body
-      .html()
-      .includes(
-        'Suite à une opération de maintenance, cliquez sur FranceConnect et utilisez vos identifiants ameli pour accéder à votre compte.'
-      )
-  ) {
-    log(
-      'debug',
-      'Ameli website has ongoing maintenance, trying to connect with FranceConnect'
-    )
-    const FCLogin = await franceConnectLogin(fields)
-    log('debug', FCLogin)
-    if (FCLogin('[title="Déconnexion du compte ameli"]')) {
-      log('debug', 'LOGIN OK')
-      await this.notifySuccessfulLogin()
-      return await request(urlService.getReimbursementUrl())
-    }
-  }
-  await refreshCsrf()
-  form._ct = urlService.getCsrf()
-
-  const $ = await request({
-    method: 'POST',
-    form,
-    url: urlService.getSubmitUrl()
-  })
-  const visibleZoneAlerte = $('.zone-alerte').filter(
-    (i, el) => !$(el).hasClass('invisible')
-  )
-  if (visibleZoneAlerte.length > 0) {
-    log('warn', 'One or several alert showed to user:')
-    log('warn', visibleZoneAlerte.text())
-  }
-
-  // Real LOGIN_FAILED case, clearly announce to user from website
-  const loginFailedStrings = [
-    'Le numéro de sécurité sociale et le code personnel ne correspondent pas',
-    'Votre numéro de Sécurité sociale doit contenir des chiffres, A ou B'
-  ]
-  if (loginFailedStrings.some(str => visibleZoneAlerte.text().includes(str))) {
-    throw new Error(errors.LOGIN_FAILED)
-  }
-
-  // User seems not affiliated anymore to Régime Général
-  const NotMoreAffiliatedString =
-    'vous ne dépendez plus du régime général de' + ` l'Assurance Maladie`
-  if (visibleZoneAlerte.text().includes(NotMoreAffiliatedString)) {
-    throw new Error(errors.USER_ACTION_NEEDED_ACCOUNT_REMOVED)
-  }
-
-  // The user must validate the CGU form
-  const $cgu = $('meta[http-equiv=refresh]')
-  if (
-    $cgu.length > 0 &&
-    $cgu.attr('content') &&
-    $cgu.attr('content').includes('as_conditions_generales_page')
-  ) {
-    log('debug', $cgu.attr('content'))
-    throw new Error('USER_ACTION_NEEDED.CGU_FORM')
-  }
-
-  // Default case. Something unexpected went wrong after the login
-  if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
-    log('debug', 'Something unexpected went wrong after the login')
-    if ($.html().includes('modif_code_perso_ameli_apres_reinit')) {
-      log('info', 'Password renew required, user action is needed')
-      throw new Error(errors.USER_ACTION_NEEDED)
-    }
-    const errorMessage = $('.centrepage h1, .centrepage h2').text()
-    if (errorMessage) {
-      log('error', errorMessage)
-      if (errorMessage === 'Compte bloqué') {
-        throw new Error('LOGIN_FAILED.TOO_MANY_ATTEMPTS')
-      } else if (errorMessage.includes('Service momentanément indisponible')) {
-        throw new Error(errors.VENDOR_DOWN)
-      } else {
-        const refreshContent = $('meta[http-equiv=refresh]').attr('content')
-        if (refreshContent) {
-          log('error', 'refreshContent')
-          log('error', refreshContent)
-          if (refreshContent.includes('as_saisie_mail_connexionencours_page')) {
-            log('warn', 'User needs to confirm email address')
-            throw new Error(errors.USER_ACTION_NEEDED)
-          } else {
-            log('error', 'Found redirect comment but no login form')
-            throw new Error(errors.VENDOR_DOWN)
-          }
-        } else {
-          log('error', 'Unknown error message')
-          throw new Error(errors.VENDOR_DOWN)
-        }
-      }
-    }
-    log('debug', 'Logout button not detected, but for an unknown case')
-    throw new Error(errors.VENDOR_DOWN)
-  }
-
-  await this.notifySuccessfulLogin()
-
-  return await request(urlService.getReimbursementUrl())
 }
 
 // fetch the HTML page with the list of health cares
@@ -821,6 +713,7 @@ function addPhone(newObj, phoneArray) {
   return phoneArray
 }
 
+// eslint-disable-next-line no-unused-vars
 async function franceConnectLogin(fields) {
   const form = {
     j_username: fields.login,
@@ -830,20 +723,23 @@ async function franceConnectLogin(fields) {
 
   await request({
     method: 'GET',
-    url: 'https://assure.ameli.fr/PortailAS/FranceConnect'
+    url: `${urlService.getFranceConnectUrl()}`
   })
+
   await request({
     method: 'GET',
-    url: 'https://app.franceconnect.gouv.fr/call?provider=ameli&storeFI=1'
+    url: urlService.getSelectFCServiceUrl()
   })
+
   await request({
     method: 'POST',
     form,
-    url: 'https://fc.assure.ameli.fr/FRCO-app/j_spring_security_check'
+    url: urlService.getSubmitFCLoginUrl()
   })
+
   const $FClogin = await request({
     method: 'POST',
-    url: 'https://app.franceconnect.gouv.fr/confirm-redirect-client'
+    url: urlService.getTriggerFCRedirectUrl()
   })
 
   if ($FClogin('[title="Déconnexion du compte ameli"]').length !== 1) {
@@ -883,5 +779,120 @@ async function franceConnectLogin(fields) {
     throw new Error(errors.VENDOR_DOWN)
   } else {
     return $FClogin
+  }
+}
+
+async function classicLogin(fields) {
+  const form = {
+    connexioncompte_2numSecuriteSociale: fields.login,
+    connexioncompte_2codeConfidentiel: fields.password,
+    connexioncompte_2actionEvt: 'connecter',
+    submit: 'me+connecter'
+  }
+  // First request to get the cookie
+  await request({
+    url: urlService.getLoginUrl(),
+    resolveWithFullResponse: true
+  })
+
+  // For users consent reasons, we got to ask for user's permission to login through FranceConnect.
+  // As a result, we keep the code allowing this connection but until we find a solution to this issue, we must not try to login through FranceConnect.
+  // If needed use function checkMaintenance()
+
+  await refreshCsrf()
+  form._ct = urlService.getCsrf()
+  const $ = await request({
+    method: 'POST',
+    form,
+    url: urlService.getSubmitUrl()
+  })
+  const visibleZoneAlerte = $('.zone-alerte').filter(
+    (i, el) => !$(el).hasClass('invisible')
+  )
+  if (visibleZoneAlerte.length > 0) {
+    log('warn', 'One or several alert showed to user:')
+    log('warn', visibleZoneAlerte.text())
+  }
+  // Real LOGIN_FAILED case, clearly announce to user from website
+  const loginFailedStrings = [
+    'Le numéro de sécurité sociale et le code personnel ne correspondent pas',
+    'Votre numéro de Sécurité sociale doit contenir des chiffres, A ou B'
+  ]
+  if (loginFailedStrings.some(str => visibleZoneAlerte.text().includes(str))) {
+    throw new Error(errors.LOGIN_FAILED)
+  }
+  // User seems not affiliated anymore to Régime Général
+  const NotMoreAffiliatedString =
+    'vous ne dépendez plus du régime général de' + ` l'Assurance Maladie`
+  if (visibleZoneAlerte.text().includes(NotMoreAffiliatedString)) {
+    throw new Error(errors.USER_ACTION_NEEDED_ACCOUNT_REMOVED)
+  }
+  // The user must validate the CGU form
+  const $cgu = $('meta[http-equiv=refresh]')
+  if (
+    $cgu.length > 0 &&
+    $cgu.attr('content') &&
+    $cgu.attr('content').includes('as_conditions_generales_page')
+  ) {
+    log('debug', $cgu.attr('content'))
+    throw new Error('USER_ACTION_NEEDED.CGU_FORM')
+  }
+  // Default case. Something unexpected went wrong after the login
+  if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
+    log('debug', 'Something unexpected went wrong after the login')
+    if ($.html().includes('modif_code_perso_ameli_apres_reinit')) {
+      log('info', 'Password renew required, user action is needed')
+      throw new Error(errors.USER_ACTION_NEEDED)
+    }
+    const errorMessage = $('.centrepage h1, .centrepage h2').text()
+    if (errorMessage) {
+      log('error', errorMessage)
+      if (errorMessage === 'Compte bloqué') {
+        throw new Error('LOGIN_FAILED.TOO_MANY_ATTEMPTS')
+      } else if (errorMessage.includes('Service momentanément indisponible')) {
+        throw new Error(errors.VENDOR_DOWN)
+      } else {
+        const refreshContent = $('meta[http-equiv=refresh]').attr('content')
+        if (refreshContent) {
+          log('error', 'refreshContent')
+          log('error', refreshContent)
+          if (refreshContent.includes('as_saisie_mail_connexionencours_page')) {
+            log('warn', 'User needs to confirm email address')
+            throw new Error(errors.USER_ACTION_NEEDED)
+          } else {
+            log('error', 'Found redirect comment but no login form')
+            throw new Error(errors.VENDOR_DOWN)
+          }
+        } else {
+          log('error', 'Unknown error message')
+          throw new Error(errors.VENDOR_DOWN)
+        }
+      }
+    }
+    log('debug', 'Logout button not detected, but for an unknown case')
+    throw new Error(errors.VENDOR_DOWN)
+  }
+  return $
+}
+
+// eslint-disable-next-line no-unused-vars
+async function checkMaintenance(loginPage, fields) {
+  if (
+    loginPage.body
+      .html()
+      .includes(
+        'Suite à une opération de maintenance, cliquez sur FranceConnect et utilisez vos identifiants ameli pour accéder à votre compte.'
+      )
+  ) {
+    log(
+      'debug',
+      'Ameli website has ongoing maintenance, trying to connect with FranceConnect'
+    )
+    const FCLogin = await franceConnectLogin(fields)
+    if (FCLogin('[title="Déconnexion du compte ameli"]')) {
+      log('debug', 'LOGIN OK')
+      await this.notifySuccessfulLogin()
+      return await request(urlService.getReimbursementUrl())
+    }
   }
 }

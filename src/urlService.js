@@ -11,7 +11,10 @@ class UrlService {
     this.messagesUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_messages_recus_page`
     this.attestationUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_windowLabel=attDroitsAccueil&attDroitsAccueil_actionOverride=/portlets/accueil/attdroits&_pageLabel=as_accueil_page`
     this.alternativeLoginUrl = `${this.domain}/PortailAS/appmanager/PortailAS/assure?_somtc=true`
-    // this.fanceConnectLoginUrl = `${this.domain}
+    this.franceConnectLoginUrl = `${this.domain}/PortailAS/FranceConnect`
+    this.selectFCServiceUrl = `https://app.franceconnect.gouv.fr/call?provider=ameli&storeFI=1`
+    this.submitFCLoginUrl = `https://fc.assure.ameli.fr/FRCO-app/j_spring_security_check`
+    this.triggerFCRedirectUrl = `https://app.franceconnect.gouv.fr/confirm-redirect-client`
   }
 
   setCsrf(csrf) {
@@ -59,7 +62,19 @@ class UrlService {
   }
 
   getFranceConnectUrl() {
-    return this.fanceConnectLoginUrl
+    return this.franceConnectLoginUrl
+  }
+
+  getSelectFCServiceUrl() {
+    return this.selectFCServiceUrl
+  }
+
+  getSubmitFCLoginUrl() {
+    return this.submitFCLoginUrl
+  }
+
+  getTriggerFCRedirectUrl() {
+    return this.triggerFCRedirectUrl
   }
 
   getBillUrl() {
@@ -87,9 +102,3 @@ class UrlService {
 }
 
 module.exports = new UrlService()
-
-// Url france connect from ameli website
-// https://app.franceconnect.gouv.fr/api/v1/authorize?state=26a2e9790050f&scope=openid+identite_pivot&response_type=code&redirect_uri=https%3A%2F%2Fassure.ameli.fr%3A443%2FPortailAS%2FFranceConnect%2Fcb%3FredirectUrlFc%3D%252FPortailAS%252FFranceConnect&nonce=2a0df43c9df99&client_id=cb56182576e9435bae57d8044a666ad1df32127a61082a3ed6130c52f191f1b7
-
-// franceConnectLogin page
-// https://fc.assure.ameli.fr/FRCO-app/login
