@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "cozy-konnector-libs": "4.54.0",
-    "moment": "2.29.3"
+    "moment": "2.29.4"
   },
   "devDependencies": {
     "cozy-jobs-cli": "1.19.0",
