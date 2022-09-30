@@ -122,7 +122,8 @@
     "IDENTITY",
     "DOC_QUALIFICATION",
     "HEALTH",
-    "CARBON_COPY"
+    "CARBON_COPY",
+    "SENTRY_V2"
   ],
   "banksTransactionRegExp": "(cpc?am|c\\.p\\.(c\\.)?a\\.m|caisse primaire)",
   "manifest_version": "2"
