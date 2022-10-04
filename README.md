@@ -168,7 +168,7 @@ The lead maintainers for this konnector is Brice Coquereau
 
 You can reach the Cozy Community by:
 
-* Chatting with us on IRC [#cozycloud on Freenode][freenode]
+* Chatting with us on IRC [#cozycloud on Libera.Chat][libera]
 * Posting on our [Forum]
 * Posting issues on the [Github repos][github]
 * Say Hi! on [Twitter]
