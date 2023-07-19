@@ -9,7 +9,8 @@
   "editor": "Cozy",
   "vendor_link": "https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure",
   "categories": [
-    "insurance"
+    "insurance",
+    "public_service"
   ],
   "fields": {
     "login": {
