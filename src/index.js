@@ -82,9 +82,6 @@ async function start(fields) {
   const reimbursements = await parseMainPage(reqNoCheerio)
   const entries = await getHealthCareBills(reimbursements, fields.login)
 
-  // first run saveBills without keys to update existing bills with new attributes which will be
-  // used as keys for bills
-  // TODO this will be removed once the connector has been run at least one time for each accounts
   if (entries.length) {
     await this.saveBills(entries, fields, {
       sourceAccount: this.accountId,
