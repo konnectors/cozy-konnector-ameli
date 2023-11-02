@@ -212,7 +212,7 @@ async function fetchMessages() {
   return [...docs, ...piecesJointes]
 }
 
-const checkLogin = async function(fields) {
+const checkLogin = async function (fields) {
   /* As known in Oct2019, from error message,
      Social Security Number should be 13 chars from this set [0-9AB]
   */
@@ -233,7 +233,7 @@ const checkLogin = async function(fields) {
   }
 }
 
-const refreshCsrf = async function() {
+const refreshCsrf = async function () {
   const csrfBody = await requestNoCheerio({
     har: {
       method: 'POST',
@@ -264,7 +264,7 @@ const refreshCsrf = async function() {
 }
 
 // Procedure to login to Ameli website.
-const logIn = async function(fields) {
+const logIn = async function (fields) {
   await this.deactivateAutoSuccessfulLogin()
   const login = await classicLogin(fields)
   if (login('[title="Déconnexion du compte ameli"]')) {
@@ -275,7 +275,7 @@ const logIn = async function(fields) {
 }
 
 // fetch the HTML page with the list of health cares
-const fetchMainPage = async function() {
+const fetchMainPage = async function () {
   log('debug', 'Fetching the list of bills')
 
   // We can get the history only 6 months back
@@ -289,38 +289,22 @@ const fetchMainPage = async function() {
 }
 
 // Parse the fetched page to extract bill data.
-const parseMainPage = async function(reqNoCheerio) {
+const parseMainPage = async function (reqNoCheerio) {
   let reimbursements = []
   let i = 0
   const $ = cheerio.load(reqNoCheerio.tableauPaiement)
 
   // Each bloc represents a month that includes 0 to n reimbursement
-  $('.blocParMois').each(function() {
+  $('.blocParMois').each(function () {
     // It would be too easy to get the full date at the same place
-    let year = $(
-      $(this)
-        .find('.rowdate .mois')
-        .get(0)
-    ).text()
+    let year = $($(this).find('.rowdate .mois').get(0)).text()
     year = year.split(' ')[1]
 
-    return $(`[id^=lignePaiement${i++}]`).each(function() {
-      const month = $(
-        $(this)
-          .find('.col-date .mois')
-          .get(0)
-      ).text()
-      const day = $(
-        $(this)
-          .find('.col-date .jour')
-          .get(0)
-      ).text()
+    return $(`[id^=lignePaiement${i++}]`).each(function () {
+      const month = $($(this).find('.col-date .mois').get(0)).text()
+      const day = $($(this).find('.col-date .jour').get(0)).text()
       const groupAmount = parseAmount(
-        $(
-          $(this)
-            .find('.col-montant span')
-            .get(0)
-        ).text()
+        $($(this).find('.col-montant span').get(0)).text()
       )
       let date = `${day} ${month} ${year}`
       date = moment(date, 'Do MMMM YYYY')
@@ -342,9 +326,7 @@ const parseMainPage = async function(reqNoCheerio) {
       )
 
       // This link seems to not be present in every account
-      let link = $(this)
-        .find('.downdetail')
-        .attr('href')
+      let link = $(this).find('.downdetail').attr('href')
 
       if (!link) {
         link = $(this).find('[id^=liendowndecompte]')
@@ -406,7 +388,7 @@ function parseHealthCareDetails($, reimbursement) {
     log('error', 'Download link not found')
     log('error', $('.entete').html())
   }
-  $('.container:not(.entete)').each(function() {
+  $('.container:not(.entete)').each(function () {
     const $beneficiary = $(this).find('[id^=nomBeneficiaire]')
     if ($beneficiary.length > 0) {
       // a beneficiary container
@@ -449,46 +431,26 @@ function parseIndemniteJournaliere($, reimbursement) {
 function parseHealthCares($, container, beneficiary, reimbursement) {
   $(container)
     .find('tr')
-    .each(function(index) {
+    .each(function (index) {
       if ($(this).find('th').length > 0) {
         return null // ignore header
       }
 
-      let date = $(this)
-        .find('[id^=Nature]')
-        .html()
-        .split('<br>')
-        .pop()
-        .trim()
+      let date = $(this).find('[id^=Nature]').html().split('<br>').pop().trim()
       date = date ? moment(date, 'DD/MM/YYYY') : undefined
       const healthCare = {
         index,
-        prestation: $(this)
-          .find('.naturePrestation')
-          .text()
-          .trim(),
+        prestation: $(this).find('.naturePrestation').text().trim(),
         date,
         montantPayé: parseAmount(
-          $(this)
-            .find('[id^=montantPaye]')
-            .text()
-            .trim()
+          $(this).find('[id^=montantPaye]').text().trim()
         ),
         baseRemboursement: parseAmount(
-          $(this)
-            .find('[id^=baseRemboursement]')
-            .text()
-            .trim()
+          $(this).find('[id^=baseRemboursement]').text().trim()
         ),
-        taux: $(this)
-          .find('[id^=taux]')
-          .text()
-          .trim(),
+        taux: $(this).find('[id^=taux]').text().trim(),
         montantVersé: parseAmount(
-          $(this)
-            .find('[id^=montantVerse]')
-            .text()
-            .trim()
+          $(this).find('[id^=montantVerse]').text().trim()
         )
       }
 
@@ -501,7 +463,7 @@ function parseHealthCares($, container, beneficiary, reimbursement) {
 function parseParticipation($, container, reimbursement) {
   $(container)
     .find('tr')
-    .each(function() {
+    .each(function () {
       if ($(this).find('th').length > 0) {
         return null // ignore header
       }
@@ -512,22 +474,13 @@ function parseParticipation($, container, reimbursement) {
           'There is already a participation, this case is not supposed to happend'
         )
       }
-      let date = $(this)
-        .find('[id^=dateActePFF]')
-        .text()
-        .trim()
+      let date = $(this).find('[id^=dateActePFF]').text().trim()
       date = date ? moment(date, 'DD/MM/YYYY') : undefined
       reimbursement.participation = {
-        prestation: $(this)
-          .find('[id^=naturePFF]')
-          .text()
-          .trim(),
+        prestation: $(this).find('[id^=naturePFF]').text().trim(),
         date,
         montantVersé: parseAmount(
-          $(this)
-            .find('[id^=montantVerse]')
-            .text()
-            .trim()
+          $(this).find('[id^=montantVerse]').text().trim()
         )
       }
     })
@@ -675,28 +628,21 @@ function getOldFileName(reimbursement) {
   return `${moment(reimbursement.date).format('YYYYMMDD')}_ameli.pdf`
 }
 
-const fetchIdentity = async function() {
+const fetchIdentity = async function () {
   log('debug', 'Generating identity')
   const infosUrl = urlService.getInfosUrl()
   const $ = await request(infosUrl)
 
   // Extracting necessary datas
-  const givenName = $('.blocNomPrenom .nom')
-    .eq(0)
-    .text()
-    .trim()
-  const rawFullName = $('.NomEtPrenomLabel')
-    .eq(0)
-    .text()
+  const givenName = $('.blocNomPrenom .nom').eq(0).text().trim()
+  const rawFullName = $('.NomEtPrenomLabel').eq(0).text()
   // Deduce familyName by substracting givenName
   const familyName = rawFullName.replace(givenName, '').trim()
   const birthday = moment(
     $('.blocNomPrenom .dateNaissance').text(),
     'DD/MM/YYYY'
   ).format('YYYY-MM-DD')
-  const socialSecurityNumber = $('.blocNumSecu')
-    .text()
-    .replace(/\s/g, '')
+  const socialSecurityNumber = $('.blocNumSecu').text().replace(/\s/g, '')
   const rawAddress = $('div[title="Modifier mon adresse postale"] .infoDroite')
     .text()
     .trim()
