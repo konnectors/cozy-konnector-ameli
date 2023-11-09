@@ -81,7 +81,6 @@ async function start(fields) {
 
   const reimbursements = await parseMainPage(reqNoCheerio)
   const entries = await getHealthCareBills(reimbursements, fields.login)
-
   if (entries.length) {
     await this.saveBills(entries, fields, {
       sourceAccount: this.accountId,
@@ -266,7 +265,7 @@ const refreshCsrf = async function () {
 // Procedure to login to Ameli website.
 const logIn = async function (fields) {
   await this.deactivateAutoSuccessfulLogin()
-  const login = await classicLogin(fields)
+  const login = await classicLogin.bind(this)(fields)
   if (login('[title="Déconnexion du compte ameli"]')) {
     log('debug', 'LOGIN OK')
     await this.notifySuccessfulLogin()
@@ -643,18 +642,14 @@ const fetchIdentity = async function () {
     'DD/MM/YYYY'
   ).format('YYYY-MM-DD')
   const socialSecurityNumber = $('.blocNumSecu').text().replace(/\s/g, '')
-  const rawAddress = $('div[title="Modifier mon adresse postale"] .infoDroite')
+  const rawAddress = $(
+    'div[title="Modifier mon adresse postale"] .infoDroite > span'
+  )
     .text()
-    .trim()
-  const rawMobile = $('div[title="Modifier mes numéros de télephone"]')
-    .eq(0)
-    .find('.infoDroite')
-    .text()
-    .trim()
-  const rawFixe = $('div[title="Modifier mes numéros de télephone"]')
-    .eq(1)
-    .find('.infoDroite')
-    .text()
+    .replace(/\t/g, '')
+    .replace(/\n/g, '')
+    // This has been recently added when selecting the wanted element, needs to be remove
+    .replace('Cet élément est modifiable', '')
     .trim()
 
   // Making ident object as io.cozy.contacts
@@ -678,29 +673,11 @@ const fetchIdentity = async function () {
       }
     ]
   }
-  if (rawMobile != '') {
-    const mobileNumber = rawMobile.replace(/[^0-9]/g, '')
-    ident.phone = addPhone(
-      {
-        type: 'mobile',
-        number: mobileNumber
-      },
-      ident.phone
-    )
-  }
-  if (rawFixe != 'Ajouter') {
-    const fixeNumber = rawFixe.replace(/[^0-9]/g, '')
-    ident.phone = addPhone(
-      {
-        type: 'home',
-        number: fixeNumber
-      },
-      ident.phone
-    )
-  }
   return ident
 }
 
+// Phone numbers are now obfusctated on the page, No needs to fetch them anymore
+// eslint-disable-next-line no-unused-vars
 function addPhone(newObj, phoneArray) {
   if (Array.isArray(phoneArray)) {
     phoneArray.push(newObj)
@@ -780,68 +757,155 @@ async function franceConnectLogin(fields) {
 }
 
 async function classicLogin(fields) {
-  const form = {
-    connexioncompte_2numSecuriteSociale: fields.login,
-    connexioncompte_2codeConfidentiel: fields.password,
-    connexioncompte_2actionEvt: 'connecter',
-    submit: 'me+connecter'
-  }
   // First request to get the cookie
-  await request({
+  const baseReq = await request({
     url: urlService.getLoginUrl(),
     resolveWithFullResponse: true
   })
+  const baseReqBody = baseReq.body.html()
+  let nextUrl = baseReq.request.href
+  const $LoginForm = cheerio.load(baseReqBody)
+  const lmhidden_state = $LoginForm('#lmhidden_state').attr('value')
+  const lmhidden_response_type = $LoginForm('#lmhidden_response_type').attr(
+    'value'
+  )
+  const lmhidden_scope = $LoginForm('#lmhidden_scope').attr('value')
+  const lmhidden_nonce = $LoginForm('#lmhidden_nonce').attr('value')
+  const lmhidden_redirect_uri = $LoginForm('#lmhidden_redirect_uri').attr(
+    'value'
+  )
+  const lmhidden_client_id = $LoginForm('#lmhidden_client_id').attr('value')
+  const firstForm = {
+    lmhidden_state,
+    lmhidden_response_type,
+    lmhidden_scope,
+    lmhidden_nonce,
+    lmhidden_redirect_uri,
+    lmhidden_client_id,
+    url: '',
+    timezone: '',
+    lmAuth: 'LOGIN',
+    skin: 'cnamts',
+    user: fields.login,
+    password: fields.password,
+    authStep: '',
+    submit: 'me+connecter'
+  }
+  const loginReq1 = await request({
+    method: 'POST',
+    url: nextUrl,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    resolveWithFullResponse: true,
+    form: { ...firstForm }
+  })
+  const loginReq1Body = loginReq1.body.html()
+  const $loginFirstStep = cheerio.load(loginReq1Body)
+  if ($loginFirstStep('.zone-alerte:not([class*=" "])').length === 1) {
+    log('error', 'Couple login/password error')
+    throw new Error('LOGIN_FAILED')
+  }
+  if ($loginFirstStep('#BoutonGenerationOTP').length === 0) {
+    log(
+      'info',
+      'First login step went wrong, button for sending OTP mail did not show up'
+    )
+    throw new Error('LOGIN_FAILED')
+  }
+  log('info', 'firstStep login - OK')
+  const formattedLogin = fields.login.replace(
+    /(\d)(\d{2})(\d{2})(\d{2})(\d{3})(\d{3})/g,
+    '$1+$2+$3+$4+$5+$6'
+  )
+  const valuesToEncode = {
+    lmhidden_state,
+    lmhidden_response_type,
+    lmhidden_scope,
+    lmhidden_nonce,
+    lmhidden_redirect_uri,
+    lmhidden_client_id
+  }
+  const encodedFormPart = {}
+  for (const cle in valuesToEncode) {
+    if (typeof valuesToEncode[cle] === 'string') {
+      encodedFormPart[cle] = encodeURIComponent(valuesToEncode[cle])
+    }
+  }
+  const lmAuth = 'LOGIN'
+  const skin = 'cnamts'
+  const user = formattedLogin
+  const password = fields.password
+  const sharedBodyForm = `lmhidden_state=${encodedFormPart.lmhidden_state}&lmhidden_response_type=${encodedFormPart.lmhidden_response_type}&lmhidden_scope=${encodedFormPart.lmhidden_scope}&lmhidden_nonce=${encodedFormPart.lmhidden_nonce}&lmhidden_redirect_uri=${encodedFormPart.lmhidden_redirect_uri}&lmhidden_client_id=${encodedFormPart.lmhidden_client_id}&url=&timezone=&lmAuth=${lmAuth}&skin=${skin}&user=${user}&password=${password}&`
 
+  const getOTPStep = 'ENVOI_OTP'
+  const envoiOTP = 'Recevoir+un+code+de+s%C3%A9curit%C3%A9'
+  const triggerOTPForm = `${sharedBodyForm}authStep=${getOTPStep}&envoiOTP=${envoiOTP}`
+  const loginReq2 = await request({
+    method: 'POST',
+    url: nextUrl,
+    resolveWithFullResponse: true,
+    form: triggerOTPForm
+  })
+  const loginReq2Body = loginReq2.body.html()
+  const $loginSecondStep = cheerio.load(loginReq2Body)
+  if ($loginSecondStep('#numOTP1').length === 0) {
+    throw new Error('Something went wrong when asking for OTP code')
+  }
+  log('debug', 'First login part OK, waiting for OTP code')
+  let code = await this.waitForTwoFaCode({
+    type: 'email'
+  })
+  if (code.length !== 6) {
+    throw new Error('OTP code must have a length of 6')
+  }
+  const [num1, num2, num3, num4, num5, num6] = code
+  const typeinOTPStep = 'SAISIE_OTP'
+  const sendOTPForm = `${sharedBodyForm}authStep=${typeinOTPStep}&numOTP1=${num1}&numOTP2=${num2}&numOTP3=${num3}&numOTP4=${num4}&numOTP5=${num5}&numOTP6=${num6}&enrolerDevice=on&submit=me%2Bconnecter`
+  const loginReqOTP = await request({
+    method: 'POST',
+    url: nextUrl,
+    resolveWithFullResponse: true,
+    followAllRedirects: true,
+    form: sendOTPForm
+  })
+
+  const loginReqOTPBody = loginReqOTP.body.html()
+  const $loginOTPStep = cheerio.load(loginReqOTPBody)
+  if ($loginOTPStep('a[title="Déconnexion du compte ameli"]').length === 0) {
+    throw new Error('Something went wrong when asking for OTP code')
+  }
+  log('info', 'Login successfull !')
   // For users consent reasons, we got to ask for user's permission to login through FranceConnect.
   // As a result, we keep the code allowing this connection but until we find a solution to this issue, we must not try to login through FranceConnect.
   // If needed use function checkMaintenance()
 
-  await refreshCsrf()
-  form._ct = urlService.getCsrf()
-  const $ = await request({
-    method: 'POST',
-    form,
-    url: urlService.getSubmitUrl()
-  })
-  const visibleZoneAlerte = $('.zone-alerte').filter(
-    (i, el) => !$(el).hasClass('invisible')
-  )
-  if (visibleZoneAlerte.length > 0) {
-    log('warn', 'One or several alert showed to user:')
-    log('warn', visibleZoneAlerte.text())
-  }
-  // Real LOGIN_FAILED case, clearly announce to user from website
-  const loginFailedStrings = [
-    'Le numéro de sécurité sociale et le code personnel ne correspondent pas',
-    'Votre numéro de Sécurité sociale doit contenir des chiffres, A ou B'
-  ]
-  if (loginFailedStrings.some(str => visibleZoneAlerte.text().includes(str))) {
-    throw new Error(errors.LOGIN_FAILED)
-  }
-  // User seems not affiliated anymore to Régime Général
-  const NotMoreAffiliatedString =
-    'vous ne dépendez plus du régime général de' + ` l'Assurance Maladie`
-  if (visibleZoneAlerte.text().includes(NotMoreAffiliatedString)) {
-    throw new Error(errors.USER_ACTION_NEEDED_ACCOUNT_REMOVED)
-  }
+  // All the login failed part is has been redone, but for this case, we couldn't tell for sure it's always functional
+  // So we keeping this arround for later use
+  // const visibleZoneAlerte = $loginOTPStep('.zone-alerte').filter(
+  //   (i, el) => !$(el).hasClass('invisible')
+  // )
+  // // User seems not affiliated anymore to Régime Général
+  // const NotMoreAffiliatedString =
+  //   'vous ne dépendez plus du régime général de' + ` l'Assurance Maladie`
+  // if (visibleZoneAlerte.text().includes(NotMoreAffiliatedString)) {
+  //   throw new Error(errors.USER_ACTION_NEEDED_ACCOUNT_REMOVED)
+  // }
+
   // The user must validate the CGU form
-  const $cgu = $('meta[http-equiv=refresh]')
-  if (
-    $cgu.length > 0 &&
-    $cgu.attr('content') &&
-    $cgu.attr('content').includes('as_conditions_generales_page')
-  ) {
+  const $cgu = $loginOTPStep('#nouvelles_cgu_1erreurBoxAccepte')
+  if ($cgu.length > 0) {
     log('debug', $cgu.attr('content'))
     throw new Error('USER_ACTION_NEEDED.CGU_FORM')
   }
   // Default case. Something unexpected went wrong after the login
-  if ($('[title="Déconnexion du compte ameli"]').length !== 1) {
+  if ($loginOTPStep('[title="Déconnexion du compte ameli"]').length !== 1) {
     log('debug', 'Something unexpected went wrong after the login')
-    if ($.html().includes('modif_code_perso_ameli_apres_reinit')) {
+    if ($loginOTPStep.html().includes('modif_code_perso_ameli_apres_reinit')) {
       log('info', 'Password renew required, user action is needed')
       throw new Error(errors.USER_ACTION_NEEDED)
     }
-    const errorMessage = $('.centrepage h1, .centrepage h2').text()
+    const errorMessage = $loginOTPStep('.centrepage h1, .centrepage h2').text()
     if (errorMessage) {
       log('error', errorMessage)
       if (errorMessage === 'Compte bloqué') {
@@ -849,7 +913,9 @@ async function classicLogin(fields) {
       } else if (errorMessage.includes('Service momentanément indisponible')) {
         throw new Error(errors.VENDOR_DOWN)
       } else {
-        const refreshContent = $('meta[http-equiv=refresh]').attr('content')
+        const refreshContent = $loginOTPStep('meta[http-equiv=refresh]').attr(
+          'content'
+        )
         if (refreshContent) {
           log('error', 'refreshContent')
           log('error', refreshContent)
@@ -869,7 +935,7 @@ async function classicLogin(fields) {
     log('debug', 'Logout button not detected, but for an unknown case')
     throw new Error(errors.VENDOR_DOWN)
   }
-  return $
+  return $loginOTPStep
 }
 
 // eslint-disable-next-line no-unused-vars
