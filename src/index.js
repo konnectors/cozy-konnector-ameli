@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 process.env.SENTRY_DSN =
   process.env.SENTRY_DSN ||
   'https://2b083a1ab2024d47ae73c0f390cafe5f@errors.cozycloud.cc/44'
@@ -802,11 +803,14 @@ class AmeliConnector extends CookieKonnector {
 
   async classicLogin(fields) {
     // First request to get the cookie
-    const baseReq = await this.request({
-      url: urlService.getLoginUrl(),
-      resolveWithFullResponse: true,
-      followAllRedirects: true
-    })
+    const baseReq = await this.request(
+      // 'https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure?_somtc=true',
+      {
+        url: urlService.getLoginUrl(),
+        resolveWithFullResponse: true,
+        followAllRedirects: true
+      }
+    )
     const baseReqBody = baseReq.body.html()
     let nextUrl = baseReq.request.href
     const $LoginForm = cheerio.load(baseReqBody)
@@ -839,9 +843,6 @@ class AmeliConnector extends CookieKonnector {
     const loginReq1 = await this.request({
       method: 'POST',
       url: nextUrl,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
       resolveWithFullResponse: true,
       form: { ...firstForm }
     })
@@ -887,7 +888,6 @@ class AmeliConnector extends CookieKonnector {
     const envoiOTP = 'Recevoir+un+code+de+s%C3%A9curit%C3%A9'
     const triggerOTPForm = `${sharedBodyForm}authStep=${getOTPStep}&envoiOTP=${envoiOTP}`
     const loginReq2 = await this.request.post({
-      // method: 'POST',
       url: nextUrl,
       resolveWithFullResponse: true,
       form: triggerOTPForm
@@ -910,13 +910,34 @@ class AmeliConnector extends CookieKonnector {
     const loginReqOTP = await this.request.post({
       url: nextUrl,
       resolveWithFullResponse: true,
-      followAllRedirects: true,
+      followAllRedirects: false,
+      followRedirect: false,
+      simple: false,
       form: sendOTPForm
     })
+    let nextOTPUrl
+    if (loginReqOTP.statusCode === 303) {
+      await this.saveSession()
+      const $loginreqOTPBody = cheerio.load(loginReqOTP.body.html())
+      nextOTPUrl = $loginreqOTPBody('a').attr('href')
+    }
+    console.log('loginReqOTP', loginReqOTP)
+    console.log('loginReqOTP', loginReqOTP.body.html())
+    console.log('loginReqOTP', loginReqOTP.statusCode)
+    console.log('nextOPTUrl', nextOTPUrl)
+    const postLoginRedirectReq = await this.request(nextOTPUrl, {
+      resolveWithFullResponse: true,
+      followAllRedirects: true
+    })
 
-    const loginReqOTPBody = loginReqOTP.body.html()
-    const $loginOTPStep = cheerio.load(loginReqOTPBody)
-    if ($loginOTPStep('a[title="Déconnexion du compte ameli"]').length === 0) {
+    document.querySelector('pause')
+
+    const postLoginRedirectReqBody = postLoginRedirectReq.body.html()
+    const $postLoginRedirectReqStep = cheerio.load(postLoginRedirectReqBody)
+    if (
+      $postLoginRedirectReqStep('a[title="Déconnexion du compte ameli"]')
+        .length === 0
+    ) {
       throw new Error('Something went wrong when asking for OTP code')
     }
     log('info', 'Login successfull !')
@@ -926,7 +947,7 @@ class AmeliConnector extends CookieKonnector {
 
     // All the login failed part is has been redone, but for this case, we couldn't tell for sure it's always functional
     // So we keeping this arround for later use
-    // const visibleZoneAlerte = $loginOTPStep('.zone-alerte').filter(
+    // const visibleZoneAlerte = $postLoginRedirectReqStep('.zone-alerte').filter(
     //   (i, el) => !$(el).hasClass('invisible')
     // )
     // // User seems not affiliated anymore to Régime Général
@@ -937,21 +958,26 @@ class AmeliConnector extends CookieKonnector {
     // }
 
     // The user must validate the CGU form
-    const $cgu = $loginOTPStep('#nouvelles_cgu_1erreurBoxAccepte')
+    const $cgu = $postLoginRedirectReqStep('#nouvelles_cgu_1erreurBoxAccepte')
     if ($cgu.length > 0) {
       log('debug', $cgu.attr('content'))
       throw new Error('USER_ACTION_NEEDED.CGU_FORM')
     }
     // Default case. Something unexpected went wrong after the login
-    if ($loginOTPStep('[title="Déconnexion du compte ameli"]').length !== 1) {
+    if (
+      $postLoginRedirectReqStep('[title="Déconnexion du compte ameli"]')
+        .length !== 1
+    ) {
       log('debug', 'Something unexpected went wrong after the login')
       if (
-        $loginOTPStep.html().includes('modif_code_perso_ameli_apres_reinit')
+        $postLoginRedirectReqStep
+          .html()
+          .includes('modif_code_perso_ameli_apres_reinit')
       ) {
         log('info', 'Password renew required, user action is needed')
         throw new Error(errors.USER_ACTION_NEEDED)
       }
-      const errorMessage = $loginOTPStep(
+      const errorMessage = $postLoginRedirectReqStep(
         '.centrepage h1, .centrepage h2'
       ).text()
       if (errorMessage) {
@@ -963,9 +989,9 @@ class AmeliConnector extends CookieKonnector {
         ) {
           throw new Error(errors.VENDOR_DOWN)
         } else {
-          const refreshContent = $loginOTPStep('meta[http-equiv=refresh]').attr(
-            'content'
-          )
+          const refreshContent = $postLoginRedirectReqStep(
+            'meta[http-equiv=refresh]'
+          ).attr('content')
           if (refreshContent) {
             log('error', 'refreshContent')
             log('error', refreshContent)
@@ -987,7 +1013,7 @@ class AmeliConnector extends CookieKonnector {
       log('debug', 'Logout button not detected, but for an unknown case')
       throw new Error(errors.VENDOR_DOWN)
     }
-    return $loginOTPStep
+    return $postLoginRedirectReqStep
   }
 
   // eslint-disable-next-line no-unused-vars
