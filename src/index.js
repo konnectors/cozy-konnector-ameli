@@ -325,7 +325,7 @@ class AmeliConnector extends CookieKonnector {
     let reimbursements = []
     let i = 0
     const $ = cheerio.load(reqNoCheerio.tableauPaiement)
-
+    const self = this
     // Each bloc represents a month that includes 0 to n reimbursement
     $('.blocParMois').each(function () {
       // It would be too easy to get the full date at the same place
@@ -335,7 +335,7 @@ class AmeliConnector extends CookieKonnector {
       return $(`[id^=lignePaiement${i++}]`).each(function () {
         const month = $($(this).find('.col-date .mois').get(0)).text()
         const day = $($(this).find('.col-date .jour').get(0)).text()
-        const groupAmount = this.parseAmount(
+        const groupAmount = self.parseAmount(
           $($(this).find('.col-montant span').get(0)).text()
         )
         let date = `${day} ${month} ${year}`
@@ -387,7 +387,7 @@ class AmeliConnector extends CookieKonnector {
       .map(
         reimbursements,
         async reimbursement => {
-          const $ = await this.request(reimbursement.detailsUrl, {
+          const $ = await self.request(reimbursement.detailsUrl, {
             headers: {
               _ct: urlService.getCsrf()
             }
@@ -397,11 +397,11 @@ class AmeliConnector extends CookieKonnector {
               reimbursement.naturePaiement
             )
           ) {
-            return this.parseHealthCareDetails($, reimbursement)
+            return self.parseHealthCareDetails($, reimbursement)
           } else if (
             reimbursement.naturePaiement === 'INDEMNITE_JOURNALIERE_ASSURE'
           ) {
-            return this.parseIndemniteJournaliere($, reimbursement)
+            return self.parseIndemniteJournaliere($, reimbursement)
           }
         },
         { concurrency: 10 }
@@ -420,6 +420,7 @@ class AmeliConnector extends CookieKonnector {
       log('error', 'Download link not found')
       log('error', $('.entete').html())
     }
+    const self = this
     $('.container:not(.entete)').each(function () {
       const $beneficiary = $(this).find('[id^=nomBeneficiaire]')
       if ($beneficiary.length > 0) {
@@ -430,11 +431,11 @@ class AmeliConnector extends CookieKonnector {
 
       // the next container is the list of health cares associated to the beneficiary
       if (currentBeneficiary) {
-        this.parseHealthCares($, this, currentBeneficiary, reimbursement)
+        self.parseHealthCares($, this, currentBeneficiary, reimbursement)
         currentBeneficiary = null
       } else {
         // there is some participation remaining for the whole reimbursement
-        this.parseParticipation($, this, reimbursement)
+        self.parseParticipation($, this, reimbursement)
       }
     })
   }
@@ -461,6 +462,7 @@ class AmeliConnector extends CookieKonnector {
   }
 
   parseHealthCares($, container, beneficiary, reimbursement) {
+    const self = this
     $(container)
       .find('tr')
       .each(function (index) {
@@ -479,14 +481,14 @@ class AmeliConnector extends CookieKonnector {
           index,
           prestation: $(this).find('.naturePrestation').text().trim(),
           date,
-          montantPayé: this.parseAmount(
+          montantPayé: self.parseAmount(
             $(this).find('[id^=montantPaye]').text().trim()
           ),
-          baseRemboursement: this.parseAmount(
+          baseRemboursement: self.parseAmount(
             $(this).find('[id^=baseRemboursement]').text().trim()
           ),
           taux: $(this).find('[id^=taux]').text().trim(),
-          montantVersé: this.parseAmount(
+          montantVersé: self.parseAmount(
             $(this).find('[id^=montantVerse]').text().trim()
           )
         }
@@ -498,6 +500,7 @@ class AmeliConnector extends CookieKonnector {
   }
 
   parseParticipation($, container, reimbursement) {
+    const self = this
     $(container)
       .find('tr')
       .each(function () {
@@ -516,7 +519,7 @@ class AmeliConnector extends CookieKonnector {
         reimbursement.participation = {
           prestation: $(this).find('[id^=naturePFF]').text().trim(),
           date,
-          montantVersé: this.parseAmount(
+          montantVersé: self.parseAmount(
             $(this).find('[id^=montantVerse]').text().trim()
           )
         }
@@ -1014,7 +1017,7 @@ class AmeliConnector extends CookieKonnector {
 }
 
 const connector = new AmeliConnector({
-  debug: true,
+  // debug: true,
   cheerio: true,
   json: false,
   userAgent: false
