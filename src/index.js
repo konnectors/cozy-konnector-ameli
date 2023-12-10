@@ -861,6 +861,11 @@ class AmeliConnector extends CookieKonnector {
       )
       throw new Error('LOGIN_FAILED')
     }
+
+    if (process.env.COZY_JOB_MANUAL_EXECUTION !== 'true') {
+      log('info', "Not a manual execution, don't launch mail 2FA auth")
+      throw new Error('USER_ACTION_NEEDED_TWOFA_EXPIRED')
+    }
     log('info', 'firstStep login - OK')
     const formattedLogin = fields.login.replace(
       /(\d)(\d{2})(\d{2})(\d{2})(\d{3})(\d{3})/g,
