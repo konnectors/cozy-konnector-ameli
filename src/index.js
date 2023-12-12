@@ -15,14 +15,19 @@ const cheerio = require('cheerio')
 class AmeliConnector extends CookieKonnector {
   async fetch(fields) {
     this.initRequestNoCheerio()
+
+    // Login
     await this.checkLogin(fields)
     if (!(await this.testSession())) {
       await this.logIn.bind(this)(fields)
+    } else {
+      log('info', 'Session valide, continuing without login')
     }
+
     const reqNoCheerio = await this.fetchMainPage()
 
+    // Fetching attestation
     const attestationUrl = await this.fetchAttestation()
-
     if (attestationUrl) {
       await this.saveFiles(
         [
@@ -128,20 +133,21 @@ class AmeliConnector extends CookieKonnector {
       'https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_accueil_page&_somtc=true'
     )
     if (testReq('#lienDeconnexionId').length) {
-      log('info', 'testSession - Session still active, continue')
+      log('info', 'testSession - OK - Account connected')
       return true
-    }
-    if (testReq('#id_r_cnx_btn_code').length) {
-      log('info', 'testSession - Landed on pre login page')
+    } else if (testReq('#id_r_cnx_btn_code').length) {
+      log('info', 'testSession - False - Landed on pre login page')
       return false
-    }
-    if (testReq('input[id="connexioncompte_2nir_as"]').length) {
-      log('info', 'testSession - Landed on login form page')
+    } else if (testReq('input[id="connexioncompte_2nir_as"]').length) {
+      log('info', 'testSession - False - Landed on login form page')
       return false
+    } else {
+      log(
+        'error',
+        'testSession - This case is not matching expected states, check the website'
+      )
+      throw new Error('VENDOR_DOWN')
     }
-    throw new Error(
-      'testSession - This case is not matching expected states, check the website'
-    )
   }
 
   async fetchAttestation() {
@@ -298,12 +304,17 @@ class AmeliConnector extends CookieKonnector {
   // Procedure to login to Ameli website.
   async logIn(fields) {
     await this.deactivateAutoSuccessfulLogin()
-    const login = await this.classicLogin.bind(this)(fields)
-    if (login('[title="Déconnexion du compte ameli"]')) {
+    await this.classicLogin.bind(this)(fields)
+    if (await this.testSession()) {
       log('debug', 'LOGIN OK')
-      await this.notifySuccessfulLogin()
-      return await this.request(urlService.getReimbursementUrl())
+    } else {
+      log(
+        'error',
+        'Login succeed but it seems we cant browse the website correctly'
+      )
+      throw new Error('VENDOR_DOWN')
     }
+    await this.notifySuccessfulLogin()
   }
 
   // fetch the HTML page with the list of health cares
@@ -804,15 +815,15 @@ class AmeliConnector extends CookieKonnector {
   }
 
   async classicLogin(fields) {
-    // First request to get the cookie
-    const baseReq = await this.request({
+    // First request to get the form
+    const formPage = await this.request({
       url: urlService.getLoginUrl(),
       resolveWithFullResponse: true,
       followAllRedirects: true
     })
-    const baseReqBody = baseReq.body.html()
-    let nextUrl = baseReq.request.href
-    const $LoginForm = cheerio.load(baseReqBody)
+    const formPageBody = formPage.body.html()
+    let nextUrl = formPage.request.href
+    const $LoginForm = cheerio.load(formPageBody)
     const lmhidden_state = $LoginForm('#lmhidden_state').attr('value')
     const lmhidden_response_type = $LoginForm('#lmhidden_response_type').attr(
       'value'
@@ -823,6 +834,8 @@ class AmeliConnector extends CookieKonnector {
       'value'
     )
     const lmhidden_client_id = $LoginForm('#lmhidden_client_id').attr('value')
+
+    // First login request
     const firstForm = {
       lmhidden_state,
       lmhidden_response_type,
@@ -854,80 +867,87 @@ class AmeliConnector extends CookieKonnector {
       log('error', 'Couple login/password error')
       throw new Error('LOGIN_FAILED')
     }
+    log('debug', 'firstStep login - OK')
+
+    // Clicking OTP button
+    let $loginResult
     if ($loginFirstStep('#BoutonGenerationOTP').length === 0) {
       log(
         'info',
         'First login step went wrong, button for sending OTP mail did not showed up'
       )
-      throw new Error('LOGIN_FAILED')
-    }
-
-    if (process.env.COZY_JOB_MANUAL_EXECUTION !== 'true') {
-      log('info', "Not a manual execution, don't launch mail 2FA auth")
-      throw new Error('USER_ACTION_NEEDED_TWOFA_EXPIRED')
-    }
-    log('info', 'firstStep login - OK')
-    const formattedLogin = fields.login.replace(
-      /(\d)(\d{2})(\d{2})(\d{2})(\d{3})(\d{3})/g,
-      '$1+$2+$3+$4+$5+$6'
-    )
-    const valuesToEncode = {
-      lmhidden_state,
-      lmhidden_response_type,
-      lmhidden_scope,
-      lmhidden_nonce,
-      lmhidden_redirect_uri,
-      lmhidden_client_id
-    }
-    const encodedFormPart = {}
-    for (const cle in valuesToEncode) {
-      if (typeof valuesToEncode[cle] === 'string') {
-        encodedFormPart[cle] = encodeURIComponent(valuesToEncode[cle])
+      // TODO manage login without 2FA (persistance needed)
+      throw new Error('VENDOR_DOWN')
+    } else {
+      // Proceding to mail 2FA by clicking button
+      if (process.env.COZY_JOB_MANUAL_EXECUTION !== 'true') {
+        log('info', "Not a manual execution, don't launch mail 2FA auth")
+        throw new Error('USER_ACTION_NEEDED_TWOFA_EXPIRED')
       }
-    }
-    const lmAuth = 'LOGIN'
-    const skin = 'cnamts'
-    const user = formattedLogin
-    const password = fields.password
-    const sharedBodyForm = `lmhidden_state=${encodedFormPart.lmhidden_state}&lmhidden_response_type=${encodedFormPart.lmhidden_response_type}&lmhidden_scope=${encodedFormPart.lmhidden_scope}&lmhidden_nonce=${encodedFormPart.lmhidden_nonce}&lmhidden_redirect_uri=${encodedFormPart.lmhidden_redirect_uri}&lmhidden_client_id=${encodedFormPart.lmhidden_client_id}&url=&timezone=&lmAuth=${lmAuth}&skin=${skin}&user=${user}&password=${password}&`
+      const formattedLogin = fields.login.replace(
+        /(\d)(\d{2})(\d{2})(\d{2})(\d{3})(\d{3})/g,
+        '$1+$2+$3+$4+$5+$6'
+      )
+      const valuesToEncode = {
+        lmhidden_state,
+        lmhidden_response_type,
+        lmhidden_scope,
+        lmhidden_nonce,
+        lmhidden_redirect_uri,
+        lmhidden_client_id
+      }
+      const encodedFormPart = {}
+      for (const cle in valuesToEncode) {
+        if (typeof valuesToEncode[cle] === 'string') {
+          encodedFormPart[cle] = encodeURIComponent(valuesToEncode[cle])
+        }
+      }
+      const lmAuth = 'LOGIN'
+      const skin = 'cnamts'
+      const user = formattedLogin
+      const password = fields.password
+      const sharedBodyForm = `lmhidden_state=${encodedFormPart.lmhidden_state}&lmhidden_response_type=${encodedFormPart.lmhidden_response_type}&lmhidden_scope=${encodedFormPart.lmhidden_scope}&lmhidden_nonce=${encodedFormPart.lmhidden_nonce}&lmhidden_redirect_uri=${encodedFormPart.lmhidden_redirect_uri}&lmhidden_client_id=${encodedFormPart.lmhidden_client_id}&url=&timezone=&lmAuth=${lmAuth}&skin=${skin}&user=${user}&password=${password}&`
 
-    const getOTPStep = 'ENVOI_OTP'
-    const envoiOTP = 'Recevoir+un+code+de+s%C3%A9curit%C3%A9'
-    const triggerOTPForm = `${sharedBodyForm}authStep=${getOTPStep}&envoiOTP=${envoiOTP}`
-    const loginReq2 = await this.request.post({
-      // method: 'POST',
-      url: nextUrl,
-      resolveWithFullResponse: true,
-      form: triggerOTPForm
-    })
-    const loginReq2Body = loginReq2.body.html()
-    const $loginSecondStep = cheerio.load(loginReq2Body)
-    if ($loginSecondStep('#numOTP1').length === 0) {
-      throw new Error('Something went wrong when asking for OTP code')
-    }
-    log('debug', 'First login part OK, waiting for OTP code')
-    let code = await this.waitForTwoFaCode({
-      type: 'email'
-    })
-    if (code.length !== 6) {
-      throw new Error('OTP code must have a length of 6')
-    }
-    const [num1, num2, num3, num4, num5, num6] = code
-    const typeinOTPStep = 'SAISIE_OTP'
-    const sendOTPForm = `${sharedBodyForm}authStep=${typeinOTPStep}&numOTP1=${num1}&numOTP2=${num2}&numOTP3=${num3}&numOTP4=${num4}&numOTP5=${num5}&numOTP6=${num6}&enrolerDevice=on&submit=me%2Bconnecter`
-    const loginReqOTP = await this.request.post({
-      url: nextUrl,
-      resolveWithFullResponse: true,
-      followAllRedirects: true,
-      form: sendOTPForm
-    })
+      const getOTPStep = 'ENVOI_OTP'
+      const envoiOTP = 'Recevoir+un+code+de+s%C3%A9curit%C3%A9'
+      const triggerOTPForm = `${sharedBodyForm}authStep=${getOTPStep}&envoiOTP=${envoiOTP}`
+      const loginReq2 = await this.request.post({
+        url: nextUrl,
+        resolveWithFullResponse: true,
+        form: triggerOTPForm
+      })
+      const loginReq2Body = loginReq2.body.html()
+      const $loginSecondStep = cheerio.load(loginReq2Body)
+      // Looking for OTP code form
+      if ($loginSecondStep('#numOTP1').length === 0) {
+        throw new Error('Something went wrong when asking for OTP code')
+      }
+      log('debug', 'First login part OK, waiting for OTP code')
 
-    const loginReqOTPBody = loginReqOTP.body.html()
-    const $loginOTPStep = cheerio.load(loginReqOTPBody)
-    if ($loginOTPStep('a[title="Déconnexion du compte ameli"]').length === 0) {
-      throw new Error('Something went wrong when asking for OTP code')
+      // Waiting for 2FA code
+      let code = await this.waitForTwoFaCode({
+        type: 'email'
+      })
+      if (code.length !== 6) {
+        throw new Error('OTP code must have a length of 6')
+      }
+
+      // Sending code to Ameli
+      const [num1, num2, num3, num4, num5, num6] = code
+      const typeinOTPStep = 'SAISIE_OTP'
+      const sendOTPForm = `${sharedBodyForm}authStep=${typeinOTPStep}&numOTP1=${num1}&numOTP2=${num2}&numOTP3=${num3}&numOTP4=${num4}&numOTP5=${num5}&numOTP6=${num6}&enrolerDevice=on&submit=me%2Bconnecter`
+      const loginReqOTP = await this.request.post({
+        url: nextUrl,
+        resolveWithFullResponse: true,
+        followAllRedirects: true,
+        form: sendOTPForm
+      })
+
+      const loginReqOTPBody = loginReqOTP.body.html()
+      $loginResult = cheerio.load(loginReqOTPBody)
     }
-    log('info', 'Login successfull !')
+    // End of mail 2FA
+
     // For users consent reasons, we got to ask for user's permission to login through FranceConnect.
     // As a result, we keep the code allowing this connection but until we find a solution to this issue, we must not try to login through FranceConnect.
     // If needed use function checkMaintenance()
@@ -944,24 +964,31 @@ class AmeliConnector extends CookieKonnector {
     //   throw new Error(errors.USER_ACTION_NEEDED_ACCOUNT_REMOVED)
     // }
 
-    // The user must validate the CGU form
-    const $cgu = $loginOTPStep('#nouvelles_cgu_1erreurBoxAccepte')
+    // Controlling CGU
+    const $cgu = $loginResult('#nouvelles_cgu_1erreurBoxAccepte')
     if ($cgu.length > 0) {
       log('debug', $cgu.attr('content'))
       throw new Error('USER_ACTION_NEEDED.CGU_FORM')
     }
+    // CGU validation from december 2023
+    // Bills are scrapable but not the attestion without accepting CGU
+    const cgu2 = $loginResult
+      .html()
+      .includes('affiche_re_accepte_contitions_util=true')
+    if (cgu2) {
+      log('error', 'Detecting mandatory CGU validation')
+      throw new Error('USER_ACTION_NEEDED.CGU_FORM')
+    }
+
     // Default case. Something unexpected went wrong after the login
-    if ($loginOTPStep('[title="Déconnexion du compte ameli"]').length !== 1) {
+    if ($loginResult('[title="Déconnexion du compte ameli"]').length !== 1) {
       log('debug', 'Something unexpected went wrong after the login')
-      if (
-        $loginOTPStep.html().includes('modif_code_perso_ameli_apres_reinit')
-      ) {
+      if ($loginResult.html().includes('modif_code_perso_ameli_apres_reinit')) {
         log('info', 'Password renew required, user action is needed')
         throw new Error(errors.USER_ACTION_NEEDED)
       }
-      const errorMessage = $loginOTPStep(
-        '.centrepage h1, .centrepage h2'
-      ).text()
+      const errorMessage = $loginResult('.centrepage h1, .centrepage h2').text()
+
       if (errorMessage) {
         log('error', errorMessage)
         if (errorMessage === 'Compte bloqué') {
@@ -971,7 +998,7 @@ class AmeliConnector extends CookieKonnector {
         ) {
           throw new Error(errors.VENDOR_DOWN)
         } else {
-          const refreshContent = $loginOTPStep('meta[http-equiv=refresh]').attr(
+          const refreshContent = $loginResult('meta[http-equiv=refresh]').attr(
             'content'
           )
           if (refreshContent) {
@@ -987,6 +1014,7 @@ class AmeliConnector extends CookieKonnector {
               throw new Error(errors.VENDOR_DOWN)
             }
           } else {
+            log('error', errorMessage)
             log('error', 'Unknown error message')
             throw new Error(errors.VENDOR_DOWN)
           }
@@ -995,7 +1023,6 @@ class AmeliConnector extends CookieKonnector {
       log('debug', 'Logout button not detected, but for an unknown case')
       throw new Error(errors.VENDOR_DOWN)
     }
-    return $loginOTPStep
   }
 
   // eslint-disable-next-line no-unused-vars
