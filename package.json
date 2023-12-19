@@ -1,6 +1,6 @@
 {
   "name": "cozy-konnector-ameli",
-  "version": "1.14.0",
+  "version": "1.21.0",
   "description": "Cozy Konnector for Ameli",
   "repository": {
     "type": "git",
@@ -9,7 +9,6 @@
   "keywords": [],
   "author": "Cozy Cloud",
   "license": "AGPL-3.0",
-  "main": "./src/index.js",
   "eslintConfig": {
     "extends": [
       "cozy-app"
@@ -28,7 +27,6 @@
     "dev": "cozy-konnector-dev",
     "standalone": "cozy-konnector-standalone",
     "pretest": "npm run clean",
-    "check": "konitor check .",
     "clean": "rm -rf ./data",
     "build": "webpack",
     "lint": "eslint --fix .",
@@ -37,19 +35,11 @@
     "travisDeployKey": "./bin/generate_travis_deploy_key"
   },
   "dependencies": {
-    "cozy-konnector-libs": "4.34.0",
-    "moment": "2.24.0"
+    "cozy-konnector-libs": "4.56.4",
+    "moment": "2.29.4"
   },
   "devDependencies": {
-    "copy-webpack-plugin": "5.1.1",
-    "cozy-app-publish": "0.22.3",
-    "cozy-jobs-cli": "1.13.0",
-    "eslint-config-cozy-app": "1.5.0",
-    "git-directory-deploy": "1.5.1",
-    "husky": "4.2.5",
-    "konitor": "0.10.3",
-    "svgo": "1.3.2",
-    "webpack": "4.42.1",
-    "webpack-cli": "3.3.11"
+    "cozy-jobs-cli": "1.20.2",
+    "cozy-konnector-build": "1.5.1"
   }
 }
