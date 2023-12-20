@@ -881,8 +881,8 @@ class AmeliConnector extends CookieKonnector {
     } else {
       // Proceding to mail 2FA by clicking button
       if (process.env.COZY_JOB_MANUAL_EXECUTION !== 'true') {
-        log('info', "Not a manual execution, don't launch mail 2FA auth")
-        throw new Error('USER_ACTION_NEEDED_TWOFA_EXPIRED')
+        log('warn', "Not a manual execution, don't launch mail 2FA auth")
+        throw new Error('USER_ACTION_NEEDED.TWOFA_EXPIRED')
       }
       const formattedLogin = fields.login.replace(
         /(\d)(\d{2})(\d{2})(\d{2})(\d{3})(\d{3})/g,
@@ -905,7 +905,8 @@ class AmeliConnector extends CookieKonnector {
       const lmAuth = 'LOGIN'
       const skin = 'cnamts'
       const user = formattedLogin
-      const password = fields.password
+      // Warning all special characters are been url encoded, else login failed
+      const password = encodeURIComponent(fields.password)
       const sharedBodyForm = `lmhidden_state=${encodedFormPart.lmhidden_state}&lmhidden_response_type=${encodedFormPart.lmhidden_response_type}&lmhidden_scope=${encodedFormPart.lmhidden_scope}&lmhidden_nonce=${encodedFormPart.lmhidden_nonce}&lmhidden_redirect_uri=${encodedFormPart.lmhidden_redirect_uri}&lmhidden_client_id=${encodedFormPart.lmhidden_client_id}&url=&timezone=&lmAuth=${lmAuth}&skin=${skin}&user=${user}&password=${password}&`
 
       const getOTPStep = 'ENVOI_OTP'
@@ -988,6 +989,12 @@ class AmeliConnector extends CookieKonnector {
         throw new Error(errors.USER_ACTION_NEEDED)
       }
       const errorMessage = $loginResult('.centrepage h1, .centrepage h2').text()
+
+      // Detecting login_failed right after 2FA
+      if ($loginResult.html().includes('mot de passe saisi est incorrect')) {
+        log('warn', "Page after code include 'mot de passe incorret")
+        throw new Error(errors.LOGIN_FAILED)
+      }
 
       if (errorMessage) {
         log('error', errorMessage)
