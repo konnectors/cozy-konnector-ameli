@@ -727,7 +727,8 @@ class AmeliConnector extends CookieKonnector {
         }
       ]
     }
-    return ident
+    // Identity now format as a contact
+    return { contact: ident }
   }
 
   // Phone numbers are now obfusctated on the page, No needs to fetch them anymore
