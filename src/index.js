@@ -16,6 +16,11 @@ class AmeliConnector extends CookieKonnector {
   async fetch(fields) {
     this.initRequestNoCheerio()
 
+    // As 2FA seems mandatory, we only allow manual execution
+    if (process.env.COZY_JOB_MANUAL_EXECUTION !== 'true') {
+      log('warn', "Not a manual execution, don't launch mail 2FA auth")
+      throw new Error('USER_ACTION_NEEDED.TWOFA_EXPIRED')
+    }
     // Login
     await this.checkLogin(fields)
     if (!(await this.testSession())) {
@@ -259,10 +264,10 @@ class AmeliConnector extends CookieKonnector {
     if (fields.login.length > 13) {
       // remove the key from the social security number
       fields.login = fields.login.replace(/\s/g, '').substr(0, 13)
-      log('info', `Fixed the login length to 13`)
+      log('warn', `Fixed the login length to 13`)
     }
     if (fields.login.length < 13) {
-      log('info', 'Login is under 13 character')
+      log('warn', 'Login is under 13 character')
       throw new Error(errors.LOGIN_FAILED)
     }
     if (!fields.password) {
