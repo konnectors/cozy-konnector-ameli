@@ -2465,6 +2465,31 @@ cozy-client@^33.2.0:
     sift "^6.0.0"
     url-search-params-polyfill "^8.0.0"
 
+cozy-client@^41.2.0:
+  version "41.9.0"
+  resolved "https://registry.yarnpkg.com/cozy-client/-/cozy-client-41.9.0.tgz#909b8c678a88f6fdb1c7ff0dffb757d0cd59dd22"
+  integrity sha512-nmEF/4dAlTcklZ0vTFBZDdTqvQIBnqAjA6zkusgN5lrCaQ+VGe/WQSQ2+3EdIC/xryo0Qa4/kk6RG1AzTsntZg==
+  dependencies:
+    "@cozy/minilog" "1.0.0"
+    "@types/jest" "^26.0.20"
+    "@types/lodash" "^4.14.170"
+    btoa "^1.2.1"
+    cozy-stack-client "^41.9.0"
+    date-fns "2.29.3"
+    json-stable-stringify "^1.0.1"
+    lodash "^4.17.13"
+    microee "^0.0.6"
+    node-fetch "^2.6.1"
+    node-polyglot "2.4.2"
+    open "7.4.2"
+    prop-types "^15.6.2"
+    react-redux "^7.2.0"
+    redux "3 || 4"
+    redux-thunk "^2.3.0"
+    server-destroy "^1.0.1"
+    sift "^6.0.0"
+    url-search-params-polyfill "^8.0.0"
+
 cozy-device-helper@^2.1.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/cozy-device-helper/-/cozy-device-helper-2.2.0.tgz#2794157bcd23948e68ef373ab9a67e1a6c17d995"
@@ -2529,7 +2554,38 @@ cozy-konnector-build@1.5.1:
     webpack "5.76.0"
     webpack-cli "4.9.2"
 
-cozy-konnector-libs@4.56.4, cozy-konnector-libs@^4.56.4:
+cozy-konnector-libs@5.6.2:
+  version "5.6.2"
+  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-5.6.2.tgz#1080e14a96cd5850d6b094ef22eab99dd19f780b"
+  integrity sha512-70AN44wlddLhYqn+rkf5BrxiHMJI+yFusHQ1psAntk6OD7rpx9oHXg5V5CLAeCKLQSaoKl46o49ZmxHEXTjPUg==
+  dependencies:
+    babel-runtime "^6.26.0"
+    bluebird "^3.7.2"
+    bluebird-retry "^0.11.0"
+    btoa "1.2.1"
+    cheerio "^1.0.0-rc.9"
+    classificator "^0.3.3"
+    cozy-client "^41.2.0"
+    cozy-client-js "^0.20.0"
+    cozy-device-helper "^2.1.0"
+    cozy-doctypes "^1.83.8"
+    cozy-flags "^2.8.7"
+    cozy-logger "^1.8.0"
+    date-fns "^2.22.1"
+    file-type "^16.5.0"
+    geco "git+https://github.com/konnectors/geco.git#0.11.2"
+    lodash-id "^0.14.0"
+    lowdb "^1.0.0"
+    mime-types "^2.1.31"
+    node-fetch "^2.6.1"
+    raven "^2.6.4"
+    raw-body "^2.4.1"
+    request "^2.88.2"
+    request-debug "^0.2.0"
+    request-promise "^4.2.6"
+    strip-json-comments "^3.1.1"
+
+cozy-konnector-libs@^4.56.4:
   version "4.56.4"
   resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-4.56.4.tgz#139fcda7569173be8c585b141132ea85e260fc28"
   integrity sha512-GSrOxKkpGSkBCAqVcdAht3+7Tv0l6cw+GtwYOCPl3YiCvcN5PzxfiaXndBXu9VDNHTgNFmAKMNdJVNDedlRKuQ==
@@ -2589,6 +2645,15 @@ cozy-stack-client@^33.2.0:
   version "33.2.0"
   resolved "https://registry.yarnpkg.com/cozy-stack-client/-/cozy-stack-client-33.2.0.tgz#97b80514d68da2b6392f74d280f9867165b7d606"
   integrity sha512-50vTnZvjCEYGx5nN+2rLhf63JZICNq9bXKY0QUFmfuMBfOTdD4EGw+EVA0YGxQYaz3E3FLrmMuIw5TtLzCDgcA==
+  dependencies:
+    detect-node "^2.0.4"
+    mime "^2.4.0"
+    qs "^6.7.0"
+
+cozy-stack-client@^41.9.0:
+  version "41.9.0"
+  resolved "https://registry.yarnpkg.com/cozy-stack-client/-/cozy-stack-client-41.9.0.tgz#1d21fa2a4b09b545f8ddd9468e3771761e86b455"
+  integrity sha512-dc048YfX8n+JRvlZP3bgM7v/qKkj/C9/yvEigwdU+FtKUNTBZVbPGLbJN9KZ9nNU0mjs1o1DMHjFvjHzgr9wHg==
   dependencies:
     detect-node "^2.0.4"
     mime "^2.4.0"
@@ -2712,6 +2777,11 @@ dashdash@^1.12.0:
   integrity sha1-hTz6D3y+L+1d4gMmuN1YEDX24vA=
   dependencies:
     assert-plus "^1.0.0"
+
+date-fns@2.29.3:
+  version "2.29.3"
+  resolved "https://registry.yarnpkg.com/date-fns/-/date-fns-2.29.3.tgz#27402d2fc67eb442b511b70bbdf98e6411cd68a8"
+  integrity sha512-dDCnyH2WnnKusqvZZ6+jA1O51Ibt8ZMRNkDZdyAyK4YfbDwa/cEmuztzG5pk6hqlp9aSBPYcjOlktquahGwGeA==
 
 date-fns@^1.30.1:
   version "1.30.1"
@@ -3598,7 +3668,6 @@ functional-red-black-tree@^1.0.1:
 
 "geco@git+https://github.com/konnectors/geco.git#0.11.2":
   version "0.11.2"
-  uid fe0da3cdaabd5714a226014efd61c89bc85e7c56
   resolved "git+https://github.com/konnectors/geco.git#fe0da3cdaabd5714a226014efd61c89bc85e7c56"
   dependencies:
     toni "git+https://github.com/konnectors/toni.git#0.6.3"
@@ -6109,7 +6178,6 @@ token-types@^4.1.1:
 
 "toni@git+https://github.com/konnectors/toni.git#0.6.3":
   version "0.6.3"
-  uid eb813c9d070b494efd78f788cf627bfc9a1019ec
   resolved "git+https://github.com/konnectors/toni.git#eb813c9d070b494efd78f788cf627bfc9a1019ec"
   dependencies:
     bolgia ">=2.7.4"
