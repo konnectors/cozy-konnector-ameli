@@ -2,7 +2,13 @@ process.env.SENTRY_DSN =
   process.env.SENTRY_DSN ||
   'https://2b083a1ab2024d47ae73c0f390cafe5f@errors.cozycloud.cc/44'
 
-const { log, CookieKonnector, errors, scrape } = require('cozy-konnector-libs')
+const {
+  log,
+  CookieKonnector,
+  errors,
+  scrape,
+  cozyClient
+} = require('cozy-konnector-libs')
 const moment = require('moment')
 const sortBy = require('lodash/sortBy')
 moment.locale('fr')
@@ -11,6 +17,8 @@ const crypto = require('crypto')
 const Bill = require('./bill')
 const urlService = require('./urlService')
 const cheerio = require('cheerio')
+const models = cozyClient.new.models
+const { Qualification } = models.document
 
 class AmeliConnector extends CookieKonnector {
   async fetch(fields) {
@@ -68,7 +76,7 @@ class AmeliConnector extends CookieKonnector {
     })
 
     const reimbursements = await this.parseMainPage(reqNoCheerio)
-    const entries = await this.getHealthCareBills(reimbursements, fields.login)
+    const entries = await this.getHealthCareBills(reimbursements)
     if (entries.length) {
       await this.saveBills(entries, fields, {
         sourceAccount: this.accountId,
@@ -91,7 +99,7 @@ class AmeliConnector extends CookieKonnector {
       })
     }
 
-    const IndemniteBills = this.getIndemniteBills(reimbursements, fields.login)
+    const IndemniteBills = this.getIndemniteBills(reimbursements)
     if (IndemniteBills.length) {
       await this.saveBills(IndemniteBills, fields, {
         sourceAccount: this.accountId,
@@ -542,7 +550,7 @@ class AmeliConnector extends CookieKonnector {
       })
   }
 
-  getIndemniteBills(reimbursements, login) {
+  getIndemniteBills(reimbursements) {
     return reimbursements
       .filter(r => ['INDEMNITE_JOURNALIERE_ASSURE'].includes(r.naturePaiement))
       .map(reimbursement => {
@@ -559,14 +567,10 @@ class AmeliConnector extends CookieKonnector {
           fileAttributes: {
             metadata: {
               carbonCopy: true,
-              classification: 'invoicing',
+              qualification: Qualification.getByLabel('health_invoice'),
               datetime: reimbursement.date.toDate(),
               datetimeLabel: 'issueDate',
-              contentAuthor: 'ameli',
-              subClassification: 'payment_statement',
-              categories: ['public_service', 'health'],
-              issueDate: reimbursement.date.toDate(),
-              contractReference: login
+              issueDate: reimbursement.date.toDate()
             }
           },
           requestOptions: {
@@ -578,7 +582,7 @@ class AmeliConnector extends CookieKonnector {
       .filter(bill => !isNaN(bill.amount))
   }
 
-  getHealthCareBills(reimbursements, login) {
+  getHealthCareBills(reimbursements) {
     const bills = []
     reimbursements
       .filter(r =>
@@ -607,14 +611,10 @@ class AmeliConnector extends CookieKonnector {
               fileAttributes: {
                 metadata: {
                   carbonCopy: true,
-                  classification: 'invoicing',
+                  qualification: Qualification.getByLabel('health_invoice'),
                   datetime: reimbursement.date.toDate(),
                   datetimeLabel: 'issueDate',
-                  contentAuthor: 'ameli',
-                  subClassification: 'payment_statement',
-                  categories: ['public_service', 'health'],
-                  issueDate: reimbursement.date.toDate(),
-                  contractReference: login
+                  issueDate: reimbursement.date.toDate()
                 }
               },
               groupAmount: reimbursement.groupAmount,
@@ -644,14 +644,10 @@ class AmeliConnector extends CookieKonnector {
             shouldReplaceName: this.getOldFileName(reimbursement),
             fileAttributes: {
               metadata: {
-                classification: 'invoicing',
+                qualification: Qualification.getByLabel('health_invoice'),
                 datetime: reimbursement.date.toDate(),
                 datetimeLabel: 'issueDate',
-                contentAuthor: 'ameli',
-                subClassification: 'payment_statement',
-                categories: ['public_service', 'health'],
-                issueDate: reimbursement.date.toDate(),
-                contractReference: login
+                issueDate: reimbursement.date.toDate()
               }
             },
             groupAmount: reimbursement.groupAmount,

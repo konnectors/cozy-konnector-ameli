@@ -121,10 +121,13 @@
     "LOGIN_OK",
     "METADATA_DEDUP",
     "IDENTITY",
-    "DOC_QUALIFICATION",
+    "DOC_QUALIFICATION_V2",
     "HEALTH",
     "CARBON_COPY",
     "SENTRY_V2"
+  ],
+  "qualification_labels": [
+    "health_invoice"
   ],
   "banksTransactionRegExp": "(cpc?am|c\\.p\\.(c\\.)?a\\.m|caisse primaire)",
   "manifest_version": "2"
