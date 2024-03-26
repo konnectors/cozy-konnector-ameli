@@ -54,7 +54,10 @@ class AmeliConnector extends CookieKonnector {
             },
             fileAttributes: {
               metadata: {
-                carbonCopy: true
+                carbonCopy: true,
+                qualification: Qualification.getByLabel(
+                  'national_health_insurance_right_certificate'
+                )
               }
             }
           }
