@@ -1,5 +1,5 @@
 {
-  "version": "1.27.0",
+  "version": "1.28.0",
   "name": "Ameli",
   "type": "konnector",
   "language": "node",
@@ -127,7 +127,8 @@
     "SENTRY_V2"
   ],
   "qualification_labels": [
-    "health_invoice"
+    "health_invoice",
+    "national_health_insurance_right_certificate"
   ],
   "banksTransactionRegExp": "(cpc?am|c\\.p\\.(c\\.)?a\\.m|caisse primaire)",
   "manifest_version": "2"
