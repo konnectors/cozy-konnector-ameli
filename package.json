@@ -1,6 +1,6 @@
 {
   "name": "cozy-konnector-ameli",
-  "version": "1.28.0",
+  "version": "1.29.0",
   "description": "Cozy Konnector for Ameli",
   "repository": {
     "type": "git",
@@ -35,7 +35,7 @@
     "travisDeployKey": "./bin/generate_travis_deploy_key"
   },
   "dependencies": {
-    "cozy-konnector-libs": "5.10.1",
+    "cozy-konnector-libs": "5.11.0",
     "moment": "2.29.4"
   },
   "devDependencies": {
