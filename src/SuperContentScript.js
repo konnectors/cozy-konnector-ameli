@@ -162,6 +162,23 @@ class CssLocator {
     return this.contentScript.page.runLocator(this, '_innerHTML')
   }
 
+  async _innerText() {
+    const elements = this._getElements()
+    if (elements.length > 1) {
+      throw new Error(
+        'Cannot get _innerText of multiple elements. Found ',
+        elements.length
+      )
+    }
+
+    return elements.pop().innerText.trim()
+  }
+
+  async innerText() {
+    await this.waitFor()
+    return this.contentScript.page.runLocator(this, '_innerText')
+  }
+
   async click() {
     await this.waitFor()
     return this.contentScript.runInWorker('click', this.selector, this.options)
