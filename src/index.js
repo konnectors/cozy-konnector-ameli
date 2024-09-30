@@ -1,237 +1,182 @@
-process.env.SENTRY_DSN =
-  process.env.SENTRY_DSN ||
-  'https://2b083a1ab2024d47ae73c0f390cafe5f@errors.cozycloud.cc/44'
+import SuperContentScript from './SuperContentScript'
+import fr from 'date-fns/locale/fr'
+import { parse, format } from 'date-fns'
 
-const {
-  log,
-  CookieKonnector,
-  errors,
-  scrape,
-  cozyClient
-} = require('cozy-konnector-libs')
-const moment = require('moment')
-const sortBy = require('lodash/sortBy')
-moment.locale('fr')
-const bluebird = require('bluebird')
-const crypto = require('crypto')
-const Bill = require('./bill')
-const urlService = require('./urlService')
-const cheerio = require('cheerio')
-const models = cozyClient.new.models
-const { Qualification } = models.document
+const baseUrl = 'https://assure.ameli.fr'
+const infoUrl =
+  baseUrl +
+  '/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_info_perso_book'
+const paiementsUrl =
+  baseUrl +
+  '/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_paiements_page'
 
-class AmeliConnector extends CookieKonnector {
-  async fetch(fields) {
-    this.initRequestNoCheerio()
+const paiementsRequestUrl =
+  baseUrl + '/PortailAS/paiements.do?actionEvt=afficherPaiementsComplementaires'
 
-    // As 2FA seems mandatory, we only allow manual execution
-    if (process.env.COZY_JOB_MANUAL_EXECUTION !== 'true') {
-      log('warn', "Not a manual execution, don't launch mail 2FA auth")
-      throw new Error('USER_ACTION_NEEDED.TWOFA_EXPIRED')
+const messagesUrl =
+  baseUrl +
+  '/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_messages_recus_page'
+
+class AmeliContentScript extends SuperContentScript {
+  // ////////
+  // PILOT //
+  // ////////
+  async ensureAuthenticated({ account }) {
+    this.launcher.log('info', '🤖 ensureAuthenticated starts')
+
+    if (!account) {
+      await this.ensureNotAuthenticated()
     }
-    // Login
-    await this.checkLogin(fields)
-    if (!(await this.testSession())) {
-      await this.logIn.bind(this)(fields)
+    await this.page.goto(baseUrl)
+    await this.page
+      .getByCss('.deconnexionButton, #connexioncompte_2nir_as')
+      .waitFor()
+
+    const authenticated = await this.page.evaluate(checkAuthenticated)
+    if (!authenticated) {
+      await this.waitForUserAuthentication()
+    }
+  }
+
+  async ensureNotAuthenticated() {
+    this.launcher.log('info', '🤖 ensureNotAuthenticated starts')
+    await this.page.goto(baseUrl)
+    await this.page
+      .getByCss('.deconnexionButton, #connexioncompte_2nir_as')
+      .waitFor()
+    const authenticated = await this.page.evaluate(checkAuthenticated)
+    if (!authenticated) {
+      return true
+    }
+
+    this.launcher.log('info', 'User authenticated. Logging out')
+    await this.page.getByCss('.deconnexionButton').click()
+    await this.page.getByCss('#as_deconnexion_page').waitFor()
+    return true
+  }
+
+  async getUserDataFromWebsite() {
+    this.launcher.log('info', '🤖 getUserDataFromWebsite starts')
+    await this.page.goto(infoUrl)
+
+    const sourceAccountIdentifier = (
+      await this.page.getByCss('.blocNumSecu').innerHTML()
+    )
+      .trim()
+      .split(' ')
+      .join('')
+
+    if (sourceAccountIdentifier) {
+      return {
+        sourceAccountIdentifier
+      }
     } else {
-      log('info', 'Session valide, continuing without login')
-    }
-
-    const reqNoCheerio = await this.fetchMainPage()
-
-    // Fetching attestation
-    const attestationUrl = await this.fetchAttestation()
-    if (attestationUrl) {
-      await this.saveFiles(
-        [
-          {
-            fileurl: attestationUrl,
-            filename: 'Attestation_de_droits_ameli.pdf',
-            shouldReplaceFile: () => true,
-            requestOptions: {
-              jar: this._jar,
-              gzip: true
-            },
-            fileAttributes: {
-              metadata: {
-                carbonCopy: true,
-                qualification: Qualification.getByLabel(
-                  'national_health_insurance_right_certificate'
-                )
-              }
-            }
-          }
-        ],
-        fields,
-        {
-          requestInstance: this.requestNoCheerio,
-          contentType: true,
-          fileIdAttributes: ['filename']
-        }
+      throw new Error(
+        'No sourceAccountIdentifier, the konnector should be fixed'
       )
     }
+  }
+
+  async waitForUserAuthentication() {
+    this.launcher.log('info', 'waitForUserAuthentication starts')
+    await this.page.show()
+    await this.page.waitFor(checkAuthenticated)
+    await this.page.hide()
+  }
+
+  async fetch(context) {
+    await this.fetchAttestation(context)
+    const reimbursements = await this.fetchBills()
+    const entries = await getHealthCareBills(reimbursements)
+
+    // first save files, then update existingFilesIndex
+    // to avoid multiple files downloads for the same file
+    const fileEntries = Object.values(
+      entries.reduce((memo, entry) => {
+        if (!memo[entry.vendorRef]) {
+          memo[entry.vendorRef] = entry
+        }
+        return memo
+      }, {})
+    )
+    await this.saveFiles(fileEntries, {
+      context,
+      fileIdAttributes: ['vendorRef'],
+      contentType: 'application/pdf'
+    })
+    await this.saveBills(entries, {
+      context,
+      fileIdAttributes: ['vendorRef'],
+      contentType: 'application/pdf',
+      keys: ['vendorRef', 'date', 'amount', 'beneficiary', 'subtype', 'index']
+    })
 
     const messages = await this.fetchMessages()
-    await this.saveFiles(messages, fields, {
-      requestInstance: this.requestNoCheerio,
-      contentType: true,
-      fileIdAttributes: ['vendorRef']
+    await this.saveFiles(messages, {
+      context,
+      fileIdAttributes: ['vendorRef'],
+      contentType: 'application/pdf'
     })
-
-    const reimbursements = await this.parseMainPage(reqNoCheerio)
-    const entries = await this.getHealthCareBills(reimbursements)
-    if (entries.length) {
-      await this.saveBills(entries, fields, {
-        sourceAccount: this.accountId,
-        sourceAccountIdentifier: fields.login,
-        fileIdAttributes: ['vendorRef'],
-        shouldUpdate: (entry, dbEntry) => {
-          const result = entry.vendorRef && !dbEntry.vendorRef
-          return result
-        },
-        requestInstance: this.requestNoCheerio,
-        keys: [
-          'vendorRef',
-          'date',
-          'amount',
-          'beneficiary',
-          'subtype',
-          'index'
-        ],
-        linkBankOperations: false
-      })
-    }
-
-    const IndemniteBills = this.getIndemniteBills(reimbursements)
-    if (IndemniteBills.length) {
-      await this.saveBills(IndemniteBills, fields, {
-        sourceAccount: this.accountId,
-        sourceAccountIdentifier: fields.login,
-        requestInstance: this.requestNoCheerio,
-        fileIdAttributes: ['vendorRef'],
-        keys: ['vendorRef', 'date', 'amount', 'subtype'],
-        linkBankOperations: false
-      })
-    }
-
-    const ident = await this.fetchIdentity()
-    await this.saveIdentity(ident, fields.login)
-
-    // Logout in the end of the execution for dev purposes
-    // console.log('Sending logout request')
-    // const logOutReq = await this.request(
-    //   'https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_deconnexion_page'
-    // )
-    // if (logOutReq('#as_deconnexion_page').length) {
-    //   console.log('Logout success, getting trustedDevice cookie')
-    //   const loginFormPage = await this.request(
-    //     'https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure?_somtc=true'
-    //   )
-    //   if (loginFormPage('#connexioncompte_2nir_as')) {
-    //     console.log('loginForm page, saving session and stop')
-    //   }
-    // } else {
-    //   console.log('something went wrong with logout')
-    // }
-  }
-
-  async initRequestNoCheerio() {
-    this.requestNoCheerio = this.requestFactory({
-      // debug: true,
-      cheerio: false,
-      json: true,
-      userAgent: false
-    })
-  }
-
-  async testSession() {
-    const testReq = await this.request(
-      'https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_accueil_page&_somtc=true'
-    )
-    if (testReq('#lienDeconnexionId').length) {
-      log('info', 'testSession - OK - Account connected')
-      return true
-    } else if (testReq('#id_r_cnx_btn_code').length) {
-      log('info', 'testSession - False - Landed on pre login page')
-      return false
-    } else if (testReq('input[id="connexioncompte_2nir_as"]').length) {
-      log('info', 'testSession - False - Landed on login form page')
-      return false
-    } else {
-      log(
-        'error',
-        'testSession - This case is not matching expected states, check the website'
-      )
-      throw new Error('VENDOR_DOWN')
-    }
-  }
-
-  async fetchAttestation() {
-    const $ = await this.request.post(urlService.getAttestationUrl(), {
-      form: {
-        attDroitsAccueilidBeneficiaire: 'FAMILLE',
-        attDroitsAccueilmentionsComplementaires: 'ETM',
-        attDroitsAccueilactionEvt: 'confirmer',
-        attDroitsAccueilblocOuvert: true,
-        _ct: urlService.getCsrf()
-      }
-    })
-    const $link = $('.r_lien_pdf')
-    if ($link.length) {
-      return urlService.getDomain() + $link.attr('href')
-    }
-
-    return null
   }
 
   async fetchMessages() {
-    const $ = await this.request.get(urlService.getMessagesUrl())
-    await this.refreshCsrf()
+    await this.page.goto(messagesUrl)
+    await this.page.getByCss('#tableauMessagesRecus tbody tr').waitFor()
 
-    const docs = scrape(
-      $,
+    const docs = await this.page.evaluate(function parseMessages() {
+      const docs = []
+      const trs = document.querySelectorAll('#tableauMessagesRecus tbody tr')
+      for (const tr of trs) {
+        docs.push({
+          vendorRef: tr.querySelector('td:nth-child(1) input')?.value,
+          from: tr.querySelector('td:nth-child(3)')?.innerText.trim(),
+          title: tr.querySelector('td:nth-child(4)')?.innerText.trim(),
+          date: tr.querySelector('td:nth-child(5)')?.innerText.trim(),
+          detailsLink: tr
+            .querySelector('td:nth-child(5) a')
+            ?.getAttribute('href')
+        })
+      }
+      return docs
+    })
+
+    const tokenResponse = await this.page.fetch(
+      'https://assure.ameli.fr/PortailAS/JavaScriptServlet',
       {
-        vendorRef: {
-          sel: 'td:nth-child(1) input',
-          attr: 'value'
+        method: 'POST',
+        headers: {
+          'FETCH-CSRF-TOKEN': '1'
         },
-        from: 'td:nth-child(3)',
-        title: 'td:nth-child(4)',
-        date: {
-          sel: 'td:nth-child(5)',
-          parse: date => moment(date, 'DD/MM/YY')
-        },
-        detailsLink: {
-          sel: 'td:nth-child(5) a',
-          attr: 'href'
-        }
-      },
-      '#tableauMessagesRecus tbody tr'
+        serialization: 'text'
+      }
     )
-
+    const csrfToken = tokenResponse.split(':').pop()
     const piecesJointes = []
     for (const doc of docs) {
-      const $ = await this.request(doc.detailsLink)
-      const $form = $('#pdfSimple')
-      const fileprefix = `${doc.date.format('YYYYMMDD')}_ameli_message_${
-        doc.title
-      }_${crypto
-        .createHash('sha1')
-        .update(doc.vendorRef)
-        .digest('hex')
-        .substr(0, 5)}`
+      const html = await this.page.fetch(doc.detailsLink, {
+        serialization: 'text'
+      })
+      document.body.innerHTML = html
+      const form = document.querySelector('#pdfSimple')
+      doc.date = parse(doc.date, 'dd/MM/yy', new Date())
+      const hash = await this.page.evaluate(hexDigest, doc.vendorRef)
+      const fileprefix = `${format(
+        doc.date,
+        'yyyMMdd',
+        new Date()
+      )}_ameli_message_${doc.title}_${hash.substr(0, 5)}`
+
+      const fileurl = baseUrl + form.getAttribute('action')
+
       Object.assign(doc, {
-        fileurl: urlService.getDomain() + $form.attr('action'),
+        fileurl: fileurl + `?_ct=${csrfToken}`,
         requestOptions: {
-          jar: this._jar,
           method: 'POST',
           form: {
-            idMessage: $form.find(`[name='idMessage']`).val(),
-            telechargementPDF: $form.find(`[name='telechargementPDF']`).val(),
-            nomPDF: $form.find(`[name='nomPDF']`).val()
-          },
-          qs: {
-            _ct: urlService.getCsrf()
+            idMessage: form.querySelector(`[name='idMessage']`).value,
+            telechargementPDF: form.querySelector(`[name='telechargementPDF']`)
+              .value,
+            nomPDF: form.querySelector(`[name='nomPDF']`).value
           }
         },
         filename: `${fileprefix}.pdf`,
@@ -242,829 +187,406 @@ class AmeliConnector extends CookieKonnector {
         }
       })
 
-      const hasAttachment = $('.telechargement_PJ').length
-      if (hasAttachment)
+      const pj = document.querySelector('.telechargement_PJ')
+      if (pj) {
         piecesJointes.push({
-          fileurl:
-            urlService.getDomain() + $('.telechargement_PJ').attr('href'),
+          fileurl: baseUrl + pj.getAttribute('href') + `?_ct=${csrfToken}`,
           filename: fileprefix + '_PJ.pdf',
           vendorRef: doc.vendorRef + '_PJ',
-          requestOptions: {
-            jar: this._jar,
-            qs: {
-              _ct: urlService.getCsrf()
-            }
-          },
           fileAttributes: {
             metadata: {
               carbonCopy: true
             }
           }
         })
+      }
     }
-
     return [...docs, ...piecesJointes]
   }
 
-  async checkLogin(fields) {
-    /* As known in Oct2019, from error message,
-       Social Security Number should be 13 chars from this set [0-9AB]
-    */
+  async fetchBills() {
+    await this.page.goto(paiementsUrl)
 
-    log('debug', 'Checking the length of the login')
-    if (fields.login.length > 13) {
-      // remove the key from the social security number
-      fields.login = fields.login.replace(/\s/g, '').substr(0, 13)
-      log('warn', `Fixed the login length to 13`)
-    }
-    if (fields.login.length < 13) {
-      log('warn', 'Login is under 13 character')
-      throw new Error(errors.LOGIN_FAILED)
-    }
-    if (!fields.password) {
-      log('warn', 'No password set in account, aborting')
-      throw new Error(errors.LOGIN_FAILED)
-    }
-  }
-
-  async refreshCsrf() {
-    const csrfBody = await this.requestNoCheerio({
-      har: {
+    const tokenResponse = await this.page.fetch(
+      'https://assure.ameli.fr/PortailAS/JavaScriptServlet',
+      {
         method: 'POST',
-        url: 'https://assure.ameli.fr/PortailAS/JavaScriptServlet',
-        headers: [
-          {
-            name: 'Host',
-            value: 'assure.ameli.fr'
-          },
-          {
-            name: 'Accept',
-            value: '*/*'
-          },
-          {
-            name: 'FETCH-CSRF-TOKEN',
-            value: '1'
-          },
-          {
-            name: 'Origin',
-            value: 'https://assure.ameli.fr'
-          }
-        ]
-      }
-    })
-
-    const [, csrf] = csrfBody.split(':')
-    urlService.setCsrf(csrf)
-  }
-
-  // Procedure to login to Ameli website.
-  async logIn(fields) {
-    await this.deactivateAutoSuccessfulLogin()
-    await this.classicLogin.bind(this)(fields)
-    if (await this.testSession()) {
-      log('debug', 'LOGIN OK')
-    } else {
-      log(
-        'error',
-        'Login succeed but it seems we cant browse the website correctly'
-      )
-      throw new Error('VENDOR_DOWN')
-    }
-    await this.notifySuccessfulLogin()
-  }
-
-  // fetch the HTML page with the list of health cares
-  async fetchMainPage() {
-    log('debug', 'Fetching the list of bills')
-
-    // We can get the history only 6 months back
-    const billUrl = urlService.getBillUrl()
-
-    await this.request(billUrl)
-
-    const result = await this.requestNoCheerio(billUrl)
-    await this.refreshCsrf()
-    return result
-  }
-
-  // Parse the fetched page to extract bill data.
-  async parseMainPage(reqNoCheerio) {
-    let reimbursements = []
-    let i = 0
-    const $ = cheerio.load(reqNoCheerio.tableauPaiement)
-    const self = this
-    // Each bloc represents a month that includes 0 to n reimbursement
-    $('.blocParMois').each(function () {
-      // It would be too easy to get the full date at the same place
-      let year = $($(this).find('.rowdate .mois').get(0)).text()
-      year = year.split(' ')[1]
-
-      return $(`[id^=lignePaiement${i++}]`).each(function () {
-        const month = $($(this).find('.col-date .mois').get(0)).text()
-        const day = $($(this).find('.col-date .jour').get(0)).text()
-        const groupAmount = self.parseAmount(
-          $($(this).find('.col-montant span').get(0)).text()
-        )
-        let date = `${day} ${month} ${year}`
-        date = moment(date, 'Do MMMM YYYY')
-
-        // Retrieve and extract the infos needed to generate the pdf
-        const attrInfos = $(this).attr('onclick')
-        const tokens = attrInfos.split("'")
-
-        const idPaiement = tokens[1]
-        const naturePaiement = tokens[3]
-        const indexGroupe = tokens[5]
-        const indexPaiement = tokens[7]
-
-        const detailsUrl = urlService.getDetailsUrl(
-          idPaiement,
-          naturePaiement,
-          indexGroupe,
-          indexPaiement
-        )
-
-        // This link seems to not be present in every account
-        let link = $(this).find('.downdetail').attr('href')
-
-        if (!link) {
-          link = $(this).find('[id^=liendowndecompte]')
-        }
-
-        let lineId = indexGroupe + indexPaiement
-
-        let reimbursement = {
-          date,
-          lineId,
-          detailsUrl,
-          link,
-          idPaiement,
-          naturePaiement,
-          groupAmount,
-          isThirdPartyPayer: naturePaiement === 'PAIEMENT_A_UN_TIERS',
-          beneficiaries: {}
-        }
-
-        reimbursements.push(reimbursement)
-      })
-    })
-
-    reimbursements = sortBy(reimbursements, x => +x.date)
-    return bluebird
-      .map(
-        reimbursements,
-        async reimbursement => {
-          const $ = await self.request(reimbursement.detailsUrl, {
-            headers: {
-              _ct: urlService.getCsrf()
-            }
-          })
-          if (
-            ['PAIEMENT_A_UN_TIERS', 'REMBOURSEMENT_SOINS'].includes(
-              reimbursement.naturePaiement
-            )
-          ) {
-            return self.parseHealthCareDetails($, reimbursement)
-          } else if (
-            reimbursement.naturePaiement === 'INDEMNITE_JOURNALIERE_ASSURE'
-          ) {
-            return self.parseIndemniteJournaliere($, reimbursement)
-          }
+        headers: {
+          'FETCH-CSRF-TOKEN': '1'
         },
-        { concurrency: 10 }
-      )
-      .then(() => reimbursements)
-  }
-
-  parseHealthCareDetails($, reimbursement) {
-    let currentBeneficiary = null
-
-    // compatibility code since not every accounts have this kind of links
-    if (reimbursement.link == null) {
-      reimbursement.link = $('.entete [id^=liendowndecompte]').attr('href')
-    }
-    if (reimbursement.link == null) {
-      log('error', 'Download link not found')
-      log('error', $('.entete').html())
-    }
-    const self = this
-    $('.container:not(.entete)').each(function () {
-      const $beneficiary = $(this).find('[id^=nomBeneficiaire]')
-      if ($beneficiary.length > 0) {
-        // a beneficiary container
-        currentBeneficiary = $beneficiary.text().trim()
-        return null
+        serialization: 'text'
       }
+    )
+    const csrfToken = tokenResponse.split(':').pop()
 
-      // the next container is the list of health cares associated to the beneficiary
-      if (currentBeneficiary) {
-        self.parseHealthCares($, this, currentBeneficiary, reimbursement)
-        currentBeneficiary = null
-      } else {
-        // there is some participation remaining for the whole reimbursement
-        self.parseParticipation($, this, reimbursement)
-      }
+    await this.page.getByCss('.boutonLigne').waitFor()
+    const dates = await this.page.evaluate(function fetchDates() {
+      const debut = document
+        .querySelector('#paiements_1dateDebut')
+        .getAttribute('data-mindate')
+      const fin = document
+        .querySelector('#paiements_1dateFin')
+        .getAttribute('data-maxdate')
+      return { debut, fin }
     })
-  }
+    const paiementsResponse = await this.page.fetch(
+      paiementsRequestUrl +
+        `&idNoCache=${Date.now()}&DateDebut=${dates.debut}&DateFin=${
+          dates.fin
+        }&Beneficiaire=tout_selectionner&afficherIJ=true&afficherPT=false&afficherInva=false&afficherRentes=false&afficherRS=false&indexPaiement=&idNotif=`,
+      {
+        headers: {
+          _ct: csrfToken
+        },
+        serialization: 'json'
+      }
+    )
+    document.body.innerHTML = paiementsResponse.tableauPaiement
+    const reimbursements = Array.from(
+      document.querySelectorAll('.blocParMois')
+    ).reduce(parseBloc, [])
+    reimbursements.sort((a, b) => (+a.date > +b.date ? -1 : 1)) // newest first
 
-  parseAmount(amount) {
-    let result = parseFloat(amount.replace(' €', '').replace(',', '.'))
-    if (isNaN(result)) result = 0
-    return result
-  }
-
-  parseIndemniteJournaliere($, reimbursement) {
-    const parsed = $('detailpaiement > div > h2')
-      .text()
-      .match(/Paiement effectué le (.*) pour un montant de (.*) €/)
-
-    if (parsed) {
-      const [date, amount] = parsed.slice(1, 3)
-      Object.assign(reimbursement, {
-        date: moment(date, 'DD/MM/YYYY'),
-        amount: this.parseAmount(amount)
+    for (const reimbursement of reimbursements) {
+      const detailsHtml = await this.page.fetch(reimbursement.detailsUrl, {
+        headers: {
+          _ct: csrfToken
+        },
+        serialization: 'text'
       })
+      parseDetails(detailsHtml, reimbursement)
     }
-    return reimbursement
+    return reimbursements
   }
 
-  parseHealthCares($, container, beneficiary, reimbursement) {
-    const self = this
-    $(container)
-      .find('tr')
-      .each(function (index) {
-        if ($(this).find('th').length > 0) {
-          return null // ignore header
-        }
+  // async fetchAttestation(context) {
+  //   await this.page.goto(baseUrl)
+  //   const interception = await this.waitForRequestInterception(
+  //     'javascriptServlet'
+  //   )
+  //   const csrfToken = interception.response.split(':').pop()
 
-        let date = $(this)
-          .find('[id^=Nature]')
-          .html()
-          .split('<br>')
-          .pop()
-          .trim()
-        date = date ? moment(date, 'DD/MM/YYYY') : undefined
+  //   const attestationUrl = `${baseUrl}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_windowLabel=attDroitsAccueil&attDroitsAccueil_actionOverride=/portlets/accueil/attdroits&_pageLabel=as_accueil_page&${csrfToken}`
+
+  //   const searchParams = new URLSearchParams()
+  //   searchParams.set('attDroitsAccueilidBeneficiaire', 'FAMILLE')
+  //   searchParams.set('attDroitsAccueilmentionsComplementaires', 'ETM')
+  //   searchParams.set('attDroitsAccueilmentionsComplementaires', 'confirmer')
+  //   searchParams.set('attDroitsAccueilblocOuvert', true)
+  //   searchParams.set('_ct', csrfToken)
+
+  //   const html = await ky
+  //     .post(attestationUrl, {
+  //       body: searchParams
+  //     })
+  //     .text()
+  //   // const body = new FormData()
+  //   // body.set('attDroitsAccueilidBeneficiaire', 'FAMILLE')
+  //   // body.set('attDroitsAccueilmentionsComplementaires', 'ETM')
+  //   // body.set('attDroitsAccueilmentionsComplementaires', 'confirmer')
+  //   // body.set('attDroitsAccueilblocOuvert', true)
+  //   // body.set('_ct', csrfToken)
+  //   // const response = await fetch(attestationUrl, {
+  //   //   method: 'POST',
+  //   //   body
+  //   // })
+  //   // const html = await response.text()
+  //   throw new Error('fetchAttestation normal error')
+
+  //   // const $link = $('.r_lien_pdf')
+  //   // if ($link.length) {
+  //   // return urlService.getDomain() + $link.attr('href')
+  //   // }
+
+  //   // await this.page
+  //   //   .getByCss('#attDroitsAccueilidBenefs')
+  //   //   .evaluate(function selectFamille($combo) {
+  //   //     $combo.value = 'FAMILLE'
+  //   //   })
+
+  //   // await this.page
+  //   //   .getByCss('#attDroitsAccueilattDroitsForm')
+  //   //   .evaluate(function submitForm($form) {
+  //   //     $form.submit()
+  //   //   })
+  //   // const attestationUrl =
+  //   //   baseUrl + (await this.page.getByCss('.r_lien_pdf').getAttribute('href'))
+  //   // console.log('🐛🐛🐛 attestationUrl', attestationUrl)
+  //   // console.log('🐛🐛🐛 done')
+  //   // throw new Error('fetchAttestation normal error')
+  // }
+
+  // ////////
+  // WORKER//
+  // ////////
+}
+
+const connector = new AmeliContentScript({})
+connector
+  .init({
+    additionalExposedMethodsNames: ['runLocator', 'workerWaitFor']
+  })
+  .catch(err => {
+    console.warn(err)
+  })
+
+function checkAuthenticated() {
+  return Boolean(document.querySelector('.deconnexionButton'))
+}
+
+function parseAmount(amount) {
+  let result = parseFloat(amount.replace(' €', '').replace(',', '.'))
+  if (isNaN(result)) result = 0
+  return result
+}
+
+function parseBloc(memo, bloc) {
+  const year = bloc.querySelector('.rowdate .mois').innerText.split(' ').pop()
+  const reimbursements = Array.from(
+    bloc.querySelectorAll('[id*=lignePaiement]')
+  ).map(ligne => {
+    const month = ligne.querySelector('.col-date .mois').innerText.trim()
+    const day = ligne.querySelector('.col-date .jour').innerText.trim()
+    const groupAmount = parseAmount(
+      ligne.querySelector('.col-montant span').innerText.trim()
+    )
+    const dateString = `${day} ${month} ${year}`
+    const date = parse(dateString, 'dd MMM yyyy', new Date(), { locale: fr })
+
+    const tokens = ligne.getAttribute('onclick').split("'")
+    const idPaiement = tokens[1]
+    const naturePaiement = tokens[3]
+    const indexGroupe = tokens[5]
+    const indexPaiement = tokens[7]
+
+    const detailsUrl = `${baseUrl}/PortailAS/paiements.do?actionEvt=chargerDetailPaiements\
+&idPaiement=${idPaiement}\
+&naturePaiement=${naturePaiement}\
+&indexGroupe=${indexGroupe}\
+&indexPaiement=${indexPaiement}\
+&idNoCache=${Date.now()}`
+
+    let link = ligne.querySelector('.downdetail').getAttribute('href')
+    if (!link) {
+      link = ligne.querySelector('[id*=liendowndecompte]').getAttribute('href')
+    }
+    const lineId = indexGroupe + indexPaiement
+    return {
+      date,
+      lineId,
+      detailsUrl,
+      link,
+      idPaiement,
+      naturePaiement,
+      groupAmount,
+      isThirdPartyPayer: naturePaiement === 'PAIEMENT_A_UN_TIERS',
+      beneficiaries: {}
+    }
+  })
+  return [...memo, ...reimbursements]
+}
+
+function parseDetails(html, reimbursement) {
+  if (
+    reimbursement.naturePaiement === 'PAIEMENT_A_UN_TIERS' ||
+    reimbursement.naturePaiement === 'REMBOURSEMENT_SOINS'
+  ) {
+    return parseSoinDetails(html, reimbursement)
+  } else if (reimbursement.naturePaiement === 'INDEMNITE_JOURNALIERE_ASSURE') {
+    return parseIndemniteJournaliere(html, reimbursement)
+  }
+}
+
+function parseSoinDetails(html, reimbursement) {
+  document.body.innerHTML = html
+  let currentBeneficiary = null
+
+  if (reimbursement.link == null) {
+    reimbursement.link = document
+      .querySelector('.entete [id^=liendowndecompte]')
+      .getAttribute('href')
+  }
+  const containers = Array.from(
+    document.querySelectorAll('.container:not(.entete)')
+  )
+  for (const container of containers) {
+    const beneficiary = container.querySelector('[id^=nomBeneficiaire]')
+    if (beneficiary) {
+      currentBeneficiary = beneficiary.innerText.trim()
+      continue
+    }
+
+    if (currentBeneficiary) {
+      const trs = container.querySelectorAll('tr')
+      let index = 0
+      for (const tr of trs) {
+        index++
+        if (tr.querySelector('th')) continue
+
+        let date = tr
+          .querySelector('[id^=Nature]')
+          ?.innerHTML.split('<br>')
+          ?.pop()
+          ?.trim()
+
+        date = date ? parse(date, 'dd/MM/yyyy', new Date()) : undefined
+
+        const prestation = tr
+          .querySelector('.naturePrestation')
+          ?.innerText.trim()
+        const montantPayé = parseAmount(
+          tr.querySelector('[id^=montantPaye]')?.innerText.trim()
+        )
+        const baseRemboursement = parseAmount(
+          tr.querySelector('[id^=baseRemboursement]')?.innerText.trim()
+        )
+        const taux = tr.querySelector('[id^=taux]')?.innerText.trim()
+        const montantVersé = parseAmount(
+          tr.querySelector('[id^=montantVerse]')?.innerText.trim()
+        )
         const healthCare = {
           index,
-          prestation: $(this).find('.naturePrestation').text().trim(),
+          prestation,
           date,
-          montantPayé: self.parseAmount(
-            $(this).find('[id^=montantPaye]').text().trim()
-          ),
-          baseRemboursement: self.parseAmount(
-            $(this).find('[id^=baseRemboursement]').text().trim()
-          ),
-          taux: $(this).find('[id^=taux]').text().trim(),
-          montantVersé: self.parseAmount(
-            $(this).find('[id^=montantVerse]').text().trim()
-          )
+          montantPayé,
+          baseRemboursement,
+          taux,
+          montantVersé
+        }
+        reimbursement.beneficiaries[currentBeneficiary] =
+          reimbursement.beneficiaries[currentBeneficiary] || []
+        reimbursement.beneficiaries[currentBeneficiary].push(healthCare)
+      }
+      currentBeneficiary = null
+    } else {
+      const trs = container.querySelectorAll('tr')
+      for (const tr of trs) {
+        if (tr.querySelector('th')) {
+          continue
         }
 
-        reimbursement.beneficiaries[beneficiary] =
-          reimbursement.beneficiaries[beneficiary] || []
-        reimbursement.beneficiaries[beneficiary].push(healthCare)
-      })
-  }
-
-  parseParticipation($, container, reimbursement) {
-    const self = this
-    $(container)
-      .find('tr')
-      .each(function () {
-        if ($(this).find('th').length > 0) {
-          return null // ignore header
-        }
-
-        if (reimbursement.participation) {
-          log(
-            'warning',
-            'There is already a participation, this case is not supposed to happend'
-          )
-        }
-        let date = $(this).find('[id^=dateActePFF]').text().trim()
-        date = date ? moment(date, 'DD/MM/YYYY') : undefined
+        let date = tr.querySelector('[id^=dateActePFF]').innerText.trim()
+        date = date ? parse(date, 'dd/MM/yyyy', new Date()) : undefined
         reimbursement.participation = {
-          prestation: $(this).find('[id^=naturePFF]').text().trim(),
+          prestation: tr.querySelector('[id^=naturePFF]').innerText.trim(),
           date,
-          montantVersé: self.parseAmount(
-            $(this).find('[id^=montantVerse]').text().trim()
+          montantVersé: parseAmount(
+            tr.querySelector('[id^=montantVerse]').innerText.trim()
           )
         }
-      })
-  }
-
-  getIndemniteBills(reimbursements) {
-    return reimbursements
-      .filter(r => ['INDEMNITE_JOURNALIERE_ASSURE'].includes(r.naturePaiement))
-      .map(reimbursement => {
-        return {
-          type: 'health_costs',
-          subtype: 'indemnite_journaliere',
-          date: reimbursement.date.toDate(),
-          vendor: 'Ameli',
-          isRefund: true,
-          amount: reimbursement.amount,
-          fileurl: 'https://assure.ameli.fr' + reimbursement.link,
-          vendorRef: reimbursement.idPaiement,
-          filename: this.getFileName(reimbursement),
-          fileAttributes: {
-            metadata: {
-              carbonCopy: true,
-              qualification: Qualification.getByLabel('health_invoice'),
-              datetime: reimbursement.date.toDate(),
-              datetimeLabel: 'issueDate',
-              issueDate: reimbursement.date.toDate()
-            }
-          },
-          requestOptions: {
-            jar: this._jar,
-            gzip: true
-          }
-        }
-      })
-      .filter(bill => !isNaN(bill.amount))
-  }
-
-  getHealthCareBills(reimbursements) {
-    const bills = []
-    reimbursements
-      .filter(r =>
-        ['PAIEMENT_A_UN_TIERS', 'REMBOURSEMENT_SOINS'].includes(
-          r.naturePaiement
-        )
-      )
-      .forEach(reimbursement => {
-        for (const beneficiary in reimbursement.beneficiaries) {
-          reimbursement.beneficiaries[beneficiary].forEach(healthCare => {
-            const newbill = {
-              type: 'health_costs',
-              subtype: healthCare.prestation,
-              beneficiary,
-              isThirdPartyPayer: reimbursement.isThirdPartyPayer,
-              date: reimbursement.date.toDate(),
-              index: healthCare.index,
-              vendor: 'Ameli',
-              isRefund: true,
-              amount: healthCare.montantVersé,
-              originalAmount: healthCare.montantPayé,
-              fileurl: 'https://assure.ameli.fr' + reimbursement.link,
-              vendorRef: reimbursement.idPaiement,
-              filename: this.getFileName(reimbursement),
-              shouldReplaceName: this.getOldFileName(reimbursement),
-              fileAttributes: {
-                metadata: {
-                  carbonCopy: true,
-                  qualification: Qualification.getByLabel('health_invoice'),
-                  datetime: reimbursement.date.toDate(),
-                  datetimeLabel: 'issueDate',
-                  issueDate: reimbursement.date.toDate()
-                }
-              },
-              groupAmount: reimbursement.groupAmount,
-              requestOptions: {
-                jar: this._jar
-              }
-            }
-            if (healthCare.date) {
-              newbill.originalDate = healthCare.date.toDate()
-            }
-            bills.push(new Bill(newbill))
-          })
-        }
-
-        if (reimbursement.participation) {
-          const newbill = {
-            type: 'health',
-            subtype: reimbursement.participation.prestation,
-            isThirdPartyPayer: reimbursement.isThirdPartyPayer,
-            date: reimbursement.date.toDate(),
-            vendor: 'Ameli',
-            isRefund: true,
-            amount: reimbursement.participation.montantVersé,
-            fileurl: 'https://assure.ameli.fr' + reimbursement.link,
-            vendorRef: reimbursement.idPaiement,
-            filename: this.getFileName(reimbursement),
-            shouldReplaceName: this.getOldFileName(reimbursement),
-            fileAttributes: {
-              metadata: {
-                qualification: Qualification.getByLabel('health_invoice'),
-                datetime: reimbursement.date.toDate(),
-                datetimeLabel: 'issueDate',
-                issueDate: reimbursement.date.toDate()
-              }
-            },
-            groupAmount: reimbursement.groupAmount,
-            requestOptions: {
-              jar: this._jar
-            }
-          }
-          if (reimbursement.participation.date) {
-            newbill.originalDate = reimbursement.participation.date.toDate()
-          }
-          bills.push(new Bill(newbill))
-        }
-      })
-    return bills.filter(bill => !isNaN(bill.amount))
-  }
-
-  getFileName(reimbursement) {
-    const natureMap = {
-      PAIEMENT_A_UN_TIERS: 'tiers_payant',
-      REMBOURSEMENT_SOINS: 'remboursement_soins',
-      INDEMNITE_JOURNALIERE_ASSURE: 'indemnites_journalieres'
-    }
-
-    const nature = natureMap[reimbursement.naturePaiement]
-    const amount = reimbursement.groupAmount || reimbursement.amount
-    return `${moment(reimbursement.date).format('YYYYMMDD')}_ameli${
-      nature ? '_' + nature : ''
-    }${amount ? '_' + amount.toFixed(2) + 'EUR' : ''}.pdf`
-  }
-
-  getOldFileName(reimbursement) {
-    return `${moment(reimbursement.date).format('YYYYMMDD')}_ameli.pdf`
-  }
-
-  async fetchIdentity() {
-    log('debug', 'Generating identity')
-    const infosUrl = urlService.getInfosUrl()
-    const $ = await this.request(infosUrl)
-
-    // Extracting necessary datas
-    const givenName = $('.blocNomPrenom .nom').eq(0).text().trim()
-    const rawFullName = $('.NomEtPrenomLabel').eq(0).text()
-    // Deduce familyName by substracting givenName
-    const familyName = rawFullName.replace(givenName, '').trim()
-    const birthday = moment(
-      $('.blocNomPrenom .dateNaissance').text(),
-      'DD/MM/YYYY'
-    ).format('YYYY-MM-DD')
-    const socialSecurityNumber = $('.blocNumSecu').text().replace(/\s/g, '')
-    const rawAddress = $(
-      'div[title="Modifier mon adresse postale"] .infoDroite > span'
-    )
-      .text()
-      .replace(/\t/g, '')
-      .replace(/\n/g, '')
-      // This has been recently added when selecting the wanted element, needs to be remove
-      .replace('Cet élément est modifiable', '')
-      .trim()
-
-    // Making ident object as io.cozy.contacts
-    let ident = {
-      name: {
-        givenName,
-        familyName
-      },
-      birthday,
-      socialSecurityNumber
-    }
-    if (rawAddress) {
-      const postcode = rawAddress.match(/ \d{5}/)[0].trim()
-      const [street, city] = rawAddress.split(postcode).map(e => e.trim())
-      ident.address = [
-        {
-          formattedAddress: rawAddress,
-          street,
-          postcode,
-          city
-        }
-      ]
-    }
-    // Identity now format as a contact
-    return { contact: ident }
-  }
-
-  // Phone numbers are now obfusctated on the page, No needs to fetch them anymore
-  // eslint-disable-next-line no-unused-vars
-  addPhone(newObj, phoneArray) {
-    if (Array.isArray(phoneArray)) {
-      phoneArray.push(newObj)
-    } else {
-      phoneArray = [newObj]
-    }
-    return phoneArray
-  }
-
-  // eslint-disable-next-line no-unused-vars
-  async franceConnectLogin(fields) {
-    const form = {
-      j_username: fields.login,
-      j_password: fields.password,
-      j_etape: 'CLASSIQUE'
-    }
-
-    await this.request({
-      // method: 'GET',
-      url: `${urlService.getFranceConnectUrl()}`
-    })
-
-    await this.request({
-      // method: 'GET',
-      url: urlService.getSelectFCServiceUrl()
-    })
-
-    await this.request.post({
-      // method: 'POST',
-      form,
-      url: urlService.getSubmitFCLoginUrl()
-    })
-
-    const $FClogin = await this.request.post({
-      // method: 'POST',
-      url: urlService.getTriggerFCRedirectUrl()
-    })
-
-    if ($FClogin('[title="Déconnexion du compte ameli"]').length !== 1) {
-      log('debug', 'Something unexpected went wrong after the login')
-      if ($FClogin.html().includes('modif_code_perso_ameli_apres_reinit')) {
-        log('info', 'Password renew required, user action is needed')
-        throw new Error(errors.USER_ACTION_NEEDED)
-      }
-      const errorMessage = $FClogin('.centrepage h1, .centrepage h2').text()
-      if (errorMessage) {
-        log('error', errorMessage)
-        if (errorMessage === 'Compte bloqué') {
-          throw new Error('LOGIN_FAILED.TOO_MANY_ATTEMPTS')
-        } else if (
-          errorMessage.includes('Service momentanément indisponible')
-        ) {
-          throw new Error(errors.VENDOR_DOWN)
-        } else {
-          const refreshContent = $FClogin('meta[http-equiv=refresh]').attr(
-            'content'
-          )
-          if (refreshContent) {
-            log('error', 'refreshContent')
-            log('error', refreshContent)
-            if (
-              refreshContent.includes('as_saisie_mail_connexionencours_page')
-            ) {
-              log('warn', 'User needs to confirm email address')
-              throw new Error(errors.USER_ACTION_NEEDED)
-            } else {
-              log('error', 'Found redirect comment but no login form')
-              throw new Error(errors.VENDOR_DOWN)
-            }
-          } else {
-            log('error', 'Unknown error message')
-            throw new Error(errors.VENDOR_DOWN)
-          }
-        }
-      }
-      log('debug', 'Logout button not detected, but for an unknown case')
-      throw new Error(errors.VENDOR_DOWN)
-    } else {
-      return $FClogin
-    }
-  }
-
-  async classicLogin(fields) {
-    // First request to get the form
-    const formPage = await this.request({
-      url: urlService.getLoginUrl(),
-      resolveWithFullResponse: true,
-      followAllRedirects: true
-    })
-    const formPageBody = formPage.body.html()
-    let nextUrl = formPage.request.href
-    const $LoginForm = cheerio.load(formPageBody)
-    const lmhidden_state = $LoginForm('#lmhidden_state').attr('value')
-    const lmhidden_response_type = $LoginForm('#lmhidden_response_type').attr(
-      'value'
-    )
-    const lmhidden_scope = $LoginForm('#lmhidden_scope').attr('value')
-    const lmhidden_nonce = $LoginForm('#lmhidden_nonce').attr('value')
-    const lmhidden_redirect_uri = $LoginForm('#lmhidden_redirect_uri').attr(
-      'value'
-    )
-    const lmhidden_client_id = $LoginForm('#lmhidden_client_id').attr('value')
-
-    // First login request
-    const firstForm = {
-      lmhidden_state,
-      lmhidden_response_type,
-      lmhidden_scope,
-      lmhidden_nonce,
-      lmhidden_redirect_uri,
-      lmhidden_client_id,
-      url: '',
-      timezone: '',
-      lmAuth: 'LOGIN',
-      skin: 'cnamts',
-      user: fields.login,
-      password: fields.password,
-      authStep: '',
-      submit: 'me+connecter'
-    }
-    const loginReq1 = await this.request({
-      method: 'POST',
-      url: nextUrl,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      resolveWithFullResponse: true,
-      form: { ...firstForm }
-    })
-    const loginReq1Body = loginReq1.body.html()
-    const $loginFirstStep = cheerio.load(loginReq1Body)
-    if ($loginFirstStep('.zone-alerte:not([class*=" "])').length === 1) {
-      log('error', 'Couple login/password error')
-      throw new Error('LOGIN_FAILED')
-    }
-    log('debug', 'firstStep login - OK')
-
-    // Clicking OTP button
-    let $loginResult
-    if ($loginFirstStep('#BoutonGenerationOTP').length === 0) {
-      log(
-        'info',
-        'First login step went wrong, button for sending OTP mail did not showed up'
-      )
-      // TODO manage login without 2FA (persistance needed)
-      throw new Error('VENDOR_DOWN')
-    } else {
-      // Proceding to mail 2FA by clicking button
-      if (process.env.COZY_JOB_MANUAL_EXECUTION !== 'true') {
-        log('warn', "Not a manual execution, don't launch mail 2FA auth")
-        throw new Error('USER_ACTION_NEEDED.TWOFA_EXPIRED')
-      }
-      const formattedLogin = fields.login.replace(
-        /(\d)(\d{2})(\d{2})(\d{2})(\d{3})(\d{3})/g,
-        '$1+$2+$3+$4+$5+$6'
-      )
-      const valuesToEncode = {
-        lmhidden_state,
-        lmhidden_response_type,
-        lmhidden_scope,
-        lmhidden_nonce,
-        lmhidden_redirect_uri,
-        lmhidden_client_id
-      }
-      const encodedFormPart = {}
-      for (const cle in valuesToEncode) {
-        if (typeof valuesToEncode[cle] === 'string') {
-          encodedFormPart[cle] = encodeURIComponent(valuesToEncode[cle])
-        }
-      }
-      const lmAuth = 'LOGIN'
-      const skin = 'cnamts'
-      const user = formattedLogin
-      // Warning all special characters are been url encoded, else login failed
-      const password = encodeURIComponent(fields.password)
-      const sharedBodyForm = `lmhidden_state=${encodedFormPart.lmhidden_state}&lmhidden_response_type=${encodedFormPart.lmhidden_response_type}&lmhidden_scope=${encodedFormPart.lmhidden_scope}&lmhidden_nonce=${encodedFormPart.lmhidden_nonce}&lmhidden_redirect_uri=${encodedFormPart.lmhidden_redirect_uri}&lmhidden_client_id=${encodedFormPart.lmhidden_client_id}&url=&timezone=&lmAuth=${lmAuth}&skin=${skin}&user=${user}&password=${password}&`
-
-      const getOTPStep = 'ENVOI_OTP'
-      const envoiOTP = 'Recevoir+un+code+de+s%C3%A9curit%C3%A9'
-      const triggerOTPForm = `${sharedBodyForm}authStep=${getOTPStep}&envoiOTP=${envoiOTP}`
-      const loginReq2 = await this.request.post({
-        url: nextUrl,
-        resolveWithFullResponse: true,
-        form: triggerOTPForm
-      })
-      const loginReq2Body = loginReq2.body.html()
-      const $loginSecondStep = cheerio.load(loginReq2Body)
-      // Looking for OTP code form
-      if ($loginSecondStep('#numOTP1').length === 0) {
-        throw new Error('Something went wrong when asking for OTP code')
-      }
-      log('debug', 'First login part OK, waiting for OTP code')
-
-      // Waiting for 2FA code
-      let code = await this.waitForTwoFaCode({
-        type: 'email'
-      })
-      if (code.length !== 6) {
-        throw new Error('OTP code must have a length of 6')
-      }
-
-      // Sending code to Ameli
-      const [num1, num2, num3, num4, num5, num6] = code
-      const typeinOTPStep = 'SAISIE_OTP'
-      const sendOTPForm = `${sharedBodyForm}authStep=${typeinOTPStep}&numOTP1=${num1}&numOTP2=${num2}&numOTP3=${num3}&numOTP4=${num4}&numOTP5=${num5}&numOTP6=${num6}&enrolerDevice=on&submit=me%2Bconnecter`
-      const loginReqOTP = await this.request.post({
-        url: nextUrl,
-        resolveWithFullResponse: true,
-        followAllRedirects: true,
-        form: sendOTPForm
-      })
-
-      const loginReqOTPBody = loginReqOTP.body.html()
-      $loginResult = cheerio.load(loginReqOTPBody)
-    }
-    // End of mail 2FA
-
-    // For users consent reasons, we got to ask for user's permission to login through FranceConnect.
-    // As a result, we keep the code allowing this connection but until we find a solution to this issue, we must not try to login through FranceConnect.
-    // If needed use function checkMaintenance()
-
-    // All the login failed part is has been redone, but for this case, we couldn't tell for sure it's always functional
-    // So we keeping this arround for later use
-    // const visibleZoneAlerte = $loginOTPStep('.zone-alerte').filter(
-    //   (i, el) => !$(el).hasClass('invisible')
-    // )
-    // // User seems not affiliated anymore to Régime Général
-    // const NotMoreAffiliatedString =
-    //   'vous ne dépendez plus du régime général de' + ` l'Assurance Maladie`
-    // if (visibleZoneAlerte.text().includes(NotMoreAffiliatedString)) {
-    //   throw new Error(errors.USER_ACTION_NEEDED_ACCOUNT_REMOVED)
-    // }
-
-    // Controlling CGU
-    const $cgu = $loginResult('#nouvelles_cgu_1erreurBoxAccepte')
-    if ($cgu.length > 0) {
-      log('debug', $cgu.attr('content'))
-      throw new Error('USER_ACTION_NEEDED.CGU_FORM')
-    }
-    // CGU validation from december 2023
-    // Bills are scrapable but not the attestion without accepting CGU
-    const cgu2 = $loginResult
-      .html()
-      .includes('affiche_re_accepte_contitions_util=true')
-    if (cgu2) {
-      log('error', 'Detecting mandatory CGU validation')
-      throw new Error('USER_ACTION_NEEDED.CGU_FORM')
-    }
-
-    // Default case. Something unexpected went wrong after the login
-    if ($loginResult('[title="Déconnexion du compte ameli"]').length !== 1) {
-      log('debug', 'Something unexpected went wrong after the login')
-      if ($loginResult.html().includes('modif_code_perso_ameli_apres_reinit')) {
-        log('info', 'Password renew required, user action is needed')
-        throw new Error(errors.USER_ACTION_NEEDED)
-      }
-      const errorMessage = $loginResult('.centrepage h1, .centrepage h2').text()
-
-      // Detecting login_failed right after 2FA
-      if ($loginResult.html().includes('mot de passe saisi est incorrect')) {
-        log('warn', "Page after code include 'mot de passe incorret")
-        throw new Error(errors.LOGIN_FAILED)
-      }
-
-      if (errorMessage) {
-        log('error', errorMessage)
-        if (errorMessage === 'Compte bloqué') {
-          throw new Error('LOGIN_FAILED.TOO_MANY_ATTEMPTS')
-        } else if (
-          errorMessage.includes('Service momentanément indisponible')
-        ) {
-          throw new Error(errors.VENDOR_DOWN)
-        } else {
-          const refreshContent = $loginResult('meta[http-equiv=refresh]').attr(
-            'content'
-          )
-          if (refreshContent) {
-            log('error', 'refreshContent')
-            log('error', refreshContent)
-            if (
-              refreshContent.includes('as_saisie_mail_connexionencours_page')
-            ) {
-              log('warn', 'User needs to confirm email address')
-              throw new Error(errors.USER_ACTION_NEEDED)
-            } else {
-              log('error', 'Found redirect comment but no login form')
-              throw new Error(errors.VENDOR_DOWN)
-            }
-          } else {
-            log('error', errorMessage)
-            log('error', 'Unknown error message')
-            throw new Error(errors.VENDOR_DOWN)
-          }
-        }
-      }
-      log('debug', 'Logout button not detected, but for an unknown case')
-      throw new Error(errors.VENDOR_DOWN)
-    }
-  }
-
-  // eslint-disable-next-line no-unused-vars
-  async checkMaintenance(loginPage, fields) {
-    if (
-      loginPage.body
-        .html()
-        .includes(
-          'Suite à une opération de maintenance, cliquez sur FranceConnect et utilisez vos identifiants ameli pour accéder à votre compte.'
-        )
-    ) {
-      log(
-        'debug',
-        'Ameli website has ongoing maintenance, trying to connect with FranceConnect'
-      )
-      const FCLogin = await this.franceConnectLogin(fields)
-      if (FCLogin('[title="Déconnexion du compte ameli"]')) {
-        log('debug', 'LOGIN OK')
-        await this.notifySuccessfulLogin()
-        return await this.request(urlService.getReimbursementUrl())
       }
     }
   }
 }
 
-const connector = new AmeliConnector({
-  // debug: true,
-  cheerio: true,
-  json: false,
-  userAgent: false
-})
+function parseIndemniteJournaliere(html, reimbursement) {
+  document.body.innerHTML = html
+  const parsed = document
+    .querySelector('detailpaiement > div > h2')
+    .innerText.match(/Paiement effectué le (.*) pour un montant de (.*) €/)
 
-connector.run()
+  if (parsed) {
+    const [date, amount] = parsed.slice(1, 3)
+    Object.assign(reimbursement, {
+      date: parse(date, 'dd/MM/YYYY', new Date()),
+      amount: parseAmount(amount)
+    })
+  }
+  return reimbursement
+}
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function getHealthCareBills(reimbursements) {
+  const bills = []
+  reimbursements
+    .filter(r =>
+      ['PAIEMENT_A_UN_TIERS', 'REMBOURSEMENT_SOINS'].includes(r.naturePaiement)
+    )
+    .forEach(reimbursement => {
+      for (const beneficiary in reimbursement.beneficiaries) {
+        reimbursement.beneficiaries[beneficiary].forEach(healthCare => {
+          const newbill = {
+            type: 'health_costs',
+            subtype: healthCare.prestation,
+            beneficiary,
+            isThirdPartyPayer: reimbursement.isThirdPartyPayer,
+            date: reimbursement.date,
+            vendor: 'Ameli',
+            isRefund: true,
+            amount: healthCare.montantVersé,
+            originalAmount: healthCare.montantPayé,
+            fileurl: baseUrl + reimbursement.link,
+            vendorRef: reimbursement.idPaiement,
+            filename: getFileName(reimbursement),
+            fileAttributes: {
+              metadata: {
+                carbonCopy: true,
+                qualificationLabel: 'health_invoice',
+                datetime: reimbursement.date,
+                datetimeLabel: 'issueDate',
+                issueDate: reimbursement.date
+              }
+            },
+            groupAmount: reimbursement.groupAmount
+          }
+          if (healthCare.date) {
+            newbill.originalDate = healthCare.date
+          }
+          bills.push(newbill)
+        })
+      }
+
+      if (reimbursement.participation) {
+        const newbill = {
+          type: 'health',
+          subtype: reimbursement.participation.prestation,
+          isThirdPartyPayer: reimbursement.isThirdPartyPayer,
+          date: reimbursement.date,
+          vendor: 'Ameli',
+          isRefund: true,
+          amount: reimbursement.participation.montantVersé,
+          fileurl: baseUrl + reimbursement.link,
+          vendorRef: reimbursement.idPaiement,
+          filename: getFileName(reimbursement),
+          fileAttributes: {
+            metadata: {
+              qualificationLabel: 'health_invoice',
+              datetime: reimbursement.date,
+              datetimeLabel: 'issueDate',
+              issueDate: reimbursement.date
+            }
+          },
+          groupAmount: reimbursement.groupAmount
+        }
+        if (reimbursement.participation.date) {
+          newbill.originalDate = reimbursement.participation.date
+        }
+        bills.push(newbill)
+      }
+    })
+  return bills.filter(bill => !isNaN(bill.amount))
+}
+
+function getFileName(reimbursement) {
+  const natureMap = {
+    PAIEMENT_A_UN_TIERS: 'tiers_payant',
+    REMBOURSEMENT_SOINS: 'remboursement_soins',
+    INDEMNITE_JOURNALIERE_ASSURE: 'indemnites_journalieres'
+  }
+
+  const nature = natureMap[reimbursement.naturePaiement]
+  const amount = reimbursement.groupAmount || reimbursement.amount
+  return `${format(reimbursement.date, 'yyyyMMdd')}_ameli${
+    nature ? '_' + nature : ''
+  }${amount ? '_' + amount.toFixed(2) + 'EUR' : ''}.pdf`
+}
+
+async function hexDigest(message) {
+  const msgUint8 = new TextEncoder().encode(message) // encode as (utf-8) Uint8Array
+  const hashBuffer = await window.crypto.subtle.digest('SHA-1', msgUint8) // hash the message
+  const hashArray = Array.from(new Uint8Array(hashBuffer)) // convert buffer to byte array
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('') // convert bytes to hex string
+  return hashHex
+}
