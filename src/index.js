@@ -18,9 +18,6 @@ const messagesUrl =
   '/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_messages_recus_page'
 
 class AmeliContentScript extends SuperContentScript {
-  // ////////
-  // PILOT //
-  // ////////
   async ensureAuthenticated({ account }) {
     this.launcher.log('info', '🤖 ensureAuthenticated starts')
     this.bridge.addEventListener('workerEvent', this.onWorkerEvent.bind(this))
@@ -156,7 +153,6 @@ class AmeliContentScript extends SuperContentScript {
     if (this.store.userCredentials) {
       await this.saveCredentials(this.store.userCredentials)
     }
-    await this.fetchAttestation(context)
     const reimbursements = await this.fetchBills()
     const entries = await getHealthCareBills(reimbursements)
 
@@ -188,6 +184,62 @@ class AmeliContentScript extends SuperContentScript {
       fileIdAttributes: ['vendorRef'],
       contentType: 'application/pdf'
     })
+
+    const identity = await this.fetchIdentity()
+    await this.saveIdentity(identity)
+  }
+
+  async fetchIdentity() {
+    await this.page.goto(infoUrl)
+
+    const givenName = await this.page
+      .getByCss('#idAssure .blocNomPrenom .nom')
+      .innerText()
+    const rawFullName = await this.page
+      .getByCss('#pageAssure .NomEtPrenomLabel')
+      .innerText()
+
+    const familyName = rawFullName.replace(givenName, '').trim()
+    const birthday = parse(
+      await this.page
+        .getByCss('#idAssure .blocNomPrenom .dateNaissance')
+        .innerText(),
+      'dd/mm/yyyy',
+      new Date()
+    )
+
+    const socialSecurityNumber = (
+      await this.page.getByCss('.blocNumSecu').innerText()
+    ).replace(/\s/g, '')
+
+    const rawAddress = await this.page
+      .getByCss(
+        '[onclick*=as_adresse_postale] > .infoDroite > span:nth-child(1)'
+      )
+      .innerText()
+
+    let ident = {
+      name: {
+        givenName,
+        familyName
+      },
+      birthday,
+      socialSecurityNumber
+    }
+    if (rawAddress) {
+      const postcode = rawAddress.match(/ \d{5}/)[0].trim()
+      const [street, city] = rawAddress.split(postcode).map(e => e.trim())
+      ident.address = [
+        {
+          formattedAddress: rawAddress,
+          street,
+          postcode,
+          city
+        }
+      ]
+    }
+    // Identity now format as a contact
+    return { contact: ident }
   }
 
   async fetchMessages() {
@@ -329,67 +381,6 @@ class AmeliContentScript extends SuperContentScript {
     }
     return reimbursements
   }
-
-  // async fetchAttestation(context) {
-  //   await this.page.goto(baseUrl)
-  //   const interception = await this.waitForRequestInterception(
-  //     'javascriptServlet'
-  //   )
-  //   const csrfToken = interception.response.split(':').pop()
-
-  //   const attestationUrl = `${baseUrl}/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_windowLabel=attDroitsAccueil&attDroitsAccueil_actionOverride=/portlets/accueil/attdroits&_pageLabel=as_accueil_page&${csrfToken}`
-
-  //   const searchParams = new URLSearchParams()
-  //   searchParams.set('attDroitsAccueilidBeneficiaire', 'FAMILLE')
-  //   searchParams.set('attDroitsAccueilmentionsComplementaires', 'ETM')
-  //   searchParams.set('attDroitsAccueilmentionsComplementaires', 'confirmer')
-  //   searchParams.set('attDroitsAccueilblocOuvert', true)
-  //   searchParams.set('_ct', csrfToken)
-
-  //   const html = await ky
-  //     .post(attestationUrl, {
-  //       body: searchParams
-  //     })
-  //     .text()
-  //   // const body = new FormData()
-  //   // body.set('attDroitsAccueilidBeneficiaire', 'FAMILLE')
-  //   // body.set('attDroitsAccueilmentionsComplementaires', 'ETM')
-  //   // body.set('attDroitsAccueilmentionsComplementaires', 'confirmer')
-  //   // body.set('attDroitsAccueilblocOuvert', true)
-  //   // body.set('_ct', csrfToken)
-  //   // const response = await fetch(attestationUrl, {
-  //   //   method: 'POST',
-  //   //   body
-  //   // })
-  //   // const html = await response.text()
-  //   throw new Error('fetchAttestation normal error')
-
-  //   // const $link = $('.r_lien_pdf')
-  //   // if ($link.length) {
-  //   // return urlService.getDomain() + $link.attr('href')
-  //   // }
-
-  //   // await this.page
-  //   //   .getByCss('#attDroitsAccueilidBenefs')
-  //   //   .evaluate(function selectFamille($combo) {
-  //   //     $combo.value = 'FAMILLE'
-  //   //   })
-
-  //   // await this.page
-  //   //   .getByCss('#attDroitsAccueilattDroitsForm')
-  //   //   .evaluate(function submitForm($form) {
-  //   //     $form.submit()
-  //   //   })
-  //   // const attestationUrl =
-  //   //   baseUrl + (await this.page.getByCss('.r_lien_pdf').getAttribute('href'))
-  //   // console.log('🐛🐛🐛 attestationUrl', attestationUrl)
-  //   // console.log('🐛🐛🐛 done')
-  //   // throw new Error('fetchAttestation normal error')
-  // }
-
-  // ////////
-  // WORKER//
-  // ////////
 }
 
 const connector = new AmeliContentScript({})
