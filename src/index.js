@@ -23,17 +23,85 @@ class AmeliContentScript extends SuperContentScript {
   // ////////
   async ensureAuthenticated({ account }) {
     this.launcher.log('info', '🤖 ensureAuthenticated starts')
+    this.bridge.addEventListener('workerEvent', this.onWorkerEvent.bind(this))
 
-    if (!account) {
+    const credentials = await this.getCredentials()
+    if (!account || !credentials) {
       await this.ensureNotAuthenticated()
+      await this.waitForUserAuthentication()
+    } else {
+      await this.page.goto(baseUrl)
+      await this.page
+        .getByCss('.deconnexionButton, #connexioncompte_2nir_as')
+        .waitFor()
+      const authenticated = await this.page.evaluate(checkAuthenticated)
+      if (!authenticated) {
+        await this.authWithCredentials(credentials)
+      }
     }
-    await this.page.goto(baseUrl)
-    await this.page
-      .getByCss('.deconnexionButton, #connexioncompte_2nir_as')
-      .waitFor()
+    return true
+  }
 
-    const authenticated = await this.page.evaluate(checkAuthenticated)
-    if (!authenticated) {
+  onWorkerReady() {
+    if (document.readyState !== 'loading') {
+      this.log('info', 'readyState')
+      this.watchLoginForm.bind(this)()
+    } else {
+      window.addEventListener('DOMContentLoaded', () => {
+        this.log('info', 'DOMLoaded')
+        this.watchLoginForm.bind(this)()
+      })
+    }
+  }
+  watchLoginForm() {
+    this.log('info', '📍️ watchLoginForm starts')
+    const loginField = document.querySelector('#connexioncompte_2nir_as')
+    const passwordField = document.querySelector(
+      '#connexioncompte_2connexion_code'
+    )
+    if (loginField && passwordField) {
+      this.log('info', 'Found credentials fields, adding form listener')
+      const loginForm = document.querySelector(
+        '#connexioncompte_2connexionCompteForm'
+      )
+      loginForm.addEventListener('submit', () => {
+        const login = loginField.value
+        const password = passwordField.value
+        const event = 'loginSubmit'
+        const payload = { login, password }
+        this.bridge.emit('workerEvent', {
+          event,
+          payload
+        })
+      })
+    }
+  }
+  onWorkerEvent({ event, payload }) {
+    this.log('info', 'onWorkerEvent starts')
+    if (event === 'loginSubmit') {
+      this.log('info', `User's credential intercepted`)
+      const { login, password } = payload
+      this.store.userCredentials = { login, password }
+    }
+  }
+
+  async authWithCredentials(credentials) {
+    this.log('info', 'authWithCredentials')
+    const acceptCookiesLocator = this.page.getByCss('#accepteCookie')
+    if (acceptCookiesLocator.isPresent()) {
+      acceptCookiesLocator.click()
+    }
+
+    await this.page
+      .getByCss('#connexioncompte_2nir_as')
+      .fillText(credentials.login)
+    await this.page
+      .getByCss('#connexioncompte_2connexion_code')
+      .fillText(credentials.password)
+    await this.page.getByCss('#id_r_cnx_btn_submit').click()
+    await this.page.getByCss('#blocEnvoyerOTP, .deconnexionButton').waitFor()
+
+    if (await this.page.getByCss('#blocEnvoyerOTP').isPresent()) {
       await this.waitForUserAuthentication()
     }
   }
@@ -85,6 +153,9 @@ class AmeliContentScript extends SuperContentScript {
   }
 
   async fetch(context) {
+    if (this.store.userCredentials) {
+      await this.saveCredentials(this.store.userCredentials)
+    }
     await this.fetchAttestation(context)
     const reimbursements = await this.fetchBills()
     const entries = await getHealthCareBills(reimbursements)
