@@ -1,3 +1,5 @@
+/* eslint no-console: off */
+
 import SuperContentScript from './SuperContentScript'
 import fr from 'date-fns/locale/fr'
 import { parse, format } from 'date-fns'
@@ -41,23 +43,26 @@ class AmeliContentScript extends SuperContentScript {
 
   onWorkerReady() {
     if (document.readyState !== 'loading') {
-      this.log('info', 'readyState')
+      this.launcher.log('info', 'readyState')
       this.watchLoginForm.bind(this)()
     } else {
       window.addEventListener('DOMContentLoaded', () => {
-        this.log('info', 'DOMLoaded')
+        this.launcher.log('info', 'DOMLoaded')
         this.watchLoginForm.bind(this)()
       })
     }
   }
   watchLoginForm() {
-    this.log('info', '📍️ watchLoginForm starts')
+    this.launcher.log('info', '📍️ watchLoginForm starts')
     const loginField = document.querySelector('#connexioncompte_2nir_as')
     const passwordField = document.querySelector(
       '#connexioncompte_2connexion_code'
     )
     if (loginField && passwordField) {
-      this.log('info', 'Found credentials fields, adding form listener')
+      this.launcher.log(
+        'info',
+        'Found credentials fields, adding form listener'
+      )
       const loginForm = document.querySelector(
         '#connexioncompte_2connexionCompteForm'
       )
@@ -74,16 +79,16 @@ class AmeliContentScript extends SuperContentScript {
     }
   }
   onWorkerEvent({ event, payload }) {
-    this.log('info', 'onWorkerEvent starts')
+    this.launcher.log('info', 'onWorkerEvent starts')
     if (event === 'loginSubmit') {
-      this.log('info', `User's credential intercepted`)
+      this.launcher.log('info', `User's credential intercepted`)
       const { login, password } = payload
       this.store.userCredentials = { login, password }
     }
   }
 
   async authWithCredentials(credentials) {
-    this.log('info', 'authWithCredentials')
+    this.launcher.log('info', 'authWithCredentials')
     const acceptCookiesLocator = this.page.getByCss('#accepteCookie')
     if (acceptCookiesLocator.isPresent()) {
       acceptCookiesLocator.click()
@@ -555,9 +560,6 @@ function parseIndemniteJournaliere(html, reimbursement) {
     })
   }
   return reimbursement
-}
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 function getHealthCareBills(reimbursements) {
