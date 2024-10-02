@@ -16,7 +16,7 @@ export default class SuperContentScript extends ContentScript {
   }
 
   async downloadFileInWorker(entry) {
-    const { form, ...requestOptions } = entry.requestOptions
+    const { form, ...requestOptions } = entry.requestOptions || {}
     if (form) {
       const body = new FormData()
       for (const [key, value] of Object.entries(form)) {
