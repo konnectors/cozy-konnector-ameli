@@ -135,7 +135,6 @@ class CssLocator {
   }
 
   async isPresent() {
-    await this.waitFor()
     const elements = this._getElements()
     return Boolean(elements.length)
   }
