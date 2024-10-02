@@ -30,7 +30,7 @@ class SuperContentScript extends cozy_clisk_dist_contentscript__WEBPACK_IMPORTED
   }
 
   async downloadFileInWorker(entry) {
-    const { form, ...requestOptions } = entry.requestOptions
+    const { form, ...requestOptions } = entry.requestOptions || {}
     if (form) {
       const body = new FormData()
       for (const [key, value] of Object.entries(form)) {
@@ -149,7 +149,6 @@ class CssLocator {
   }
 
   async isPresent() {
-    await this.waitFor()
     const elements = this._getElements()
     return Boolean(elements.length)
   }
@@ -14130,6 +14129,23 @@ const messagesUrl =
   '/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_messages_recus_page'
 
 class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0__["default"] {
+  async gotoLoginForm() {
+    this.launcher.log('info', '🤖 gotoLoginForm starts')
+    await this.page.goto(baseUrl)
+    await this.page
+      .getByCss(
+        '.deconnexionButton, #connexioncompte_2nir_as, #id_r_cnx_btn_code'
+      )
+      .waitFor()
+    const firstConnectLocator = this.page.getByCss('#id_r_cnx_btn_code')
+    if (await firstConnectLocator.isPresent()) {
+      this.launcher.log('info', 'Found firstConnectLocator')
+      await firstConnectLocator.click()
+    }
+    await this.page
+      .getByCss('.deconnexionButton, #connexioncompte_2nir_as')
+      .waitFor()
+  }
   async ensureAuthenticated({ account }) {
     this.launcher.log('info', '🤖 ensureAuthenticated starts')
     this.bridge.addEventListener('workerEvent', this.onWorkerEvent.bind(this))
@@ -14139,10 +14155,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
       await this.ensureNotAuthenticated()
       await this.waitForUserAuthentication()
     } else {
-      await this.page.goto(baseUrl)
-      await this.page
-        .getByCss('.deconnexionButton, #connexioncompte_2nir_as')
-        .waitFor()
+      await this.gotoLoginForm()
       const authenticated = await this.page.evaluate(checkAuthenticated)
       if (!authenticated) {
         await this.authWithCredentials(credentials)
@@ -14220,10 +14233,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
 
   async ensureNotAuthenticated() {
     this.launcher.log('info', '🤖 ensureNotAuthenticated starts')
-    await this.page.goto(baseUrl)
-    await this.page
-      .getByCss('.deconnexionButton, #connexioncompte_2nir_as')
-      .waitFor()
+    await this.gotoLoginForm()
     const authenticated = await this.page.evaluate(checkAuthenticated)
     if (!authenticated) {
       return true
