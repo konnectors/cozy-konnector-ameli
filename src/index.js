@@ -123,7 +123,7 @@ class AmeliContentScript extends SuperContentScript {
   }
 
   async ensureNotAuthenticated() {
-    this.launcher.log('info', '🤖 ensureNotAuthenticated starts')
+    this.launcher.log('info', '🤖 ensureNotAuthenticated starts beta-2')
     await this.gotoLoginForm()
     const authenticated = await this.page.evaluate(checkAuthenticated)
     if (!authenticated) {
