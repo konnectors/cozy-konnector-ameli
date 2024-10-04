@@ -1,5 +1,5 @@
 {
-  "version": "2.1.0",
+  "version": "2.0.0",
   "name": "Ameli",
   "type": "konnector",
   "language": "node",
@@ -11,7 +11,7 @@
   "categories": [
     "public_service"
   ],
-  "fields": {},
+  "fields": { },
   "clientSide": true,
   "folders": [
     {
