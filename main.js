@@ -14144,21 +14144,19 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
       .isPresent()
     this.launcher.log(
       'info',
-      '🐛🐛🐛 deconnexionButtonPresent',
-      deconnexionButtonPresent
+      '🐛🐛🐛 deconnexionButtonPresent ' + deconnexionButtonPresent
     )
     const connexioncomptePresent = await this.page
       .getByCss('#connexioncompte_2nir_as')
       .isPresent()
     this.launcher.log(
       'info',
-      '🐛🐛🐛 connexioncomptePresent',
-      connexioncomptePresent
+      '🐛🐛🐛 connexioncomptePresent ' + connexioncomptePresent
     )
     const codePresent = await this.page
       .getByCss('a#id_r_cnx_btn_code.r_btlien.connexion')
       .isPresent()
-    this.launcher.log('info', '🐛🐛🐛 codePresent', codePresent)
+    this.launcher.log('info', '🐛🐛🐛 codePresent ' + codePresent)
     const firstConnectLocator = this.page.getByCss(
       'a#id_r_cnx_btn_code.r_btlien.connexion'
     )
