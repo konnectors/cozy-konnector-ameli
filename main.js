@@ -14132,16 +14132,23 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
   async gotoLoginForm() {
     this.launcher.log('info', '🤖 gotoLoginForm starts')
     await this.page.goto(baseUrl)
+    this.launcher.log('info', '🤖 gotoLoginForm after goto')
     await this.page
       .getByCss(
         '.deconnexionButton, #connexioncompte_2nir_as, #id_r_cnx_btn_code'
       )
       .waitFor()
+    this.launcher.log('info', '🤖 gotoLoginForm after first waitfor')
     const firstConnectLocator = this.page.getByCss('#id_r_cnx_btn_code')
-    if (await firstConnectLocator.isPresent()) {
+    this.launcher.log('info', '🤖 gotoLoginForm after locator')
+    const isPresent = await firstConnectLocator.isPresent()
+    this.launcher.log('info', 'isPresent ' + isPresent)
+    if (isPresent) {
       this.launcher.log('info', 'Found firstConnectLocator')
       await firstConnectLocator.click()
+      this.launcher.log('info', 'after click')
     }
+    this.launcher.log('info', 'last waitfor')
     await this.page
       .getByCss('.deconnexionButton, #connexioncompte_2nir_as')
       .waitFor()
@@ -14232,7 +14239,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
   }
 
   async ensureNotAuthenticated() {
-    this.launcher.log('info', '🤖 ensureNotAuthenticated starts beta-2')
+    this.launcher.log('info', '🤖 ensureNotAuthenticated starts')
     await this.gotoLoginForm()
     const authenticated = await this.page.evaluate(checkAuthenticated)
     if (!authenticated) {
