@@ -14238,7 +14238,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
   }
 
   async ensureNotAuthenticated() {
-    this.launcher.log('info', '🤖 ensureNotAuthenticated starts')
+    this.launcher.log('info', '🤖 ensureNotAuthenticated starts beta-2')
     await this.gotoLoginForm()
     const authenticated = await this.page.evaluate(checkAuthenticated)
     if (!authenticated) {
