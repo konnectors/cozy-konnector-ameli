@@ -14132,43 +14132,16 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
   async gotoLoginForm() {
     this.launcher.log('info', '🤖 gotoLoginForm starts')
     await this.page.goto(baseUrl)
-    this.launcher.log('info', '🤖 gotoLoginForm after goto')
     await this.page
       .getByCss(
-        '.deconnexionButton, #connexioncompte_2nir_as, a#id_r_cnx_btn_code.r_btlien.connexion'
+        '.deconnexionButton, #connexioncompte_2nir_as, #id_r_cnx_btn_code'
       )
       .waitFor()
-    this.launcher.log('info', '🤖 gotoLoginForm after first waitfor')
-    const deconnexionButtonPresent = await this.page
-      .getByCss('.deconnexionButton')
-      .isPresent()
-    this.launcher.log(
-      'info',
-      '🐛🐛🐛 deconnexionButtonPresent ' + deconnexionButtonPresent
-    )
-    const connexioncomptePresent = await this.page
-      .getByCss('#connexioncompte_2nir_as')
-      .isPresent()
-    this.launcher.log(
-      'info',
-      '🐛🐛🐛 connexioncomptePresent ' + connexioncomptePresent
-    )
-    const codePresent = await this.page
-      .getByCss('a#id_r_cnx_btn_code.r_btlien.connexion')
-      .isPresent()
-    this.launcher.log('info', '🐛🐛🐛 codePresent ' + codePresent)
-    const firstConnectLocator = this.page.getByCss(
-      'a#id_r_cnx_btn_code.r_btlien.connexion'
-    )
-    this.launcher.log('info', '🤖 gotoLoginForm after locator')
-    const isPresent = await firstConnectLocator.isPresent()
-    this.launcher.log('info', 'isPresent ' + isPresent)
-    if (isPresent) {
+    const firstConnectLocator = this.page.getByCss('#id_r_cnx_btn_code')
+    if (await firstConnectLocator.isPresent()) {
       this.launcher.log('info', 'Found firstConnectLocator')
       await firstConnectLocator.click()
-      this.launcher.log('info', 'after click')
     }
-    this.launcher.log('info', 'last waitfor')
     await this.page
       .getByCss('.deconnexionButton, #connexioncompte_2nir_as')
       .waitFor()
