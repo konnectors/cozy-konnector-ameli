@@ -148,14 +148,17 @@ class CssLocator {
     return Array.from(document.querySelectorAll(this.selector))
   }
 
-  async isPresent() {
+  async _isPresent() {
     const elements = this._getElements()
     return Boolean(elements.length)
   }
 
+  async isPresent() {
+    return this.contentScript.page.runLocator(this, '_isPresent')
+  }
+
   async waitFor() {
-    // TODO should use runInWorkerUntilTrue with its own implementation of waitFor in the page
-    return this.contentScript.waitForElementInWorker(this.selector)
+    await this.contentScript.waitForElementInWorker(this.selector)
   }
 
   async _innerHTML() {
@@ -14134,11 +14137,14 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
     await this.page.goto(baseUrl)
     await this.page
       .getByCss(
-        '.deconnexionButton, #connexioncompte_2nir_as, #id_r_cnx_btn_code'
+        '.deconnexionButton, #connexioncompte_2nir_as, a#id_r_cnx_btn_code.r_btlien.connexion'
       )
       .waitFor()
-    const firstConnectLocator = this.page.getByCss('#id_r_cnx_btn_code')
-    if (await firstConnectLocator.isPresent()) {
+    const firstConnectLocator = this.page.getByCss(
+      'a#id_r_cnx_btn_code.r_btlien.connexion'
+    )
+    const isPresent = await firstConnectLocator.isPresent()
+    if (isPresent) {
       this.launcher.log('info', 'Found firstConnectLocator')
       await firstConnectLocator.click()
     }
