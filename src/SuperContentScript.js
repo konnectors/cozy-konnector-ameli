@@ -134,14 +134,17 @@ class CssLocator {
     return Array.from(document.querySelectorAll(this.selector))
   }
 
-  async isPresent() {
+  async _isPresent() {
     const elements = this._getElements()
     return Boolean(elements.length)
   }
 
+  async isPresent() {
+    return this.contentScript.page.runLocator(this, '_isPresent')
+  }
+
   async waitFor() {
-    // TODO should use runInWorkerUntilTrue with its own implementation of waitFor in the page
-    return this.contentScript.waitForElementInWorker(this.selector)
+    await this.contentScript.waitForElementInWorker(this.selector)
   }
 
   async _innerHTML() {
