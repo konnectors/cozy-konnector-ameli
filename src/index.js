@@ -1,5 +1,6 @@
 /* eslint no-console: off */
 
+import { RequestInterceptor } from 'cozy-clisk/dist/contentscript'
 import SuperContentScript from './SuperContentScript'
 import fr from 'date-fns/locale/fr'
 import { parse, format } from 'date-fns'
@@ -18,6 +19,16 @@ const paiementsRequestUrl =
 const messagesUrl =
   baseUrl +
   '/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_messages_recus_page'
+
+const requestInterceptor = new RequestInterceptor([
+  {
+    identifier: 'javascriptservlet',
+    method: 'POST',
+    url: '/PortailAS/JavaScriptServlet',
+    serialization: 'text'
+  }
+])
+requestInterceptor.init()
 
 class AmeliContentScript extends SuperContentScript {
   async gotoLoginForm() {
@@ -101,6 +112,11 @@ class AmeliContentScript extends SuperContentScript {
       this.launcher.log('info', `User's credential intercepted`)
       const { login, password } = payload
       this.store.userCredentials = { login, password }
+    } else if (
+      event === 'requestResponse' &&
+      payload?.identifier === 'javascriptservlet'
+    ) {
+      this.store.csrfToken = payload.response?.split(':')?.pop()
     }
   }
 
@@ -282,17 +298,6 @@ class AmeliContentScript extends SuperContentScript {
       return docs
     })
 
-    const tokenResponse = await this.page.fetch(
-      'https://assure.ameli.fr/PortailAS/JavaScriptServlet',
-      {
-        method: 'POST',
-        headers: {
-          'FETCH-CSRF-TOKEN': '1'
-        },
-        serialization: 'text'
-      }
-    )
-    const csrfToken = tokenResponse.split(':').pop()
     const piecesJointes = []
     for (const doc of docs) {
       const html = await this.page.fetch(doc.detailsLink, {
@@ -311,7 +316,7 @@ class AmeliContentScript extends SuperContentScript {
       const fileurl = baseUrl + form.getAttribute('action')
 
       Object.assign(doc, {
-        fileurl: fileurl + `?_ct=${csrfToken}`,
+        fileurl: fileurl + `?_ct=${this.store.csrfToken}`,
         requestOptions: {
           method: 'POST',
           form: {
@@ -332,7 +337,8 @@ class AmeliContentScript extends SuperContentScript {
       const pj = document.querySelector('.telechargement_PJ')
       if (pj) {
         piecesJointes.push({
-          fileurl: baseUrl + pj.getAttribute('href') + `?_ct=${csrfToken}`,
+          fileurl:
+            baseUrl + pj.getAttribute('href') + `?_ct=${this.store.csrfToken}`,
           filename: fileprefix + '_PJ.pdf',
           vendorRef: doc.vendorRef + '_PJ',
           fileAttributes: {
@@ -348,18 +354,6 @@ class AmeliContentScript extends SuperContentScript {
 
   async fetchBills() {
     await this.page.goto(paiementsUrl)
-
-    const tokenResponse = await this.page.fetch(
-      'https://assure.ameli.fr/PortailAS/JavaScriptServlet',
-      {
-        method: 'POST',
-        headers: {
-          'FETCH-CSRF-TOKEN': '1'
-        },
-        serialization: 'text'
-      }
-    )
-    const csrfToken = tokenResponse.split(':').pop()
 
     await this.page.getByCss('.boutonLigne').waitFor()
     const dates = await this.page.evaluate(function fetchDates() {
@@ -378,7 +372,7 @@ class AmeliContentScript extends SuperContentScript {
         }&Beneficiaire=tout_selectionner&afficherIJ=true&afficherPT=false&afficherInva=false&afficherRentes=false&afficherRS=false&indexPaiement=&idNotif=`,
       {
         headers: {
-          _ct: csrfToken
+          _ct: this.store.csrfToken
         },
         serialization: 'json'
       }
@@ -392,7 +386,7 @@ class AmeliContentScript extends SuperContentScript {
     for (const reimbursement of reimbursements) {
       const detailsHtml = await this.page.fetch(reimbursement.detailsUrl, {
         headers: {
-          _ct: csrfToken
+          _ct: this.store.csrfToken
         },
         serialization: 'text'
       })
@@ -402,7 +396,7 @@ class AmeliContentScript extends SuperContentScript {
   }
 }
 
-const connector = new AmeliContentScript({})
+const connector = new AmeliContentScript({ requestInterceptor })
 connector
   .init({
     additionalExposedMethodsNames: ['runLocator', 'workerWaitFor']
