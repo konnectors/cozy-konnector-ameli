@@ -159,9 +159,20 @@ class AmeliContentScript extends SuperContentScript {
     this.launcher.log('info', '🤖 getUserDataFromWebsite starts')
     await this.page.goto(infoUrl)
 
-    const sourceAccountIdentifier = (
-      await this.page.getByCss('.blocNumSecu').innerHTML()
+    await this.page
+      .getByCss(`.blocNumSecu, .boutonComplementaireBlanc[value='Plus tard']`)
+      .waitFor()
+
+    const numsecuLocator = this.page.getByCss('.blocNumSecu')
+    const plusTardLocator = this.page.getByCss(
+      `.boutonComplementaireBlanc[value='Plus tard']`
     )
+    if (await plusTardLocator.isPresent()) {
+      await this.page.goto(infoUrl)
+      await numsecuLocator.waitFor()
+    }
+
+    const sourceAccountIdentifier = (await numsecuLocator.innerHTML())
       .trim()
       .split(' ')
       .join('')
