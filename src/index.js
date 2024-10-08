@@ -304,6 +304,11 @@ class AmeliContentScript extends SuperContentScript {
         serialization: 'text'
       })
       document.body.innerHTML = html
+      if (
+        document.body.innerHTML.includes('Service momentanément indisponible.')
+      ) {
+        continue
+      }
       const form = document.querySelector('#pdfSimple')
       doc.date = parse(doc.date, 'dd/MM/yy', new Date())
       const hash = await this.page.evaluate(hexDigest, doc.vendorRef)
