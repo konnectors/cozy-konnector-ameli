@@ -14403,7 +14403,14 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
 
   async fetchMessages() {
     await this.page.goto(messagesUrl)
-    await this.page.getByCss('#tableauMessagesRecus tbody tr').waitFor()
+    await this.page
+      .getByCss('#tableauMessagesRecus tbody tr, .r_msg_aucun_message')
+      .waitFor()
+
+    if (await this.page.getByCss('.r_msg_aucun_message').isPresent()) {
+      this.launcher.log('info', 'No message to fetch')
+      return
+    }
 
     const docs = await this.page.evaluate(function parseMessages() {
       const docs = []
