@@ -6160,6 +6160,10 @@ class SuperContentScript extends cozy_clisk_dist_contentscript__WEBPACK_IMPORTED
       requestOptions.body = body
     }
     const response = await fetch(entry.fileurl, requestOptions)
+    if (!response.ok) {
+      this.launcher.log('warn', 'Failed to download ' + entry.fileurl)
+      return false
+    }
     entry.blob = await response.blob()
     entry.dataUri = await (0,cozy_clisk_dist_contentscript_utils__WEBPACK_IMPORTED_MODULE_2__.blobToBase64)(entry.blob)
     return entry.dataUri
@@ -6279,7 +6283,9 @@ class CssLocator {
   }
 
   async waitFor() {
-    await this.contentScript.waitForElementInWorker(this.selector)
+    await this.contentScript.waitForElementInWorker(this.selector, {
+      timeout: 10000
+    })
   }
 
   async _innerHTML() {
@@ -14345,60 +14351,67 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
     })
 
     const identity = await this.fetchIdentity()
-    await this.saveIdentity(identity)
+    if (identity) {
+      await this.saveIdentity(identity)
+    }
   }
 
   async fetchIdentity() {
     await this.page.goto(infoUrl)
 
-    const givenName = await this.page
-      .getByCss('#idAssure .blocNomPrenom .nom')
-      .innerText()
-    const rawFullName = await this.page
-      .getByCss('#pageAssure .NomEtPrenomLabel')
-      .innerText()
+    try {
+      const givenName = await this.page
+        .getByCss('#idAssure .blocNomPrenom .nom')
+        .innerText()
+      const rawFullName = await this.page
+        .getByCss('#pageAssure .NomEtPrenomLabel')
+        .innerText()
 
-    const familyName = rawFullName.replace(givenName, '').trim()
-    const birthday = (0,date_fns__WEBPACK_IMPORTED_MODULE_2__.parse)(
-      await this.page
-        .getByCss('#idAssure .blocNomPrenom .dateNaissance')
-        .innerText(),
-      'dd/mm/yyyy',
-      new Date()
-    )
-
-    const socialSecurityNumber = (
-      await this.page.getByCss('.blocNumSecu').innerText()
-    ).replace(/\s/g, '')
-
-    const rawAddress = await this.page
-      .getByCss(
-        '[onclick*=as_adresse_postale] > .infoDroite > span:nth-child(1)'
+      const familyName = rawFullName.replace(givenName, '').trim()
+      const birthday = (0,date_fns__WEBPACK_IMPORTED_MODULE_2__.parse)(
+        await this.page
+          .getByCss('#idAssure .blocNomPrenom .dateNaissance')
+          .innerText(),
+        'dd/mm/yyyy',
+        new Date()
       )
-      .innerText()
 
-    let ident = {
-      name: {
-        givenName,
-        familyName
-      },
-      birthday,
-      socialSecurityNumber
+      const socialSecurityNumber = (
+        await this.page.getByCss('.blocNumSecu').innerText()
+      ).replace(/\s/g, '')
+
+      const rawAddress = await this.page
+        .getByCss(
+          '[onclick*=as_adresse_postale] > .infoDroite > span:nth-child(1)'
+        )
+        .innerText()
+
+      let ident = {
+        name: {
+          givenName,
+          familyName
+        },
+        birthday,
+        socialSecurityNumber
+      }
+      if (rawAddress) {
+        const postcode = rawAddress.match(/ \d{5}/)[0].trim()
+        const [street, city] = rawAddress.split(postcode).map(e => e.trim())
+        ident.address = [
+          {
+            formattedAddress: rawAddress,
+            street,
+            postcode,
+            city
+          }
+        ]
+      }
+      // Identity now format as a contact
+      return { contact: ident }
+    } catch (err) {
+      this.launcher.log('warn', 'Failed to fetch identity: ' + err.message)
+      return false
     }
-    if (rawAddress) {
-      const postcode = rawAddress.match(/ \d{5}/)[0].trim()
-      const [street, city] = rawAddress.split(postcode).map(e => e.trim())
-      ident.address = [
-        {
-          formattedAddress: rawAddress,
-          street,
-          postcode,
-          city
-        }
-      ]
-    }
-    // Identity now format as a contact
-    return { contact: ident }
   }
 
   async fetchMessages() {
