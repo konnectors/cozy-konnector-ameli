@@ -6160,7 +6160,7 @@ class SuperContentScript extends cozy_clisk_dist_contentscript__WEBPACK_IMPORTED
       requestOptions.body = body
     }
     const response = await fetch(entry.fileurl, requestOptions)
-    if (!response.ok) {
+    if (!response.ok || response.url.includes('error')) {
       this.launcher.log('warn', 'Failed to download ' + entry.fileurl)
       return false
     }
