@@ -144,7 +144,9 @@ class CssLocator {
   }
 
   async waitFor() {
-    await this.contentScript.waitForElementInWorker(this.selector)
+    await this.contentScript.waitForElementInWorker(this.selector, {
+      timeout: 10000
+    })
   }
 
   async _innerHTML() {

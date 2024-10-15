@@ -232,60 +232,67 @@ class AmeliContentScript extends SuperContentScript {
     })
 
     const identity = await this.fetchIdentity()
-    await this.saveIdentity(identity)
+    if (identity) {
+      await this.saveIdentity(identity)
+    }
   }
 
   async fetchIdentity() {
     await this.page.goto(infoUrl)
 
-    const givenName = await this.page
-      .getByCss('#idAssure .blocNomPrenom .nom')
-      .innerText()
-    const rawFullName = await this.page
-      .getByCss('#pageAssure .NomEtPrenomLabel')
-      .innerText()
+    try {
+      const givenName = await this.page
+        .getByCss('#idAssure .blocNomPrenom .nom')
+        .innerText()
+      const rawFullName = await this.page
+        .getByCss('#pageAssure .NomEtPrenomLabel')
+        .innerText()
 
-    const familyName = rawFullName.replace(givenName, '').trim()
-    const birthday = parse(
-      await this.page
-        .getByCss('#idAssure .blocNomPrenom .dateNaissance')
-        .innerText(),
-      'dd/mm/yyyy',
-      new Date()
-    )
-
-    const socialSecurityNumber = (
-      await this.page.getByCss('.blocNumSecu').innerText()
-    ).replace(/\s/g, '')
-
-    const rawAddress = await this.page
-      .getByCss(
-        '[onclick*=as_adresse_postale] > .infoDroite > span:nth-child(1)'
+      const familyName = rawFullName.replace(givenName, '').trim()
+      const birthday = parse(
+        await this.page
+          .getByCss('#idAssure .blocNomPrenom .dateNaissance')
+          .innerText(),
+        'dd/mm/yyyy',
+        new Date()
       )
-      .innerText()
 
-    let ident = {
-      name: {
-        givenName,
-        familyName
-      },
-      birthday,
-      socialSecurityNumber
+      const socialSecurityNumber = (
+        await this.page.getByCss('.blocNumSecu').innerText()
+      ).replace(/\s/g, '')
+
+      const rawAddress = await this.page
+        .getByCss(
+          '[onclick*=as_adresse_postale] > .infoDroite > span:nth-child(1)'
+        )
+        .innerText()
+
+      let ident = {
+        name: {
+          givenName,
+          familyName
+        },
+        birthday,
+        socialSecurityNumber
+      }
+      if (rawAddress) {
+        const postcode = rawAddress.match(/ \d{5}/)[0].trim()
+        const [street, city] = rawAddress.split(postcode).map(e => e.trim())
+        ident.address = [
+          {
+            formattedAddress: rawAddress,
+            street,
+            postcode,
+            city
+          }
+        ]
+      }
+      // Identity now format as a contact
+      return { contact: ident }
+    } catch (err) {
+      this.launcher.log('warn', 'Failed to fetch identity: ' + err.message)
+      return false
     }
-    if (rawAddress) {
-      const postcode = rawAddress.match(/ \d{5}/)[0].trim()
-      const [street, city] = rawAddress.split(postcode).map(e => e.trim())
-      ident.address = [
-        {
-          formattedAddress: rawAddress,
-          street,
-          postcode,
-          city
-        }
-      ]
-    }
-    // Identity now format as a contact
-    return { contact: ident }
   }
 
   async fetchMessages() {
