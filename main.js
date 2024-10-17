@@ -2,246 +2,12 @@
 /******/ 	var __webpack_modules__ = ([
 /* 0 */,
 /* 1 */
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ SuperContentScript)
-/* harmony export */ });
-/* harmony import */ var cozy_clisk_dist_contentscript__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2);
-/* harmony import */ var p_wait_for__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(30);
-/* harmony import */ var cozy_clisk_dist_contentscript_utils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(31);
-
-
-
-
-class SuperContentScript extends cozy_clisk_dist_contentscript__WEBPACK_IMPORTED_MODULE_0__.ContentScript {
-  constructor(options = {}) {
-    super(options)
-
-    this.page = new CliskWorker(this)
-    this.launcher = new CliskLauncher(this)
-  }
-
-  async runLocator(locatorJson, method, ...args) {
-    const locator = CssLocator.fromJSON(this, locatorJson, ...args)
-    return locator[method](...args)
-  }
-
-  async downloadFileInWorker(entry) {
-    const { form, ...requestOptions } = entry.requestOptions || {}
-    if (form) {
-      const body = new FormData()
-      for (const [key, value] of Object.entries(form)) {
-        body.set(key, value)
-      }
-      requestOptions.body = body
-    }
-    const response = await fetch(entry.fileurl, requestOptions)
-    entry.blob = await response.blob()
-    entry.dataUri = await (0,cozy_clisk_dist_contentscript_utils__WEBPACK_IMPORTED_MODULE_2__.blobToBase64)(entry.blob)
-    return entry.dataUri
-  }
-
-  async workerWaitFor(fnName, fnString, options = {}, ...args) {
-    const timeout = options.timeout ?? 30000
-    const interval = options.interval ?? 1000
-    await (0,p_wait_for__WEBPACK_IMPORTED_MODULE_1__["default"])(() => this.evaluate(fnString, ...args), {
-      interval,
-      timeout: {
-        milliseconds: timeout,
-        message: new p_wait_for__WEBPACK_IMPORTED_MODULE_1__.TimeoutError(
-          options.errorMsg || fnName + ' timed out after ' + timeout + ' ms'
-        )
-      }
-    })
-    return true
-  }
-}
-
-class CliskWorker {
-  constructor(contentScript) {
-    this.contentScript = contentScript
-  }
-
-  goto(url) {
-    return this.contentScript.goto(url)
-  }
-
-  waitForElement(selector, options) {
-    return this.contentScript.waitForElementInWorker(selector, options)
-  }
-
-  waitFor(fn, options = {}, ...args) {
-    return this.contentScript.runInWorkerUntilTrue({
-      method: 'workerWaitFor',
-      args: [fn.name, fn.toString(), options, ...args]
-    })
-  }
-
-  getByCss(selector, options) {
-    const locator = new CssLocator(this.contentScript, selector, options)
-    return locator
-  }
-
-  show() {
-    return this.contentScript.setWorkerState({ visible: true })
-  }
-
-  hide() {
-    return this.contentScript.setWorkerState({ visible: false })
-  }
-
-  async runLocator(locatorJson, method, ...args) {
-    return this.contentScript.runInWorker(
-      'runLocator',
-      locatorJson,
-      method,
-      ...args
-    )
-  }
-
-  evaluate(...args) {
-    return this.contentScript.evaluateInWorker(...args)
-  }
-
-  fetch(url, options) {
-    return this.contentScript.evaluateInWorker(
-      async function workerFetch(url, options) {
-        const { serialization, ...fetchOptions } = options
-        const response = await fetch(url, fetchOptions)
-        return response[serialization]()
-      },
-      url,
-      options
-    )
-  }
-}
-
-class CliskLauncher {
-  constructor(contentScript) {
-    this.contentScript = contentScript
-  }
-
-  log(level, message) {
-    this.contentScript.log(level, message)
-  }
-}
-
-class CssLocator {
-  constructor(contentScript, selector, options) {
-    this.contentScript = contentScript
-    this.selector = selector
-    this.options = options
-  }
-
-  static fromJSON(contentScript, json) {
-    return new this(contentScript, json.selector, json.options)
-  }
-
-  toJSON() {
-    return { type: 'css', selector: this.selector, options: this.options }
-  }
-
-  _getElements() {
-    return Array.from(document.querySelectorAll(this.selector))
-  }
-
-  async _isPresent() {
-    const elements = this._getElements()
-    return Boolean(elements.length)
-  }
-
-  async isPresent() {
-    return this.contentScript.page.runLocator(this, '_isPresent')
-  }
-
-  async waitFor() {
-    await this.contentScript.waitForElementInWorker(this.selector)
-  }
-
-  async _innerHTML() {
-    const elements = this._getElements()
-    if (elements.length > 1) {
-      throw new Error(
-        'Cannot get _innerHTML of multiple elements. Found ',
-        elements.length
-      )
-    }
-
-    return elements.pop().innerHTML
-  }
-
-  async innerHTML() {
-    await this.waitFor()
-    return this.contentScript.page.runLocator(this, '_innerHTML')
-  }
-
-  async _innerText() {
-    const elements = this._getElements()
-    if (elements.length > 1) {
-      throw new Error(
-        'Cannot get _innerText of multiple elements. Found ',
-        elements.length
-      )
-    }
-
-    return elements.pop().innerText.trim()
-  }
-
-  async innerText() {
-    await this.waitFor()
-    return this.contentScript.page.runLocator(this, '_innerText')
-  }
-
-  async click() {
-    await this.waitFor()
-    return this.contentScript.runInWorker('click', this.selector, this.options)
-  }
-
-  async fillText(text) {
-    await this.waitFor()
-    return this.contentScript.runInWorker('fillText', this.selector, text)
-  }
-
-  async _evaluate(fnString, ...args) {
-    const elements = this._getElements()
-    if (elements.length > 1) {
-      throw new Error(
-        'Cannot evaluate on multiple elements. Found ',
-        elements.length
-      )
-    }
-    return this.contentScript.evaluate(fnString, elements[0], ...args)
-  }
-
-  async evaluate(fn, ...args) {
-    await this.waitFor()
-    return this.contentScript.page.runLocator(
-      this,
-      '_evaluate',
-      fn.toString(),
-      ...args
-    )
-  }
-
-  getAttribute(attr) {
-    return this.evaluate(function getAttribute($el) {
-      return $el.getAttribute(attr)
-    })
-  }
-}
-
-
-/***/ }),
-/* 2 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 
-var _interopRequireDefault = __webpack_require__(3);
+var _interopRequireDefault = __webpack_require__(2);
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
@@ -257,11 +23,11 @@ Object.defineProperty(exports, "RequestInterceptor", ({
     return _RequestInterceptor.default;
   }
 }));
-var _ContentScript = _interopRequireDefault(__webpack_require__(4));
-var _RequestInterceptor = _interopRequireDefault(__webpack_require__(50));
+var _ContentScript = _interopRequireDefault(__webpack_require__(3));
+var _RequestInterceptor = _interopRequireDefault(__webpack_require__(49));
 
 /***/ }),
-/* 3 */
+/* 2 */
 /***/ ((module) => {
 
 function _interopRequireDefault(obj) {
@@ -273,31 +39,31 @@ function _interopRequireDefault(obj) {
 module.exports = _interopRequireDefault, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 4 */
+/* 3 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 
-var _interopRequireDefault = __webpack_require__(3);
+var _interopRequireDefault = __webpack_require__(2);
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports["default"] = exports.WORKER_TYPE = exports.PILOT_TYPE = void 0;
-var _regenerator = _interopRequireDefault(__webpack_require__(5));
-var _toConsumableArray2 = _interopRequireDefault(__webpack_require__(7));
-var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(13));
-var _classCallCheck2 = _interopRequireDefault(__webpack_require__(14));
-var _createClass2 = _interopRequireDefault(__webpack_require__(15));
-var _minilog = _interopRequireDefault(__webpack_require__(16));
-var _umd = _interopRequireDefault(__webpack_require__(28));
-var _pTimeout = _interopRequireDefault(__webpack_require__(29));
-var _pWaitFor = _interopRequireWildcard(__webpack_require__(30));
-var _utils = __webpack_require__(31);
-var _package = _interopRequireDefault(__webpack_require__(32));
-var _LauncherBridge = _interopRequireDefault(__webpack_require__(33));
-var _utils2 = __webpack_require__(43);
-var _wrapTimer = __webpack_require__(48);
+var _regenerator = _interopRequireDefault(__webpack_require__(4));
+var _toConsumableArray2 = _interopRequireDefault(__webpack_require__(6));
+var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(12));
+var _classCallCheck2 = _interopRequireDefault(__webpack_require__(13));
+var _createClass2 = _interopRequireDefault(__webpack_require__(14));
+var _minilog = _interopRequireDefault(__webpack_require__(15));
+var _umd = _interopRequireDefault(__webpack_require__(27));
+var _pTimeout = _interopRequireDefault(__webpack_require__(28));
+var _pWaitFor = _interopRequireWildcard(__webpack_require__(29));
+var _utils = __webpack_require__(30);
+var _package = _interopRequireDefault(__webpack_require__(31));
+var _LauncherBridge = _interopRequireDefault(__webpack_require__(32));
+var _utils2 = __webpack_require__(42);
+var _wrapTimer = __webpack_require__(47);
 var _window; // @ts-check
 function _getRequireWildcardCache(e) { if ("function" != typeof WeakMap) return null; var r = new WeakMap(), t = new WeakMap(); return (_getRequireWildcardCache = function _getRequireWildcardCache(e) { return e ? t : r; })(e); }
 function _interopRequireWildcard(e, r) { if (!r && e && e.__esModule) return e; if (null === e || "object" != typeof e && "function" != typeof e) return { default: e }; var t = _getRequireWildcardCache(r); if (t && t.has(e)) return t.get(e); var n = { __proto__: null }, a = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var u in e) if ("default" !== u && Object.prototype.hasOwnProperty.call(e, u)) { var i = a ? Object.getOwnPropertyDescriptor(e, u) : null; i && (i.get || i.set) ? Object.defineProperty(n, u, i) : n[u] = e[u]; } return n.default = e, t && t.set(e, n), n; }
@@ -2111,14 +1877,14 @@ function getDateDistanceInDays(dateString) {
 }
 
 /***/ }),
-/* 5 */
+/* 4 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-module.exports = __webpack_require__(6);
+module.exports = __webpack_require__(5);
 
 
 /***/ }),
-/* 6 */
+/* 5 */
 /***/ ((module) => {
 
 /**
@@ -2872,16 +2638,16 @@ try {
 
 
 /***/ }),
-/* 7 */
+/* 6 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayWithoutHoles = __webpack_require__(8);
+var arrayWithoutHoles = __webpack_require__(7);
 
-var iterableToArray = __webpack_require__(10);
+var iterableToArray = __webpack_require__(9);
 
-var unsupportedIterableToArray = __webpack_require__(11);
+var unsupportedIterableToArray = __webpack_require__(10);
 
-var nonIterableSpread = __webpack_require__(12);
+var nonIterableSpread = __webpack_require__(11);
 
 function _toConsumableArray(arr) {
   return arrayWithoutHoles(arr) || iterableToArray(arr) || unsupportedIterableToArray(arr) || nonIterableSpread();
@@ -2890,10 +2656,10 @@ function _toConsumableArray(arr) {
 module.exports = _toConsumableArray, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 8 */
+/* 7 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayLikeToArray = __webpack_require__(9);
+var arrayLikeToArray = __webpack_require__(8);
 
 function _arrayWithoutHoles(arr) {
   if (Array.isArray(arr)) return arrayLikeToArray(arr);
@@ -2902,7 +2668,7 @@ function _arrayWithoutHoles(arr) {
 module.exports = _arrayWithoutHoles, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 9 */
+/* 8 */
 /***/ ((module) => {
 
 function _arrayLikeToArray(arr, len) {
@@ -2918,7 +2684,7 @@ function _arrayLikeToArray(arr, len) {
 module.exports = _arrayLikeToArray, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 10 */
+/* 9 */
 /***/ ((module) => {
 
 function _iterableToArray(iter) {
@@ -2928,10 +2694,10 @@ function _iterableToArray(iter) {
 module.exports = _iterableToArray, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 11 */
+/* 10 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayLikeToArray = __webpack_require__(9);
+var arrayLikeToArray = __webpack_require__(8);
 
 function _unsupportedIterableToArray(o, minLen) {
   if (!o) return;
@@ -2945,7 +2711,7 @@ function _unsupportedIterableToArray(o, minLen) {
 module.exports = _unsupportedIterableToArray, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 12 */
+/* 11 */
 /***/ ((module) => {
 
 function _nonIterableSpread() {
@@ -2955,7 +2721,7 @@ function _nonIterableSpread() {
 module.exports = _nonIterableSpread, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 13 */
+/* 12 */
 /***/ ((module) => {
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
@@ -2997,7 +2763,7 @@ function _asyncToGenerator(fn) {
 module.exports = _asyncToGenerator, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 14 */
+/* 13 */
 /***/ ((module) => {
 
 function _classCallCheck(instance, Constructor) {
@@ -3009,7 +2775,7 @@ function _classCallCheck(instance, Constructor) {
 module.exports = _classCallCheck, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 15 */
+/* 14 */
 /***/ ((module) => {
 
 function _defineProperties(target, props) {
@@ -3034,15 +2800,15 @@ function _createClass(Constructor, protoProps, staticProps) {
 module.exports = _createClass, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 16 */
+/* 15 */
 /***/ ((module, exports, __webpack_require__) => {
 
-var Minilog = __webpack_require__(17);
+var Minilog = __webpack_require__(16);
 
 var oldEnable = Minilog.enable,
     oldDisable = Minilog.disable,
     isChrome = (typeof navigator != 'undefined' && /chrome/i.test(navigator.userAgent)),
-    console = __webpack_require__(21);
+    console = __webpack_require__(20);
 
 // Use a more capable logging backend if on Chrome
 Minilog.defaultBackend = (isChrome ? console.minilog : console);
@@ -3074,19 +2840,19 @@ Minilog.disable = function() {
 exports = module.exports = Minilog;
 
 exports.backends = {
-  array: __webpack_require__(25),
+  array: __webpack_require__(24),
   browser: Minilog.defaultBackend,
-  localStorage: __webpack_require__(26),
-  jQuery: __webpack_require__(27)
+  localStorage: __webpack_require__(25),
+  jQuery: __webpack_require__(26)
 };
 
 
 /***/ }),
-/* 17 */
+/* 16 */
 /***/ ((module, exports, __webpack_require__) => {
 
-var Transform = __webpack_require__(18),
-    Filter = __webpack_require__(20);
+var Transform = __webpack_require__(17),
+    Filter = __webpack_require__(19);
 
 var log = new Transform(),
     slice = Array.prototype.slice;
@@ -3135,10 +2901,10 @@ exports.enable = function() {
 
 
 /***/ }),
-/* 18 */
+/* 17 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var microee = __webpack_require__(19);
+var microee = __webpack_require__(18);
 
 // Implements a subset of Node's stream.Transform - in a cross-platform manner.
 function Transform() {}
@@ -3213,7 +2979,7 @@ module.exports = Transform;
 
 
 /***/ }),
-/* 19 */
+/* 18 */
 /***/ ((module) => {
 
 function M() { this._events = {}; }
@@ -3269,11 +3035,11 @@ module.exports = M;
 
 
 /***/ }),
-/* 20 */
+/* 19 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 // default filter
-var Transform = __webpack_require__(18);
+var Transform = __webpack_require__(17);
 
 var levelMap = { debug: 1, info: 2, warn: 3, error: 4 };
 
@@ -3331,10 +3097,10 @@ module.exports = Filter;
 
 
 /***/ }),
-/* 21 */
+/* 20 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Transform = __webpack_require__(18);
+var Transform = __webpack_require__(17);
 
 var newlines = /\n+$/,
     logger = new Transform();
@@ -3362,18 +3128,18 @@ logger.write = function(name, level, args) {
 };
 
 logger.formatters = ['color', 'minilog'];
-logger.color = __webpack_require__(22);
-logger.minilog = __webpack_require__(24);
+logger.color = __webpack_require__(21);
+logger.minilog = __webpack_require__(23);
 
 module.exports = logger;
 
 
 /***/ }),
-/* 22 */
+/* 21 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Transform = __webpack_require__(18),
-    color = __webpack_require__(23);
+var Transform = __webpack_require__(17),
+    color = __webpack_require__(22);
 
 var colors = { debug: ['cyan'], info: ['purple' ], warn: [ 'yellow', true ], error: [ 'red', true ] },
     logger = new Transform();
@@ -3393,7 +3159,7 @@ module.exports = logger;
 
 
 /***/ }),
-/* 23 */
+/* 22 */
 /***/ ((module) => {
 
 var hex = {
@@ -3419,11 +3185,11 @@ module.exports = color;
 
 
 /***/ }),
-/* 24 */
+/* 23 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Transform = __webpack_require__(18),
-    color = __webpack_require__(23),
+var Transform = __webpack_require__(17),
+    color = __webpack_require__(22),
     colors = { debug: ['gray'], info: ['purple' ], warn: [ 'yellow', true ], error: [ 'red', true ] },
     logger = new Transform();
 
@@ -3451,10 +3217,10 @@ module.exports = logger;
 
 
 /***/ }),
-/* 25 */
+/* 24 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Transform = __webpack_require__(18),
+var Transform = __webpack_require__(17),
     cache = [ ];
 
 var logger = new Transform();
@@ -3471,10 +3237,10 @@ module.exports = logger;
 
 
 /***/ }),
-/* 26 */
+/* 25 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Transform = __webpack_require__(18),
+var Transform = __webpack_require__(17),
     cache = false;
 
 var logger = new Transform();
@@ -3491,10 +3257,10 @@ logger.write = function(name, level, args) {
 module.exports = logger;
 
 /***/ }),
-/* 27 */
+/* 26 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Transform = __webpack_require__(18);
+var Transform = __webpack_require__(17);
 
 var cid = new Date().valueOf().toString(36);
 
@@ -3571,7 +3337,7 @@ module.exports = AjaxLogger;
 
 
 /***/ }),
-/* 28 */
+/* 27 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 (function (global, factory) {
@@ -4114,7 +3880,7 @@ module.exports = AjaxLogger;
 
 
 /***/ }),
-/* 29 */
+/* 28 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4243,7 +4009,7 @@ function pTimeout(promise, options) {
 
 
 /***/ }),
-/* 30 */
+/* 29 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4252,7 +4018,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "TimeoutError": () => (/* reexport safe */ p_timeout__WEBPACK_IMPORTED_MODULE_0__.TimeoutError),
 /* harmony export */   "default": () => (/* binding */ pWaitFor)
 /* harmony export */ });
-/* harmony import */ var p_timeout__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(29);
+/* harmony import */ var p_timeout__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(28);
 
 
 const resolveValue = Symbol('resolveValue');
@@ -4311,21 +4077,21 @@ pWaitFor.resolveWith = value => ({[resolveValue]: value});
 
 
 /***/ }),
-/* 31 */
+/* 30 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 
-var _interopRequireDefault = __webpack_require__(3);
+var _interopRequireDefault = __webpack_require__(2);
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.blobToBase64 = blobToBase64;
 exports.callStringFunction = callStringFunction;
 exports.deserializeStringFunction = deserializeStringFunction;
-var _regenerator = _interopRequireDefault(__webpack_require__(5));
-var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(13));
+var _regenerator = _interopRequireDefault(__webpack_require__(4));
+var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(12));
 /**
  * Convert a blob object to a base64 uri
  *
@@ -4405,34 +4171,34 @@ function _callStringFunction() {
 }
 
 /***/ }),
-/* 32 */
+/* 31 */
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"name":"cozy-clisk","version":"0.38.1","description":"All the libs needed to run a cozy client connector","repository":{"type":"git","url":"git+https://github.com/konnectors/libs.git"},"files":["dist"],"keywords":["konnector"],"main":"dist/index.js","author":"doubleface <christophe@cozycloud.cc>","license":"MIT","bugs":{"url":"https://github.com/konnectors/libs/issues"},"homepage":"https://github.com/konnectors/libs#readme","scripts":{"lint":"eslint \'src/**/*.js\'","prepublishOnly":"yarn run build","build":"babel --root-mode upward src/ -d dist/ --copy-files --verbose --ignore \'**/*.spec.js\',\'**/*.spec.jsx\'","test":"jest src"},"devDependencies":{"@babel/core":"7.24.0","babel-jest":"29.7.0","babel-preset-cozy-app":"2.1.0","eslint-plugin-import":"^2.29.1","eslint-plugin-jest":"^27.9.0","eslint-plugin-prettier":"^5.1.3","jest":"29.7.0","jest-environment-jsdom":"29.7.0","prettier":"^3.2.5","typescript":"4.9.5"},"dependencies":{"@cozy/minilog":"^1.0.0","bluebird-retry":"^0.11.0","ky":"^0.25.1","lodash":"^4.17.21","microee":"^0.0.6","p-timeout":"^6.0.0","p-wait-for":"^5.0.2","post-me":"^0.4.5"},"peerDependencies":{"cozy-client":">=41.2.0"},"gitHead":"894b685103900216a2023135a3efcc89f89cff78"}');
+module.exports = JSON.parse('{"name":"cozy-clisk","version":"0.38.0","description":"All the libs needed to run a cozy client connector","repository":{"type":"git","url":"git+https://github.com/konnectors/libs.git"},"files":["dist"],"keywords":["konnector"],"main":"dist/index.js","author":"doubleface <christophe@cozycloud.cc>","license":"MIT","bugs":{"url":"https://github.com/konnectors/libs/issues"},"homepage":"https://github.com/konnectors/libs#readme","scripts":{"lint":"eslint \'src/**/*.js\'","prepublishOnly":"yarn run build","build":"babel --root-mode upward src/ -d dist/ --copy-files --verbose --ignore \'**/*.spec.js\',\'**/*.spec.jsx\'","test":"jest src"},"devDependencies":{"@babel/core":"7.24.0","babel-jest":"29.7.0","babel-preset-cozy-app":"2.1.0","eslint-plugin-import":"^2.29.1","eslint-plugin-jest":"^27.9.0","eslint-plugin-prettier":"^5.1.3","jest":"29.7.0","jest-environment-jsdom":"29.7.0","prettier":"^3.2.5","typescript":"4.9.5"},"dependencies":{"@cozy/minilog":"^1.0.0","bluebird-retry":"^0.11.0","ky":"^0.25.1","lodash":"^4.17.21","microee":"^0.0.6","p-timeout":"^6.0.0","p-wait-for":"^5.0.2","post-me":"^0.4.5"},"peerDependencies":{"cozy-client":">=41.2.0"},"gitHead":"8284c6c46d6c9ec8a18a724ca7ec55b117e1a740"}');
 
 /***/ }),
-/* 33 */
+/* 32 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 
-var _interopRequireDefault = __webpack_require__(3);
+var _interopRequireDefault = __webpack_require__(2);
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports["default"] = void 0;
-var _regenerator = _interopRequireDefault(__webpack_require__(5));
-var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(13));
-var _classCallCheck2 = _interopRequireDefault(__webpack_require__(14));
-var _createClass2 = _interopRequireDefault(__webpack_require__(15));
-var _possibleConstructorReturn2 = _interopRequireDefault(__webpack_require__(34));
-var _getPrototypeOf2 = _interopRequireDefault(__webpack_require__(37));
-var _inherits2 = _interopRequireDefault(__webpack_require__(38));
-var _postMe = __webpack_require__(40);
-var _ContentScriptMessenger = _interopRequireDefault(__webpack_require__(41));
-var _bridgeInterfaces = __webpack_require__(42);
+var _regenerator = _interopRequireDefault(__webpack_require__(4));
+var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(12));
+var _classCallCheck2 = _interopRequireDefault(__webpack_require__(13));
+var _createClass2 = _interopRequireDefault(__webpack_require__(14));
+var _possibleConstructorReturn2 = _interopRequireDefault(__webpack_require__(33));
+var _getPrototypeOf2 = _interopRequireDefault(__webpack_require__(36));
+var _inherits2 = _interopRequireDefault(__webpack_require__(37));
+var _postMe = __webpack_require__(39);
+var _ContentScriptMessenger = _interopRequireDefault(__webpack_require__(40));
+var _bridgeInterfaces = __webpack_require__(41);
 function _callSuper(t, o, e) { return o = (0, _getPrototypeOf2.default)(o), (0, _possibleConstructorReturn2.default)(t, _isNativeReflectConstruct() ? Reflect.construct(o, e || [], (0, _getPrototypeOf2.default)(t).constructor) : o.apply(t, e)); }
 function _isNativeReflectConstruct() { try { var t = !Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); } catch (t) {} return (_isNativeReflectConstruct = function _isNativeReflectConstruct() { return !!t; })(); }
 /**
@@ -4492,12 +4258,12 @@ var LauncherBridge = exports["default"] = /*#__PURE__*/function (_Bridge) {
 }(_bridgeInterfaces.Bridge);
 
 /***/ }),
-/* 34 */
+/* 33 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var _typeof = (__webpack_require__(35)["default"]);
+var _typeof = (__webpack_require__(34)["default"]);
 
-var assertThisInitialized = __webpack_require__(36);
+var assertThisInitialized = __webpack_require__(35);
 
 function _possibleConstructorReturn(self, call) {
   if (call && (_typeof(call) === "object" || typeof call === "function")) {
@@ -4512,7 +4278,7 @@ function _possibleConstructorReturn(self, call) {
 module.exports = _possibleConstructorReturn, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 35 */
+/* 34 */
 /***/ ((module) => {
 
 function _typeof(obj) {
@@ -4528,7 +4294,7 @@ function _typeof(obj) {
 module.exports = _typeof, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 36 */
+/* 35 */
 /***/ ((module) => {
 
 function _assertThisInitialized(self) {
@@ -4542,7 +4308,7 @@ function _assertThisInitialized(self) {
 module.exports = _assertThisInitialized, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 37 */
+/* 36 */
 /***/ ((module) => {
 
 function _getPrototypeOf(o) {
@@ -4555,10 +4321,10 @@ function _getPrototypeOf(o) {
 module.exports = _getPrototypeOf, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 38 */
+/* 37 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var setPrototypeOf = __webpack_require__(39);
+var setPrototypeOf = __webpack_require__(38);
 
 function _inherits(subClass, superClass) {
   if (typeof superClass !== "function" && superClass !== null) {
@@ -4581,7 +4347,7 @@ function _inherits(subClass, superClass) {
 module.exports = _inherits, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 39 */
+/* 38 */
 /***/ ((module) => {
 
 function _setPrototypeOf(o, p) {
@@ -4595,7 +4361,7 @@ function _setPrototypeOf(o, p) {
 module.exports = _setPrototypeOf, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 40 */
+/* 39 */
 /***/ (function(module, exports) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -5580,23 +5346,23 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 
 
 /***/ }),
-/* 41 */
+/* 40 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 
-var _interopRequireDefault = __webpack_require__(3);
+var _interopRequireDefault = __webpack_require__(2);
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports["default"] = void 0;
-var _classCallCheck2 = _interopRequireDefault(__webpack_require__(14));
-var _createClass2 = _interopRequireDefault(__webpack_require__(15));
-var _possibleConstructorReturn2 = _interopRequireDefault(__webpack_require__(34));
-var _getPrototypeOf2 = _interopRequireDefault(__webpack_require__(37));
-var _inherits2 = _interopRequireDefault(__webpack_require__(38));
-var _bridgeInterfaces = __webpack_require__(42);
+var _classCallCheck2 = _interopRequireDefault(__webpack_require__(13));
+var _createClass2 = _interopRequireDefault(__webpack_require__(14));
+var _possibleConstructorReturn2 = _interopRequireDefault(__webpack_require__(33));
+var _getPrototypeOf2 = _interopRequireDefault(__webpack_require__(36));
+var _inherits2 = _interopRequireDefault(__webpack_require__(37));
+var _bridgeInterfaces = __webpack_require__(41);
 function _callSuper(t, o, e) { return o = (0, _getPrototypeOf2.default)(o), (0, _possibleConstructorReturn2.default)(t, _isNativeReflectConstruct() ? Reflect.construct(o, e || [], (0, _getPrototypeOf2.default)(t).constructor) : o.apply(t, e)); }
 function _isNativeReflectConstruct() { try { var t = !Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); } catch (t) {} return (_isNativeReflectConstruct = function _isNativeReflectConstruct() { return !!t; })(); } // @ts-check
 /**
@@ -5641,21 +5407,21 @@ var ReactNativeWebviewMessenger = exports["default"] = /*#__PURE__*/function (_M
 }(_bridgeInterfaces.MessengerInterface);
 
 /***/ }),
-/* 42 */
+/* 41 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 
-var _interopRequireDefault = __webpack_require__(3);
+var _interopRequireDefault = __webpack_require__(2);
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.MessengerInterface = exports.Bridge = void 0;
-var _regenerator = _interopRequireDefault(__webpack_require__(5));
-var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(13));
-var _classCallCheck2 = _interopRequireDefault(__webpack_require__(14));
-var _createClass2 = _interopRequireDefault(__webpack_require__(15));
+var _regenerator = _interopRequireDefault(__webpack_require__(4));
+var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(12));
+var _classCallCheck2 = _interopRequireDefault(__webpack_require__(13));
+var _createClass2 = _interopRequireDefault(__webpack_require__(14));
 /* eslint-disable no-unused-vars */
 /**
  * @typedef PostMeConnection
@@ -5815,18 +5581,18 @@ var MessengerInterface = exports.MessengerInterface = /*#__PURE__*/function () {
 }();
 
 /***/ }),
-/* 43 */
+/* 42 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 
-var _interopRequireDefault = __webpack_require__(3);
+var _interopRequireDefault = __webpack_require__(2);
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.dataUriToArrayBuffer = exports.calculateFileKey = void 0;
-var _slicedToArray2 = _interopRequireDefault(__webpack_require__(44));
+var _slicedToArray2 = _interopRequireDefault(__webpack_require__(43));
 /**
  * @typedef ArrayBufferWithContentType
  * @property {string} contentType - dataUri included content type
@@ -5874,16 +5640,16 @@ var calculateFileKey = exports.calculateFileKey = function calculateFileKey(entr
 };
 
 /***/ }),
-/* 44 */
+/* 43 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayWithHoles = __webpack_require__(45);
+var arrayWithHoles = __webpack_require__(44);
 
-var iterableToArrayLimit = __webpack_require__(46);
+var iterableToArrayLimit = __webpack_require__(45);
 
-var unsupportedIterableToArray = __webpack_require__(11);
+var unsupportedIterableToArray = __webpack_require__(10);
 
-var nonIterableRest = __webpack_require__(47);
+var nonIterableRest = __webpack_require__(46);
 
 function _slicedToArray(arr, i) {
   return arrayWithHoles(arr) || iterableToArrayLimit(arr, i) || unsupportedIterableToArray(arr, i) || nonIterableRest();
@@ -5892,7 +5658,7 @@ function _slicedToArray(arr, i) {
 module.exports = _slicedToArray, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 45 */
+/* 44 */
 /***/ ((module) => {
 
 function _arrayWithHoles(arr) {
@@ -5902,7 +5668,7 @@ function _arrayWithHoles(arr) {
 module.exports = _arrayWithHoles, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 46 */
+/* 45 */
 /***/ ((module) => {
 
 function _iterableToArrayLimit(arr, i) {
@@ -5938,7 +5704,7 @@ function _iterableToArrayLimit(arr, i) {
 module.exports = _iterableToArrayLimit, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 47 */
+/* 46 */
 /***/ ((module) => {
 
 function _nonIterableRest() {
@@ -5948,20 +5714,20 @@ function _nonIterableRest() {
 module.exports = _nonIterableRest, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 48 */
+/* 47 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 
-var _interopRequireDefault = __webpack_require__(3);
+var _interopRequireDefault = __webpack_require__(2);
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.wrapTimerFactory = exports.wrapTimer = void 0;
-var _regenerator = _interopRequireDefault(__webpack_require__(5));
-var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(13));
-var _defineProperty2 = _interopRequireDefault(__webpack_require__(49));
+var _regenerator = _interopRequireDefault(__webpack_require__(4));
+var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(12));
+var _defineProperty2 = _interopRequireDefault(__webpack_require__(48));
 function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
 function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { (0, _defineProperty2.default)(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
 /**
@@ -6031,7 +5797,7 @@ var wrapTimer = exports.wrapTimer = function wrapTimer(obj, name) {
  */
 
 /***/ }),
-/* 49 */
+/* 48 */
 /***/ ((module) => {
 
 function _defineProperty(obj, key, value) {
@@ -6052,24 +5818,24 @@ function _defineProperty(obj, key, value) {
 module.exports = _defineProperty, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 50 */
+/* 49 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 
-var _interopRequireDefault = __webpack_require__(3);
+var _interopRequireDefault = __webpack_require__(2);
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports["default"] = void 0;
-var _regenerator = _interopRequireDefault(__webpack_require__(5));
-var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(13));
-var _slicedToArray2 = _interopRequireDefault(__webpack_require__(44));
-var _classCallCheck2 = _interopRequireDefault(__webpack_require__(14));
-var _createClass2 = _interopRequireDefault(__webpack_require__(15));
-var _microee = _interopRequireDefault(__webpack_require__(19));
-var _utils = __webpack_require__(31);
+var _regenerator = _interopRequireDefault(__webpack_require__(4));
+var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(12));
+var _slicedToArray2 = _interopRequireDefault(__webpack_require__(43));
+var _classCallCheck2 = _interopRequireDefault(__webpack_require__(13));
+var _createClass2 = _interopRequireDefault(__webpack_require__(14));
+var _microee = _interopRequireDefault(__webpack_require__(18));
+var _utils = __webpack_require__(30);
 function _createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it.return != null) it.return(); } finally { if (didErr) throw err; } } }; }
 function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
 function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i]; return arr2; } /* eslint no-console: off */
@@ -6354,6 +6120,246 @@ var _default = exports["default"] = RequestInterceptor;
  * @property {'GET'|'POST'|'PUT'|'DELETE'} method - the method of the url to intercept
  * @property {boolean} exact - true if the intercepted url must exactly correspond to the given url
  */
+
+/***/ }),
+/* 50 */
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ SuperContentScript)
+/* harmony export */ });
+/* harmony import */ var cozy_clisk_dist_contentscript__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
+/* harmony import */ var p_wait_for__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(29);
+/* harmony import */ var cozy_clisk_dist_contentscript_utils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(30);
+
+
+
+
+class SuperContentScript extends cozy_clisk_dist_contentscript__WEBPACK_IMPORTED_MODULE_0__.ContentScript {
+  constructor(options = {}) {
+    super(options)
+
+    this.page = new CliskWorker(this)
+    this.launcher = new CliskLauncher(this)
+  }
+
+  async runLocator(locatorJson, method, ...args) {
+    const locator = CssLocator.fromJSON(this, locatorJson, ...args)
+    return locator[method](...args)
+  }
+
+  async downloadFileInWorker(entry) {
+    const { form, ...requestOptions } = entry.requestOptions || {}
+    if (form) {
+      const body = new FormData()
+      for (const [key, value] of Object.entries(form)) {
+        body.set(key, value)
+      }
+      requestOptions.body = body
+    }
+    const response = await fetch(entry.fileurl, requestOptions)
+    if (!response.ok || response.url.includes('error')) {
+      this.launcher.log('warn', 'Failed to download ' + entry.fileurl)
+      return false
+    }
+    entry.blob = await response.blob()
+    entry.dataUri = await (0,cozy_clisk_dist_contentscript_utils__WEBPACK_IMPORTED_MODULE_2__.blobToBase64)(entry.blob)
+    return entry.dataUri
+  }
+
+  async workerWaitFor(fnName, fnString, options = {}, ...args) {
+    const timeout = options.timeout ?? 30000
+    const interval = options.interval ?? 1000
+    await (0,p_wait_for__WEBPACK_IMPORTED_MODULE_1__["default"])(() => this.evaluate(fnString, ...args), {
+      interval,
+      timeout: {
+        milliseconds: timeout,
+        message: new p_wait_for__WEBPACK_IMPORTED_MODULE_1__.TimeoutError(
+          options.errorMsg || fnName + ' timed out after ' + timeout + ' ms'
+        )
+      }
+    })
+    return true
+  }
+}
+
+class CliskWorker {
+  constructor(contentScript) {
+    this.contentScript = contentScript
+  }
+
+  goto(url) {
+    return this.contentScript.goto(url)
+  }
+
+  waitForElement(selector, options) {
+    return this.contentScript.waitForElementInWorker(selector, options)
+  }
+
+  waitFor(fn, options = {}, ...args) {
+    return this.contentScript.runInWorkerUntilTrue({
+      method: 'workerWaitFor',
+      args: [fn.name, fn.toString(), options, ...args]
+    })
+  }
+
+  getByCss(selector, options) {
+    const locator = new CssLocator(this.contentScript, selector, options)
+    return locator
+  }
+
+  show() {
+    return this.contentScript.setWorkerState({ visible: true })
+  }
+
+  hide() {
+    return this.contentScript.setWorkerState({ visible: false })
+  }
+
+  async runLocator(locatorJson, method, ...args) {
+    return this.contentScript.runInWorker(
+      'runLocator',
+      locatorJson,
+      method,
+      ...args
+    )
+  }
+
+  evaluate(...args) {
+    return this.contentScript.evaluateInWorker(...args)
+  }
+
+  fetch(url, options) {
+    return this.contentScript.evaluateInWorker(
+      async function workerFetch(url, options) {
+        const { serialization, ...fetchOptions } = options
+        const response = await fetch(url, fetchOptions)
+        return response[serialization]()
+      },
+      url,
+      options
+    )
+  }
+}
+
+class CliskLauncher {
+  constructor(contentScript) {
+    this.contentScript = contentScript
+  }
+
+  log(level, message) {
+    this.contentScript.log(level, message)
+  }
+}
+
+class CssLocator {
+  constructor(contentScript, selector, options) {
+    this.contentScript = contentScript
+    this.selector = selector
+    this.options = options
+  }
+
+  static fromJSON(contentScript, json) {
+    return new this(contentScript, json.selector, json.options)
+  }
+
+  toJSON() {
+    return { type: 'css', selector: this.selector, options: this.options }
+  }
+
+  _getElements() {
+    return Array.from(document.querySelectorAll(this.selector))
+  }
+
+  async _isPresent() {
+    const elements = this._getElements()
+    return Boolean(elements.length)
+  }
+
+  async isPresent() {
+    return this.contentScript.page.runLocator(this, '_isPresent')
+  }
+
+  async waitFor() {
+    await this.contentScript.waitForElementInWorker(this.selector, {
+      timeout: 10000
+    })
+  }
+
+  async _innerHTML() {
+    const elements = this._getElements()
+    if (elements.length > 1) {
+      throw new Error(
+        'Cannot get _innerHTML of multiple elements. Found ',
+        elements.length
+      )
+    }
+
+    return elements.pop().innerHTML
+  }
+
+  async innerHTML() {
+    await this.waitFor()
+    return this.contentScript.page.runLocator(this, '_innerHTML')
+  }
+
+  async _innerText() {
+    const elements = this._getElements()
+    if (elements.length > 1) {
+      throw new Error(
+        'Cannot get _innerText of multiple elements. Found ',
+        elements.length
+      )
+    }
+
+    return elements.pop().innerText.trim()
+  }
+
+  async innerText() {
+    await this.waitFor()
+    return this.contentScript.page.runLocator(this, '_innerText')
+  }
+
+  async click() {
+    await this.waitFor()
+    return this.contentScript.runInWorker('click', this.selector, this.options)
+  }
+
+  async fillText(text) {
+    await this.waitFor()
+    return this.contentScript.runInWorker('fillText', this.selector, text)
+  }
+
+  async _evaluate(fnString, ...args) {
+    const elements = this._getElements()
+    if (elements.length > 1) {
+      throw new Error(
+        'Cannot evaluate on multiple elements. Found ',
+        elements.length
+      )
+    }
+    return this.contentScript.evaluate(fnString, elements[0], ...args)
+  }
+
+  async evaluate(fn, ...args) {
+    await this.waitFor()
+    return this.contentScript.page.runLocator(
+      this,
+      '_evaluate',
+      fn.toString(),
+      ...args
+    )
+  }
+
+  getAttribute(attr) {
+    return this.evaluate(function getAttribute($el) {
+      return $el.getAttribute(attr)
+    })
+  }
+}
+
 
 /***/ }),
 /* 51 */
@@ -14106,11 +14112,13 @@ var __webpack_exports__ = {};
 (() => {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _SuperContentScript__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
-/* harmony import */ var date_fns_locale_fr__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(132);
-/* harmony import */ var date_fns__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(51);
-/* harmony import */ var date_fns__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(121);
+/* harmony import */ var cozy_clisk_dist_contentscript__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
+/* harmony import */ var _SuperContentScript__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(50);
+/* harmony import */ var date_fns_locale_fr__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(132);
+/* harmony import */ var date_fns__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(51);
+/* harmony import */ var date_fns__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(121);
 /* eslint no-console: off */
+
 
 
 
@@ -14131,7 +14139,17 @@ const messagesUrl =
   baseUrl +
   '/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_messages_recus_page'
 
-class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0__["default"] {
+const requestInterceptor = new cozy_clisk_dist_contentscript__WEBPACK_IMPORTED_MODULE_0__.RequestInterceptor([
+  {
+    identifier: 'javascriptservlet',
+    method: 'POST',
+    url: '/PortailAS/JavaScriptServlet',
+    serialization: 'text'
+  }
+])
+requestInterceptor.init()
+
+class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1__["default"] {
   async gotoLoginForm() {
     this.launcher.log('info', '🤖 gotoLoginForm starts')
     await this.page.goto(baseUrl)
@@ -14213,6 +14231,11 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
       this.launcher.log('info', `User's credential intercepted`)
       const { login, password } = payload
       this.store.userCredentials = { login, password }
+    } else if (
+      event === 'requestResponse' &&
+      payload?.identifier === 'javascriptservlet'
+    ) {
+      this.store.csrfToken = payload.response?.split(':')?.pop()
     }
   }
 
@@ -14238,7 +14261,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
   }
 
   async ensureNotAuthenticated() {
-    this.launcher.log('info', '🤖 ensureNotAuthenticated starts')
+    this.launcher.log('info', '🤖 ensureNotAuthenticated starts beta-2')
     await this.gotoLoginForm()
     const authenticated = await this.page.evaluate(checkAuthenticated)
     if (!authenticated) {
@@ -14255,9 +14278,20 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
     this.launcher.log('info', '🤖 getUserDataFromWebsite starts')
     await this.page.goto(infoUrl)
 
-    const sourceAccountIdentifier = (
-      await this.page.getByCss('.blocNumSecu').innerHTML()
+    await this.page
+      .getByCss(`.blocNumSecu, .boutonComplementaireBlanc[value='Plus tard']`)
+      .waitFor()
+
+    const numsecuLocator = this.page.getByCss('.blocNumSecu')
+    const plusTardLocator = this.page.getByCss(
+      `.boutonComplementaireBlanc[value='Plus tard']`
     )
+    if (await plusTardLocator.isPresent()) {
+      await this.page.goto(infoUrl)
+      await numsecuLocator.waitFor()
+    }
+
+    const sourceAccountIdentifier = (await numsecuLocator.innerHTML())
       .trim()
       .split(' ')
       .join('')
@@ -14317,65 +14351,79 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
     })
 
     const identity = await this.fetchIdentity()
-    await this.saveIdentity(identity)
+    if (identity) {
+      await this.saveIdentity(identity)
+    }
   }
 
   async fetchIdentity() {
     await this.page.goto(infoUrl)
 
-    const givenName = await this.page
-      .getByCss('#idAssure .blocNomPrenom .nom')
-      .innerText()
-    const rawFullName = await this.page
-      .getByCss('#pageAssure .NomEtPrenomLabel')
-      .innerText()
+    try {
+      const givenName = await this.page
+        .getByCss('#idAssure .blocNomPrenom .nom')
+        .innerText()
+      const rawFullName = await this.page
+        .getByCss('#pageAssure .NomEtPrenomLabel')
+        .innerText()
 
-    const familyName = rawFullName.replace(givenName, '').trim()
-    const birthday = (0,date_fns__WEBPACK_IMPORTED_MODULE_1__.parse)(
-      await this.page
-        .getByCss('#idAssure .blocNomPrenom .dateNaissance')
-        .innerText(),
-      'dd/mm/yyyy',
-      new Date()
-    )
-
-    const socialSecurityNumber = (
-      await this.page.getByCss('.blocNumSecu').innerText()
-    ).replace(/\s/g, '')
-
-    const rawAddress = await this.page
-      .getByCss(
-        '[onclick*=as_adresse_postale] > .infoDroite > span:nth-child(1)'
+      const familyName = rawFullName.replace(givenName, '').trim()
+      const birthday = (0,date_fns__WEBPACK_IMPORTED_MODULE_2__.parse)(
+        await this.page
+          .getByCss('#idAssure .blocNomPrenom .dateNaissance')
+          .innerText(),
+        'dd/mm/yyyy',
+        new Date()
       )
-      .innerText()
 
-    let ident = {
-      name: {
-        givenName,
-        familyName
-      },
-      birthday,
-      socialSecurityNumber
+      const socialSecurityNumber = (
+        await this.page.getByCss('.blocNumSecu').innerText()
+      ).replace(/\s/g, '')
+
+      const rawAddress = await this.page
+        .getByCss(
+          '[onclick*=as_adresse_postale] > .infoDroite > span:nth-child(1)'
+        )
+        .innerText()
+
+      let ident = {
+        name: {
+          givenName,
+          familyName
+        },
+        birthday,
+        socialSecurityNumber
+      }
+      if (rawAddress) {
+        const postcode = rawAddress.match(/ \d{5}/)[0].trim()
+        const [street, city] = rawAddress.split(postcode).map(e => e.trim())
+        ident.address = [
+          {
+            formattedAddress: rawAddress,
+            street,
+            postcode,
+            city
+          }
+        ]
+      }
+      // Identity now format as a contact
+      return { contact: ident }
+    } catch (err) {
+      this.launcher.log('warn', 'Failed to fetch identity: ' + err.message)
+      return false
     }
-    if (rawAddress) {
-      const postcode = rawAddress.match(/ \d{5}/)[0].trim()
-      const [street, city] = rawAddress.split(postcode).map(e => e.trim())
-      ident.address = [
-        {
-          formattedAddress: rawAddress,
-          street,
-          postcode,
-          city
-        }
-      ]
-    }
-    // Identity now format as a contact
-    return { contact: ident }
   }
 
   async fetchMessages() {
     await this.page.goto(messagesUrl)
-    await this.page.getByCss('#tableauMessagesRecus tbody tr').waitFor()
+    await this.page
+      .getByCss('#tableauMessagesRecus tbody tr, .r_msg_aucun_message')
+      .waitFor()
+
+    if (await this.page.getByCss('.r_msg_aucun_message').isPresent()) {
+      this.launcher.log('info', 'No message to fetch')
+      return
+    }
 
     const docs = await this.page.evaluate(function parseMessages() {
       const docs = []
@@ -14394,27 +14442,21 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
       return docs
     })
 
-    const tokenResponse = await this.page.fetch(
-      'https://assure.ameli.fr/PortailAS/JavaScriptServlet',
-      {
-        method: 'POST',
-        headers: {
-          'FETCH-CSRF-TOKEN': '1'
-        },
-        serialization: 'text'
-      }
-    )
-    const csrfToken = tokenResponse.split(':').pop()
     const piecesJointes = []
     for (const doc of docs) {
       const html = await this.page.fetch(doc.detailsLink, {
         serialization: 'text'
       })
       document.body.innerHTML = html
+      if (
+        document.body.innerHTML.includes('Service momentanément indisponible.')
+      ) {
+        continue
+      }
       const form = document.querySelector('#pdfSimple')
-      doc.date = (0,date_fns__WEBPACK_IMPORTED_MODULE_1__.parse)(doc.date, 'dd/MM/yy', new Date())
+      doc.date = (0,date_fns__WEBPACK_IMPORTED_MODULE_2__.parse)(doc.date, 'dd/MM/yy', new Date())
       const hash = await this.page.evaluate(hexDigest, doc.vendorRef)
-      const fileprefix = `${(0,date_fns__WEBPACK_IMPORTED_MODULE_2__.format)(
+      const fileprefix = `${(0,date_fns__WEBPACK_IMPORTED_MODULE_3__.format)(
         doc.date,
         'yyyMMdd',
         new Date()
@@ -14423,7 +14465,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
       const fileurl = baseUrl + form.getAttribute('action')
 
       Object.assign(doc, {
-        fileurl: fileurl + `?_ct=${csrfToken}`,
+        fileurl: fileurl + `?_ct=${this.store.csrfToken}`,
         requestOptions: {
           method: 'POST',
           form: {
@@ -14444,7 +14486,8 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
       const pj = document.querySelector('.telechargement_PJ')
       if (pj) {
         piecesJointes.push({
-          fileurl: baseUrl + pj.getAttribute('href') + `?_ct=${csrfToken}`,
+          fileurl:
+            baseUrl + pj.getAttribute('href') + `?_ct=${this.store.csrfToken}`,
           filename: fileprefix + '_PJ.pdf',
           vendorRef: doc.vendorRef + '_PJ',
           fileAttributes: {
@@ -14460,18 +14503,6 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
 
   async fetchBills() {
     await this.page.goto(paiementsUrl)
-
-    const tokenResponse = await this.page.fetch(
-      'https://assure.ameli.fr/PortailAS/JavaScriptServlet',
-      {
-        method: 'POST',
-        headers: {
-          'FETCH-CSRF-TOKEN': '1'
-        },
-        serialization: 'text'
-      }
-    )
-    const csrfToken = tokenResponse.split(':').pop()
 
     await this.page.getByCss('.boutonLigne').waitFor()
     const dates = await this.page.evaluate(function fetchDates() {
@@ -14490,7 +14521,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
         }&Beneficiaire=tout_selectionner&afficherIJ=true&afficherPT=false&afficherInva=false&afficherRentes=false&afficherRS=false&indexPaiement=&idNotif=`,
       {
         headers: {
-          _ct: csrfToken
+          _ct: this.store.csrfToken
         },
         serialization: 'json'
       }
@@ -14504,7 +14535,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
     for (const reimbursement of reimbursements) {
       const detailsHtml = await this.page.fetch(reimbursement.detailsUrl, {
         headers: {
-          _ct: csrfToken
+          _ct: this.store.csrfToken
         },
         serialization: 'text'
       })
@@ -14514,7 +14545,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_0_
   }
 }
 
-const connector = new AmeliContentScript({})
+const connector = new AmeliContentScript({ requestInterceptor })
 connector
   .init({
     additionalExposedMethodsNames: ['runLocator', 'workerWaitFor']
@@ -14544,7 +14575,7 @@ function parseBloc(memo, bloc) {
       ligne.querySelector('.col-montant span').innerText.trim()
     )
     const dateString = `${day} ${month} ${year}`
-    const date = (0,date_fns__WEBPACK_IMPORTED_MODULE_1__.parse)(dateString, 'dd MMM yyyy', new Date(), { locale: date_fns_locale_fr__WEBPACK_IMPORTED_MODULE_3__["default"] })
+    const date = (0,date_fns__WEBPACK_IMPORTED_MODULE_2__.parse)(dateString, 'dd MMM yyyy', new Date(), { locale: date_fns_locale_fr__WEBPACK_IMPORTED_MODULE_4__["default"] })
 
     const tokens = ligne.getAttribute('onclick').split("'")
     const idPaiement = tokens[1]
@@ -14622,7 +14653,7 @@ function parseSoinDetails(html, reimbursement) {
           ?.pop()
           ?.trim()
 
-        date = date ? (0,date_fns__WEBPACK_IMPORTED_MODULE_1__.parse)(date, 'dd/MM/yyyy', new Date()) : undefined
+        date = date ? (0,date_fns__WEBPACK_IMPORTED_MODULE_2__.parse)(date, 'dd/MM/yyyy', new Date()) : undefined
 
         const prestation = tr
           .querySelector('.naturePrestation')
@@ -14659,7 +14690,7 @@ function parseSoinDetails(html, reimbursement) {
         }
 
         let date = tr.querySelector('[id^=dateActePFF]').innerText.trim()
-        date = date ? (0,date_fns__WEBPACK_IMPORTED_MODULE_1__.parse)(date, 'dd/MM/yyyy', new Date()) : undefined
+        date = date ? (0,date_fns__WEBPACK_IMPORTED_MODULE_2__.parse)(date, 'dd/MM/yyyy', new Date()) : undefined
         reimbursement.participation = {
           prestation: tr.querySelector('[id^=naturePFF]').innerText.trim(),
           date,
@@ -14681,7 +14712,7 @@ function parseIndemniteJournaliere(html, reimbursement) {
   if (parsed) {
     const [date, amount] = parsed.slice(1, 3)
     Object.assign(reimbursement, {
-      date: (0,date_fns__WEBPACK_IMPORTED_MODULE_1__.parse)(date, 'dd/MM/YYYY', new Date()),
+      date: (0,date_fns__WEBPACK_IMPORTED_MODULE_2__.parse)(date, 'dd/MM/YYYY', new Date()),
       amount: parseAmount(amount)
     })
   }
@@ -14768,7 +14799,7 @@ function getFileName(reimbursement) {
 
   const nature = natureMap[reimbursement.naturePaiement]
   const amount = reimbursement.groupAmount || reimbursement.amount
-  return `${(0,date_fns__WEBPACK_IMPORTED_MODULE_2__.format)(reimbursement.date, 'yyyyMMdd')}_ameli${
+  return `${(0,date_fns__WEBPACK_IMPORTED_MODULE_3__.format)(reimbursement.date, 'yyyyMMdd')}_ameli${
     nature ? '_' + nature : ''
   }${amount ? '_' + amount.toFixed(2) + 'EUR' : ''}.pdf`
 }
