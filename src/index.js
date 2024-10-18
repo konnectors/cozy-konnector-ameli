@@ -1,5 +1,6 @@
 /* eslint no-console: off */
 
+import { RequestInterceptor } from 'cozy-clisk/dist/contentscript'
 import SuperContentScript from './SuperContentScript'
 import fr from 'date-fns/locale/fr'
 import { parse, format } from 'date-fns'
@@ -18,6 +19,16 @@ const paiementsRequestUrl =
 const messagesUrl =
   baseUrl +
   '/PortailAS/appmanager/PortailAS/assure?_nfpb=true&_pageLabel=as_messages_recus_page'
+
+const requestInterceptor = new RequestInterceptor([
+  {
+    identifier: 'javascriptservlet',
+    method: 'POST',
+    url: '/PortailAS/JavaScriptServlet',
+    serialization: 'text'
+  }
+])
+requestInterceptor.init()
 
 class AmeliContentScript extends SuperContentScript {
   async gotoLoginForm() {
@@ -101,6 +112,11 @@ class AmeliContentScript extends SuperContentScript {
       this.launcher.log('info', `User's credential intercepted`)
       const { login, password } = payload
       this.store.userCredentials = { login, password }
+    } else if (
+      event === 'requestResponse' &&
+      payload?.identifier === 'javascriptservlet'
+    ) {
+      this.store.csrfToken = payload.response?.split(':')?.pop()
     }
   }
 
@@ -126,7 +142,7 @@ class AmeliContentScript extends SuperContentScript {
   }
 
   async ensureNotAuthenticated() {
-    this.launcher.log('info', '🤖 ensureNotAuthenticated starts')
+    this.launcher.log('info', '🤖 ensureNotAuthenticated starts beta-2')
     await this.gotoLoginForm()
     const authenticated = await this.page.evaluate(checkAuthenticated)
     if (!authenticated) {
@@ -143,9 +159,20 @@ class AmeliContentScript extends SuperContentScript {
     this.launcher.log('info', '🤖 getUserDataFromWebsite starts')
     await this.page.goto(infoUrl)
 
-    const sourceAccountIdentifier = (
-      await this.page.getByCss('.blocNumSecu').innerHTML()
+    await this.page
+      .getByCss(`.blocNumSecu, .boutonComplementaireBlanc[value='Plus tard']`)
+      .waitFor()
+
+    const numsecuLocator = this.page.getByCss('.blocNumSecu')
+    const plusTardLocator = this.page.getByCss(
+      `.boutonComplementaireBlanc[value='Plus tard']`
     )
+    if (await plusTardLocator.isPresent()) {
+      await this.page.goto(infoUrl)
+      await numsecuLocator.waitFor()
+    }
+
+    const sourceAccountIdentifier = (await numsecuLocator.innerHTML())
       .trim()
       .split(' ')
       .join('')
@@ -205,65 +232,79 @@ class AmeliContentScript extends SuperContentScript {
     })
 
     const identity = await this.fetchIdentity()
-    await this.saveIdentity(identity)
+    if (identity) {
+      await this.saveIdentity(identity)
+    }
   }
 
   async fetchIdentity() {
     await this.page.goto(infoUrl)
 
-    const givenName = await this.page
-      .getByCss('#idAssure .blocNomPrenom .nom')
-      .innerText()
-    const rawFullName = await this.page
-      .getByCss('#pageAssure .NomEtPrenomLabel')
-      .innerText()
+    try {
+      const givenName = await this.page
+        .getByCss('#idAssure .blocNomPrenom .nom')
+        .innerText()
+      const rawFullName = await this.page
+        .getByCss('#pageAssure .NomEtPrenomLabel')
+        .innerText()
 
-    const familyName = rawFullName.replace(givenName, '').trim()
-    const birthday = parse(
-      await this.page
-        .getByCss('#idAssure .blocNomPrenom .dateNaissance')
-        .innerText(),
-      'dd/mm/yyyy',
-      new Date()
-    )
-
-    const socialSecurityNumber = (
-      await this.page.getByCss('.blocNumSecu').innerText()
-    ).replace(/\s/g, '')
-
-    const rawAddress = await this.page
-      .getByCss(
-        '[onclick*=as_adresse_postale] > .infoDroite > span:nth-child(1)'
+      const familyName = rawFullName.replace(givenName, '').trim()
+      const birthday = parse(
+        await this.page
+          .getByCss('#idAssure .blocNomPrenom .dateNaissance')
+          .innerText(),
+        'dd/mm/yyyy',
+        new Date()
       )
-      .innerText()
 
-    let ident = {
-      name: {
-        givenName,
-        familyName
-      },
-      birthday,
-      socialSecurityNumber
+      const socialSecurityNumber = (
+        await this.page.getByCss('.blocNumSecu').innerText()
+      ).replace(/\s/g, '')
+
+      const rawAddress = await this.page
+        .getByCss(
+          '[onclick*=as_adresse_postale] > .infoDroite > span:nth-child(1)'
+        )
+        .innerText()
+
+      let ident = {
+        name: {
+          givenName,
+          familyName
+        },
+        birthday,
+        socialSecurityNumber
+      }
+      if (rawAddress) {
+        const postcode = rawAddress.match(/ \d{5}/)[0].trim()
+        const [street, city] = rawAddress.split(postcode).map(e => e.trim())
+        ident.address = [
+          {
+            formattedAddress: rawAddress,
+            street,
+            postcode,
+            city
+          }
+        ]
+      }
+      // Identity now format as a contact
+      return { contact: ident }
+    } catch (err) {
+      this.launcher.log('warn', 'Failed to fetch identity: ' + err.message)
+      return false
     }
-    if (rawAddress) {
-      const postcode = rawAddress.match(/ \d{5}/)[0].trim()
-      const [street, city] = rawAddress.split(postcode).map(e => e.trim())
-      ident.address = [
-        {
-          formattedAddress: rawAddress,
-          street,
-          postcode,
-          city
-        }
-      ]
-    }
-    // Identity now format as a contact
-    return { contact: ident }
   }
 
   async fetchMessages() {
     await this.page.goto(messagesUrl)
-    await this.page.getByCss('#tableauMessagesRecus tbody tr').waitFor()
+    await this.page
+      .getByCss('#tableauMessagesRecus tbody tr, .r_msg_aucun_message')
+      .waitFor()
+
+    if (await this.page.getByCss('.r_msg_aucun_message').isPresent()) {
+      this.launcher.log('info', 'No message to fetch')
+      return
+    }
 
     const docs = await this.page.evaluate(function parseMessages() {
       const docs = []
@@ -282,23 +323,17 @@ class AmeliContentScript extends SuperContentScript {
       return docs
     })
 
-    const tokenResponse = await this.page.fetch(
-      'https://assure.ameli.fr/PortailAS/JavaScriptServlet',
-      {
-        method: 'POST',
-        headers: {
-          'FETCH-CSRF-TOKEN': '1'
-        },
-        serialization: 'text'
-      }
-    )
-    const csrfToken = tokenResponse.split(':').pop()
     const piecesJointes = []
     for (const doc of docs) {
       const html = await this.page.fetch(doc.detailsLink, {
         serialization: 'text'
       })
       document.body.innerHTML = html
+      if (
+        document.body.innerHTML.includes('Service momentanément indisponible.')
+      ) {
+        continue
+      }
       const form = document.querySelector('#pdfSimple')
       doc.date = parse(doc.date, 'dd/MM/yy', new Date())
       const hash = await this.page.evaluate(hexDigest, doc.vendorRef)
@@ -311,7 +346,7 @@ class AmeliContentScript extends SuperContentScript {
       const fileurl = baseUrl + form.getAttribute('action')
 
       Object.assign(doc, {
-        fileurl: fileurl + `?_ct=${csrfToken}`,
+        fileurl: fileurl + `?_ct=${this.store.csrfToken}`,
         requestOptions: {
           method: 'POST',
           form: {
@@ -332,7 +367,8 @@ class AmeliContentScript extends SuperContentScript {
       const pj = document.querySelector('.telechargement_PJ')
       if (pj) {
         piecesJointes.push({
-          fileurl: baseUrl + pj.getAttribute('href') + `?_ct=${csrfToken}`,
+          fileurl:
+            baseUrl + pj.getAttribute('href') + `?_ct=${this.store.csrfToken}`,
           filename: fileprefix + '_PJ.pdf',
           vendorRef: doc.vendorRef + '_PJ',
           fileAttributes: {
@@ -348,18 +384,6 @@ class AmeliContentScript extends SuperContentScript {
 
   async fetchBills() {
     await this.page.goto(paiementsUrl)
-
-    const tokenResponse = await this.page.fetch(
-      'https://assure.ameli.fr/PortailAS/JavaScriptServlet',
-      {
-        method: 'POST',
-        headers: {
-          'FETCH-CSRF-TOKEN': '1'
-        },
-        serialization: 'text'
-      }
-    )
-    const csrfToken = tokenResponse.split(':').pop()
 
     await this.page.getByCss('.boutonLigne').waitFor()
     const dates = await this.page.evaluate(function fetchDates() {
@@ -378,7 +402,7 @@ class AmeliContentScript extends SuperContentScript {
         }&Beneficiaire=tout_selectionner&afficherIJ=true&afficherPT=false&afficherInva=false&afficherRentes=false&afficherRS=false&indexPaiement=&idNotif=`,
       {
         headers: {
-          _ct: csrfToken
+          _ct: this.store.csrfToken
         },
         serialization: 'json'
       }
@@ -392,7 +416,7 @@ class AmeliContentScript extends SuperContentScript {
     for (const reimbursement of reimbursements) {
       const detailsHtml = await this.page.fetch(reimbursement.detailsUrl, {
         headers: {
-          _ct: csrfToken
+          _ct: this.store.csrfToken
         },
         serialization: 'text'
       })
@@ -402,7 +426,7 @@ class AmeliContentScript extends SuperContentScript {
   }
 }
 
-const connector = new AmeliContentScript({})
+const connector = new AmeliContentScript({ requestInterceptor })
 connector
   .init({
     additionalExposedMethodsNames: ['runLocator', 'workerWaitFor']

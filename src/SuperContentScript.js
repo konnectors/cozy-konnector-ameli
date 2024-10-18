@@ -25,6 +25,10 @@ export default class SuperContentScript extends ContentScript {
       requestOptions.body = body
     }
     const response = await fetch(entry.fileurl, requestOptions)
+    if (!response.ok || response.url.includes('error')) {
+      this.launcher.log('warn', 'Failed to download ' + entry.fileurl)
+      return false
+    }
     entry.blob = await response.blob()
     entry.dataUri = await blobToBase64(entry.blob)
     return entry.dataUri
@@ -144,7 +148,9 @@ class CssLocator {
   }
 
   async waitFor() {
-    await this.contentScript.waitForElementInWorker(this.selector)
+    await this.contentScript.waitForElementInWorker(this.selector, {
+      timeout: 10000
+    })
   }
 
   async _innerHTML() {
