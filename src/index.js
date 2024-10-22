@@ -225,11 +225,13 @@ class AmeliContentScript extends SuperContentScript {
     })
 
     const messages = await this.fetchMessages()
-    await this.saveFiles(messages, {
-      context,
-      fileIdAttributes: ['vendorRef'],
-      contentType: 'application/pdf'
-    })
+    if (messages) {
+      await this.saveFiles(messages, {
+        context,
+        fileIdAttributes: ['vendorRef'],
+        contentType: 'application/pdf'
+      })
+    }
 
     const identity = await this.fetchIdentity()
     if (identity) {
@@ -303,7 +305,7 @@ class AmeliContentScript extends SuperContentScript {
 
     if (await this.page.getByCss('.r_msg_aucun_message').isPresent()) {
       this.launcher.log('info', 'No message to fetch')
-      return
+      return false
     }
 
     const docs = await this.page.evaluate(function parseMessages() {
