@@ -448,14 +448,14 @@ function parseAmount(amount) {
 }
 
 function parseBloc(memo, bloc) {
-  const year = bloc.querySelector('.rowdate .mois').innerText.split(' ').pop()
+  const year = bloc.querySelector('.rowdate .mois')?.innerText.split(' ').pop()
   const reimbursements = Array.from(
     bloc.querySelectorAll('[id*=lignePaiement]')
   ).map(ligne => {
-    const month = ligne.querySelector('.col-date .mois').innerText.trim()
-    const day = ligne.querySelector('.col-date .jour').innerText.trim()
+    const month = ligne.querySelector('.col-date .mois')?.innerText.trim()
+    const day = ligne.querySelector('.col-date .jour')?.innerText.trim()
     const groupAmount = parseAmount(
-      ligne.querySelector('.col-montant span').innerText.trim()
+      ligne.querySelector('.col-montant span')?.innerText.trim()
     )
     const dateString = `${day} ${month} ${year}`
     const date = parse(dateString, 'dd MMM yyyy', new Date(), { locale: fr })
@@ -519,7 +519,7 @@ function parseSoinDetails(html, reimbursement) {
   for (const container of containers) {
     const beneficiary = container.querySelector('[id^=nomBeneficiaire]')
     if (beneficiary) {
-      currentBeneficiary = beneficiary.innerText.trim()
+      currentBeneficiary = beneficiary?.innerText.trim()
       continue
     }
 
@@ -572,13 +572,13 @@ function parseSoinDetails(html, reimbursement) {
           continue
         }
 
-        let date = tr.querySelector('[id^=dateActePFF]').innerText.trim()
+        let date = tr.querySelector('[id^=dateActePFF]')?.innerText.trim()
         date = date ? parse(date, 'dd/MM/yyyy', new Date()) : undefined
         reimbursement.participation = {
-          prestation: tr.querySelector('[id^=naturePFF]').innerText.trim(),
+          prestation: tr.querySelector('[id^=naturePFF]')?.innerText.trim(),
           date,
           montantVersé: parseAmount(
-            tr.querySelector('[id^=montantVerse]').innerText.trim()
+            tr.querySelector('[id^=montantVerse]')?.innerText.trim()
           )
         }
       }
@@ -590,7 +590,7 @@ function parseIndemniteJournaliere(html, reimbursement) {
   document.body.innerHTML = html
   const parsed = document
     .querySelector('detailpaiement > div > h2')
-    .innerText.match(/Paiement effectué le (.*) pour un montant de (.*) €/)
+    ?.innerText?.match(/Paiement effectué le (.*) pour un montant de (.*) €/)
 
   if (parsed) {
     const [date, amount] = parsed.slice(1, 3)
