@@ -4175,7 +4175,7 @@ function _callStringFunction() {
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"name":"cozy-clisk","version":"0.38.1","description":"All the libs needed to run a cozy client connector","repository":{"type":"git","url":"git+https://github.com/konnectors/libs.git"},"files":["dist"],"keywords":["konnector"],"main":"dist/index.js","author":"doubleface <christophe@cozycloud.cc>","license":"MIT","bugs":{"url":"https://github.com/konnectors/libs/issues"},"homepage":"https://github.com/konnectors/libs#readme","scripts":{"lint":"eslint \'src/**/*.js\'","prepublishOnly":"yarn run build","build":"babel --root-mode upward src/ -d dist/ --copy-files --verbose --ignore \'**/*.spec.js\',\'**/*.spec.jsx\'","test":"jest src"},"devDependencies":{"@babel/core":"7.24.0","babel-jest":"29.7.0","babel-preset-cozy-app":"2.1.0","eslint-plugin-import":"^2.29.1","eslint-plugin-jest":"^27.9.0","eslint-plugin-prettier":"^5.1.3","jest":"29.7.0","jest-environment-jsdom":"29.7.0","prettier":"^3.2.5","typescript":"4.9.5"},"dependencies":{"@cozy/minilog":"^1.0.0","bluebird-retry":"^0.11.0","ky":"^0.25.1","lodash":"^4.17.21","microee":"^0.0.6","p-timeout":"^6.0.0","p-wait-for":"^5.0.2","post-me":"^0.4.5"},"peerDependencies":{"cozy-client":">=41.2.0"},"gitHead":"894b685103900216a2023135a3efcc89f89cff78"}');
+module.exports = JSON.parse('{"name":"cozy-clisk","version":"0.38.0","description":"All the libs needed to run a cozy client connector","repository":{"type":"git","url":"git+https://github.com/konnectors/libs.git"},"files":["dist"],"keywords":["konnector"],"main":"dist/index.js","author":"doubleface <christophe@cozycloud.cc>","license":"MIT","bugs":{"url":"https://github.com/konnectors/libs/issues"},"homepage":"https://github.com/konnectors/libs#readme","scripts":{"lint":"eslint \'src/**/*.js\'","prepublishOnly":"yarn run build","build":"babel --root-mode upward src/ -d dist/ --copy-files --verbose --ignore \'**/*.spec.js\',\'**/*.spec.jsx\'","test":"jest src"},"devDependencies":{"@babel/core":"7.24.0","babel-jest":"29.7.0","babel-preset-cozy-app":"2.1.0","eslint-plugin-import":"^2.29.1","eslint-plugin-jest":"^27.9.0","eslint-plugin-prettier":"^5.1.3","jest":"29.7.0","jest-environment-jsdom":"29.7.0","prettier":"^3.2.5","typescript":"4.9.5"},"dependencies":{"@cozy/minilog":"^1.0.0","bluebird-retry":"^0.11.0","ky":"^0.25.1","lodash":"^4.17.21","microee":"^0.0.6","p-timeout":"^6.0.0","p-wait-for":"^5.0.2","post-me":"^0.4.5"},"peerDependencies":{"cozy-client":">=41.2.0"},"gitHead":"8284c6c46d6c9ec8a18a724ca7ec55b117e1a740"}');
 
 /***/ }),
 /* 32 */
@@ -14567,14 +14567,14 @@ function parseAmount(amount) {
 }
 
 function parseBloc(memo, bloc) {
-  const year = bloc.querySelector('.rowdate .mois').innerText.split(' ').pop()
+  const year = bloc.querySelector('.rowdate .mois')?.innerText.split(' ').pop()
   const reimbursements = Array.from(
     bloc.querySelectorAll('[id*=lignePaiement]')
   ).map(ligne => {
-    const month = ligne.querySelector('.col-date .mois').innerText.trim()
-    const day = ligne.querySelector('.col-date .jour').innerText.trim()
+    const month = ligne.querySelector('.col-date .mois')?.innerText.trim()
+    const day = ligne.querySelector('.col-date .jour')?.innerText.trim()
     const groupAmount = parseAmount(
-      ligne.querySelector('.col-montant span').innerText.trim()
+      ligne.querySelector('.col-montant span')?.innerText.trim()
     )
     const dateString = `${day} ${month} ${year}`
     const date = (0,date_fns__WEBPACK_IMPORTED_MODULE_2__.parse)(dateString, 'dd MMM yyyy', new Date(), { locale: date_fns_locale_fr__WEBPACK_IMPORTED_MODULE_4__["default"] })
@@ -14638,7 +14638,7 @@ function parseSoinDetails(html, reimbursement) {
   for (const container of containers) {
     const beneficiary = container.querySelector('[id^=nomBeneficiaire]')
     if (beneficiary) {
-      currentBeneficiary = beneficiary.innerText.trim()
+      currentBeneficiary = beneficiary?.innerText.trim()
       continue
     }
 
@@ -14691,13 +14691,13 @@ function parseSoinDetails(html, reimbursement) {
           continue
         }
 
-        let date = tr.querySelector('[id^=dateActePFF]').innerText.trim()
+        let date = tr.querySelector('[id^=dateActePFF]')?.innerText.trim()
         date = date ? (0,date_fns__WEBPACK_IMPORTED_MODULE_2__.parse)(date, 'dd/MM/yyyy', new Date()) : undefined
         reimbursement.participation = {
-          prestation: tr.querySelector('[id^=naturePFF]').innerText.trim(),
+          prestation: tr.querySelector('[id^=naturePFF]')?.innerText.trim(),
           date,
           montantVersé: parseAmount(
-            tr.querySelector('[id^=montantVerse]').innerText.trim()
+            tr.querySelector('[id^=montantVerse]')?.innerText.trim()
           )
         }
       }
@@ -14709,7 +14709,7 @@ function parseIndemniteJournaliere(html, reimbursement) {
   document.body.innerHTML = html
   const parsed = document
     .querySelector('detailpaiement > div > h2')
-    .innerText.match(/Paiement effectué le (.*) pour un montant de (.*) €/)
+    ?.innerText?.match(/Paiement effectué le (.*) pour un montant de (.*) €/)
 
   if (parsed) {
     const [date, amount] = parsed.slice(1, 3)
