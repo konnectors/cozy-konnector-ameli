@@ -595,7 +595,7 @@ function parseIndemniteJournaliere(html, reimbursement) {
   if (parsed) {
     const [date, amount] = parsed.slice(1, 3)
     Object.assign(reimbursement, {
-      date: parse(date, 'dd/MM/YYYY', new Date()),
+      date: parse(date, 'dd/MM/yyyy', new Date()),
       amount: parseAmount(amount)
     })
   }
