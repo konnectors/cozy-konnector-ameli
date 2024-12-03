@@ -63,7 +63,13 @@ class AmeliContentScript extends SuperContentScript {
       await this.gotoLoginForm()
       const authenticated = await this.page.evaluate(checkAuthenticated)
       if (!authenticated) {
-        await this.authWithCredentials(credentials)
+        try {
+          await this.authWithCredentials(credentials)
+        } catch (err) {
+          if (err.message === 'LOGIN_FAILED') {
+            await this.waitForUserAuthentication()
+          }
+        }
       }
     }
     return true
@@ -134,7 +140,12 @@ class AmeliContentScript extends SuperContentScript {
       .getByCss('#connexioncompte_2connexion_code')
       .fillText(credentials.password)
     await this.page.getByCss('#id_r_cnx_btn_submit').click()
-    await this.page.getByCss('#blocEnvoyerOTP, .deconnexionButton').waitFor()
+    try {
+      await this.page.getByCss('#blocEnvoyerOTP, .deconnexionButton').waitFor()
+    } catch (err) {
+      this.log('error', err.message)
+      throw new Error('LOGIN_FAILED')
+    }
 
     if (await this.page.getByCss('#blocEnvoyerOTP').isPresent()) {
       await this.waitForUserAuthentication()
