@@ -14170,6 +14170,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
       .getByCss('.deconnexionButton, #connexioncompte_2nir_as')
       .waitFor()
   }
+
   async ensureAuthenticated({ account }) {
     this.launcher.log('info', '🤖 ensureAuthenticated starts')
     this.bridge.addEventListener('workerEvent', this.onWorkerEvent.bind(this))
@@ -14326,6 +14327,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
   }
 
   async fetch(context) {
+    this.launcher.log('info', '📍️ fetch starts')
     if (this.store.userCredentials) {
       await this.saveCredentials(this.store.userCredentials)
     }
@@ -14370,6 +14372,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
   }
 
   async fetchIdentity() {
+    this.launcher.log('info', '📍️ fetchIdentity starts')
     await this.page.goto(infoUrl)
 
     try {
@@ -14428,6 +14431,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
   }
 
   async fetchMessages() {
+    this.launcher.log('info', '📍️ fetchMessages starts')
     await this.page.goto(messagesUrl)
     await this.page
       .getByCss('#tableauMessagesRecus tbody tr, .r_msg_aucun_message')
@@ -14515,8 +14519,8 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
   }
 
   async fetchBills() {
+    this.launcher.log('info', '📍️ fetchBills starts')
     await this.page.goto(paiementsUrl)
-
     await this.page.getByCss('.boutonLigne').waitFor()
     const dates = await this.page.evaluate(function fetchDates() {
       const debut = document
@@ -14568,16 +14572,19 @@ connector
   })
 
 function checkAuthenticated() {
+  this.log('info', '📍️  checkAuthenticated starts')
   return Boolean(document.querySelector('.deconnexionButton'))
 }
 
 function parseAmount(amount) {
+  this.log('info', '📍️  parseAmount starts')
   let result = parseFloat(amount.replace(' €', '').replace(',', '.'))
   if (isNaN(result)) result = 0
   return result
 }
 
 function parseBloc(memo, bloc) {
+  this.log('info', '📍️  parseBloc starts')
   const year = bloc.querySelector('.rowdate .mois')?.innerText.split(' ').pop()
   const reimbursements = Array.from(
     bloc.querySelectorAll('[id*=lignePaiement]')
@@ -14605,6 +14612,8 @@ function parseBloc(memo, bloc) {
 
     let link = ligne.querySelector('.downdetail').getAttribute('href')
     if (!link) {
+      this.log('info', 'No link')
+
       link = ligne.querySelector('[id*=liendowndecompte]').getAttribute('href')
     }
     const lineId = indexGroupe + indexPaiement
@@ -14624,6 +14633,7 @@ function parseBloc(memo, bloc) {
 }
 
 function parseDetails(html, reimbursement) {
+  this.log('info', '📍️  parseDetails starts')
   if (
     reimbursement.naturePaiement === 'PAIEMENT_A_UN_TIERS' ||
     reimbursement.naturePaiement === 'REMBOURSEMENT_SOINS'
@@ -14635,10 +14645,12 @@ function parseDetails(html, reimbursement) {
 }
 
 function parseSoinDetails(html, reimbursement) {
+  this.log('info', '📍️  parseSoinDetails starts')
   document.body.innerHTML = html
   let currentBeneficiary = null
 
   if (reimbursement.link == null) {
+    this.log('info', 'reimbursement.link is null')
     reimbursement.link = document
       .querySelector('.entete [id^=liendowndecompte]')
       .getAttribute('href')
@@ -14717,6 +14729,7 @@ function parseSoinDetails(html, reimbursement) {
 }
 
 function parseIndemniteJournaliere(html, reimbursement) {
+  this.log('info', '📍️  parseIndemniteJournaliere starts')
   document.body.innerHTML = html
   const parsed = document
     .querySelector('detailpaiement > div > h2')
@@ -14733,6 +14746,7 @@ function parseIndemniteJournaliere(html, reimbursement) {
 }
 
 function getHealthCareBills(reimbursements) {
+  this.log('info', '📍️  getHealthCareBills starts')
   const bills = []
   reimbursements
     .filter(r =>
@@ -14804,6 +14818,7 @@ function getHealthCareBills(reimbursements) {
 }
 
 function getFileName(reimbursement) {
+  this.log('info', '📍️  getFileName starts')
   const natureMap = {
     PAIEMENT_A_UN_TIERS: 'tiers_payant',
     REMBOURSEMENT_SOINS: 'remboursement_soins',
