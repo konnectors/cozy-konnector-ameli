@@ -14181,7 +14181,9 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
       await this.waitForUserAuthentication()
     } else {
       await this.gotoLoginForm()
-      const authenticated = await this.page.evaluate(checkAuthenticated)
+      const authenticated = await this.page.evaluate(
+        checkAuthenticated.bind(this)
+      )
       if (!authenticated) {
         try {
           await this.authWithCredentials(credentials)
@@ -14332,7 +14334,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
       await this.saveCredentials(this.store.userCredentials)
     }
     const reimbursements = await this.fetchBills()
-    const entries = await getHealthCareBills(reimbursements)
+    const entries = await getHealthCareBills.bind(this)(reimbursements)
 
     // first save files, then update existingFilesIndex
     // to avoid multiple files downloads for the same file
@@ -14546,7 +14548,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
     document.body.innerHTML = paiementsResponse.tableauPaiement
     const reimbursements = Array.from(
       document.querySelectorAll('.blocParMois')
-    ).reduce(parseBloc, [])
+    ).reduce(parseBloc.bind(this), [])
     reimbursements.sort((a, b) => (+a.date > +b.date ? -1 : 1)) // newest first
 
     for (const reimbursement of reimbursements) {
@@ -14556,7 +14558,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
         },
         serialization: 'text'
       })
-      parseDetails(detailsHtml, reimbursement)
+      parseDetails.bind(this)(detailsHtml, reimbursement)
     }
     return reimbursements
   }
@@ -14638,9 +14640,9 @@ function parseDetails(html, reimbursement) {
     reimbursement.naturePaiement === 'PAIEMENT_A_UN_TIERS' ||
     reimbursement.naturePaiement === 'REMBOURSEMENT_SOINS'
   ) {
-    return parseSoinDetails(html, reimbursement)
+    return parseSoinDetails.bind(this)(html, reimbursement)
   } else if (reimbursement.naturePaiement === 'INDEMNITE_JOURNALIERE_ASSURE') {
-    return parseIndemniteJournaliere(html, reimbursement)
+    return parseIndemniteJournaliere.bind(this)(html, reimbursement)
   }
 }
 
