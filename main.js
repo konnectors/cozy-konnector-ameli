@@ -14277,7 +14277,9 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
   async ensureNotAuthenticated() {
     this.launcher.log('info', '🤖 ensureNotAuthenticated starts beta-2')
     await this.gotoLoginForm()
-    const authenticated = await this.page.evaluate(checkAuthenticated)
+    const authenticated = await this.page.evaluate(
+      checkAuthenticated.bind(this)
+    )
     if (!authenticated) {
       return true
     }
@@ -14324,7 +14326,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
   async waitForUserAuthentication() {
     this.launcher.log('info', 'waitForUserAuthentication starts')
     await this.page.show()
-    await this.page.waitFor(checkAuthenticated)
+    await this.page.waitFor(checkAuthenticated.bind(this))
     await this.page.hide()
   }
 
@@ -14579,7 +14581,6 @@ function checkAuthenticated() {
 }
 
 function parseAmount(amount) {
-  this.log('info', '📍️  parseAmount starts')
   let result = parseFloat(amount.replace(' €', '').replace(',', '.'))
   if (isNaN(result)) result = 0
   return result
@@ -14820,7 +14821,6 @@ function getHealthCareBills(reimbursements) {
 }
 
 function getFileName(reimbursement) {
-  this.log('info', '📍️  getFileName starts')
   const natureMap = {
     PAIEMENT_A_UN_TIERS: 'tiers_payant',
     REMBOURSEMENT_SOINS: 'remboursement_soins',
