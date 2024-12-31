@@ -14201,13 +14201,26 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
     if (document.readyState !== 'loading') {
       this.launcher.log('info', 'readyState')
       this.watchLoginForm.bind(this)()
+      this.watchCampagneElement.bind(this)()
     } else {
       window.addEventListener('DOMContentLoaded', () => {
         this.launcher.log('info', 'DOMLoaded')
         this.watchLoginForm.bind(this)()
+        this.watchCampagneElement.bind(this)()
       })
     }
   }
+  watchCampagneElement() {
+    this.launcher.log('info', '📍️ watchCampagneElement starts')
+    const modaleClosingButton = document.querySelector(
+      '#idBoutonFermerFenetreModale'
+    )
+    if (modaleClosingButton) {
+      this.launcher.log('info', 'Found openend campagne modal, closing it')
+      modaleClosingButton.click()
+    }
+  }
+
   watchLoginForm() {
     this.launcher.log('info', '📍️ watchLoginForm starts')
     const loginField = document.querySelector('#connexioncompte_2nir_as')
@@ -14326,7 +14339,7 @@ class AmeliContentScript extends _SuperContentScript__WEBPACK_IMPORTED_MODULE_1_
   async waitForUserAuthentication() {
     this.launcher.log('info', 'waitForUserAuthentication starts')
     await this.page.show()
-    await this.page.waitFor(checkAuthenticated.bind(this))
+    await this.page.waitFor(checkAuthenticated)
     await this.page.hide()
   }
 
@@ -14576,7 +14589,7 @@ connector
   })
 
 function checkAuthenticated() {
-  this.log('info', '📍️  checkAuthenticated starts')
+  console.log('info', '📍️  checkAuthenticated starts')
   return Boolean(document.querySelector('.deconnexionButton'))
 }
 
