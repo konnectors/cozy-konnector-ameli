@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@cozy/minilog": "1.0.0",
-    "cozy-clisk": "^0.38.2",
+    "cozy-clisk": "^0.40.0",
     "date-fns": "4.1.0",
     "p-wait-for": "5.0.2"
   },
@@ -29,6 +29,6 @@
     "initGithubAction": "./bin/init_github_action"
   },
   "devDependencies": {
-    "cozy-konnector-build": "^1.7.0"
+    "cozy-konnector-build": "^1.8.0"
   }
 }
