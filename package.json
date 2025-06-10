@@ -26,7 +26,7 @@
     "watch": "webpack --watch",
     "deploy": "git-directory-deploy --directory build/ --branch ${DEPLOY_BRANCH:-build} --repo=${DEPLOY_REPOSITORY:-$npm_package_repository_url}",
     "cozyPublish": "cozy-app-publish --token $REGISTRY_TOKEN --build-commit $(git rev-parse ${DEPLOY_BRANCH:-build})",
-    "travisDeployKey": "./bin/generate_travis_deploy_key"
+    "initGithubAction": "./bin/init_github_action"
   },
   "devDependencies": {
     "cozy-konnector-build": "^1.7.0"
