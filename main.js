@@ -14626,7 +14626,7 @@ function parseBloc(memo, bloc) {
 &indexPaiement=${indexPaiement}\
 &idNoCache=${Date.now()}`
 
-    let link = ligne.querySelector('.downdetail').getAttribute('href')
+    let link = ligne.querySelector('.downdetail')?.getAttribute('href')
     if (!link) {
       this.log('info', 'No link')
 
