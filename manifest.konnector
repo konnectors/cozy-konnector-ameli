@@ -6,7 +6,7 @@
   "icon": "icon.svg",
   "slug": "ameli",
   "source": "git@github.com:konnectors/cozy-konnector-ameli.git",
-  "editor": "Cozy",
+  "editor": "briced",
   "vendor_link": "https://assure.ameli.fr/PortailAS/appmanager/PortailAS/assure",
   "categories": [
     "public_service"
