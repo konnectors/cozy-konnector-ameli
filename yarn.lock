@@ -2035,15 +2035,14 @@ cozy-app-publish@0.33.0:
     tar "^6.1.11"
     verror "^1.10.1"
 
-cozy-clisk@^0.40.0:
-  version "0.40.0"
-  resolved "https://registry.yarnpkg.com/cozy-clisk/-/cozy-clisk-0.40.0.tgz#55854f6f9da99d9e11e7c93a7bd66ca77dc4d799"
-  integrity sha512-zN7eRqjkzfws24FQFugY6Taw8phxNCrGqUytcr4L2SpiFIx65iq0K5GdhvEcvBtf/6agc+NoowR8tX7veYgUvQ==
+cozy-clisk@^0.42.0:
+  version "0.42.0"
+  resolved "https://registry.yarnpkg.com/cozy-clisk/-/cozy-clisk-0.42.0.tgz#55b595e8320919600bc8991f023a85debc71c4e5"
+  integrity sha512-pPUD0XUlfPuXjJ+LH9KAOx6cEmnyp5zaUheo+9bAjjmA6gBZxjLQJy0zuBr9P1gvytdewy0OYyeMVaNX7zFtIw==
   dependencies:
     "@cozy/minilog" "^1.0.0"
     "@rrweb/record" "^2.0.0-alpha.18"
     bluebird-retry "^0.11.0"
-    ky "^0.25.1"
     lodash "^4.17.21"
     microee "^0.0.6"
     p-timeout "^6.0.0"
@@ -3334,11 +3333,6 @@ kind-of@^6.0.2:
   version "6.0.3"
   resolved "https://registry.yarnpkg.com/kind-of/-/kind-of-6.0.3.tgz#07c05034a6c349fa06e24fa35aa76db4580ce4dd"
   integrity sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==
-
-ky@^0.25.1:
-  version "0.25.1"
-  resolved "https://registry.yarnpkg.com/ky/-/ky-0.25.1.tgz#0df0bd872a9cc57e31acd5dbc1443547c881bfbc"
-  integrity sha512-PjpCEWlIU7VpiMVrTwssahkYXX1by6NCT0fhTUX34F3DTinARlgMpriuroolugFPcMgpPWrOW4mTb984Qm1RXA==
 
 levn@^0.4.1:
   version "0.4.1"
