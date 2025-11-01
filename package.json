@@ -10,7 +10,7 @@
     "@cozy/minilog": "1.0.0",
     "cozy-clisk": "^0.40.0",
     "date-fns": "4.1.0",
-    "p-wait-for": "5.0.2"
+    "p-wait-for": "6.0.0"
   },
   "eslintConfig": {
     "extends": [
